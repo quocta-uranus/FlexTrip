@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# env files (never commit these)
+.env
+.env.*
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
