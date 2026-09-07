@@ -206,6 +206,30 @@ FlexTrip/
 
 ---
 
+## Git workflow
+
+Branch chính:
+- `main` — production, chỉ merge từ `develop` khi release
+- `develop` — branch phát triển chính, **tất cả member đều checkout từ đây**
+
+Quy trình làm việc:
+```bash
+# Lấy code mới nhất từ develop
+git checkout develop
+git pull origin develop
+
+# Tạo branch cho feature/bugfix của mình
+git checkout -b feat/BOOK-03
+# hoặc
+git checkout -b fix/AUTH-02
+
+# Sau khi xong thì tạo Pull Request vào develop, không push thẳng lên develop
+```
+
+Đặt tên branch theo use case ID: `feat/<ID>` hoặc `fix/<ID>` (ví dụ: `feat/LIST-01`, `fix/AUTH-04`).
+
+---
+
 ## Lưu ý cho team
 
 - **Node 20 bắt buộc** — `nvm use 20` trước khi chạy bất kỳ lệnh nào. Cả `fe/` và `be/` đều có `.nvmrc` nên `nvm use` (không cần ghi số) cũng chạy được.
