@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const bodyFont = Plus_Jakarta_Sans({
+  variable: "--font-sans",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const headingFont = Manrope({
+  variable: "--font-heading",
+  subsets: ["latin", "vietnamese"],
+  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -22,10 +24,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+      <body
+        className="has-travel-bg min-h-full flex flex-col"
+        style={{
+          backgroundImage: "url('/travel-bg.svg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundColor: "#7dd3fc",
+        }}
+      >
+        {/* Wrapper giữ layout flex, không che background */}
+        <div className="relative min-h-full flex flex-col">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );
