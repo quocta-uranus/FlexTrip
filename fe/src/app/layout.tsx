@@ -24,20 +24,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body
-        className="has-travel-bg min-h-full flex flex-col"
-        style={{
-          backgroundImage: "url('/travel-bg.svg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundColor: "#7dd3fc",
-        }}
-      >
-        {/* Wrapper giữ layout flex, không che background */}
-        <div className="relative min-h-full flex flex-col">
-          <Providers>{children}</Providers>
-        </div>
+      <body className="min-h-full flex flex-col">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
