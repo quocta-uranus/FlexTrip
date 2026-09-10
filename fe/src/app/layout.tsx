@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
-import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const bodyFont = Plus_Jakarta_Sans({
-  variable: "--font-sans",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
-const headingFont = Manrope({
-  variable: "--font-heading",
-  subsets: ["latin", "vietnamese"],
-  weight: ["600", "700", "800"],
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="vi"
-      className={`${bodyFont.variable} ${headingFont.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
         className="has-travel-bg min-h-full flex flex-col"
