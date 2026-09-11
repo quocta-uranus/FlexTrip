@@ -221,6 +221,24 @@ export class AuthService {
     return this.signTokens(user);
   }
 
+  async logout(token: string): Promise<void> {
+    let payload: { sub?: unknown };
+    try {
+      payload = await this.jwt.verifyAsync<{ sub?: unknown }>(token, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+        algorithms: ['HS256'],
+        ignoreExpiration: true,
+      });
+    } catch {
+      return;
+    }
+    if (typeof payload.sub !== 'string') return;
+    await this.prisma.user.updateMany({
+      where: { id: payload.sub, refreshToken: token },
+      data: { refreshToken: null },
+    });
+  }
+
   private assertCanAuthenticate(user: AuthUser): void {
     if (user.status !== UserStatus.ACTIVE)
       throw new ForbiddenException({ code: 'ACCOUNT_NOT_ACTIVE' });

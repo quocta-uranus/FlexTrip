@@ -87,4 +87,19 @@ export class AuthController {
   refresh(@Body() dto: RefreshDto): Promise<AuthTokens> {
     return this.authService.refresh(dto.refreshToken);
   }
+
+  @Post('logout')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'AUTH-02: Revoke the current refresh token',
+  })
+  @ApiResponse({
+    status: 204,
+    description:
+      'Logout is idempotent and does not disclose whether the token existed',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid request body' })
+  async logout(@Body() dto: RefreshDto): Promise<void> {
+    await this.authService.logout(dto.refreshToken);
+  }
 }
