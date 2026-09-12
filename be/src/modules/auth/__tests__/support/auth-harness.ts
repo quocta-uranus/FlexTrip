@@ -57,6 +57,9 @@ export class AuthHarness {
     );
     process.env.TWO_FACTOR_CHALLENGE_SECRET =
       'auth04-test-challenge-secret-32-characters';
+    process.env.KYC_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
+    process.env.KYC_FINGERPRINT_SECRET =
+      'auth05-test-fingerprint-secret-32-characters';
     this.mail.sendVerification.mockResolvedValue(undefined);
     this.mail.sendPasswordReset.mockResolvedValue(undefined);
     const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -77,6 +80,7 @@ export class AuthHarness {
     this.auth = module.get(AuthService);
     this.jwt = module.get(JwtService);
     this.config = module.get(ConfigService);
+    await this.prisma.kycApplication.deleteMany();
     await this.prisma.passwordResetToken.deleteMany();
     await this.prisma.verificationToken.deleteMany();
     await this.prisma.userRole.deleteMany();
