@@ -18,6 +18,18 @@ enum UserStatus {
   DISABLED
 }
 
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KycDocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVER_LICENSE
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -78,18 +90,47 @@ model User {
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 
-  listings            Listing[]
-  bookings            Booking[]            @relation("TravelerBookings")
-  sentMessages        Message[]            @relation("SentMessages")
-  notifications       Notification[]
-  reviewsGiven        Review[]             @relation("ReviewsGiven")
-  reviewsReceived     Review[]             @relation("ReviewsReceived")
-  conversations       ConversationMember[]
-  roles               UserRole[]
-  verificationTokens  VerificationToken[]
-  passwordResetTokens PasswordResetToken[]
+  listings                Listing[]
+  bookings                Booking[]            @relation("TravelerBookings")
+  sentMessages            Message[]            @relation("SentMessages")
+  notifications           Notification[]
+  reviewsGiven            Review[]             @relation("ReviewsGiven")
+  reviewsReceived         Review[]             @relation("ReviewsReceived")
+  conversations           ConversationMember[]
+  roles                   UserRole[]
+  verificationTokens      VerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  kycApplications         KycApplication[]     @relation("KycApplicant")
+  reviewedKycApplications KycApplication[]     @relation("KycReviewer")
 
   @@index([email])
+}
+
+model KycApplication {
+  id                        String          @id @default(cuid())
+  userId                    String
+  legalName                 String
+  documentType              KycDocumentType
+  documentNumberEncrypted   String
+  documentNumberFingerprint String          @unique
+  documentNumberLast4       String
+  documentFrontUrl          String
+  documentBackUrl           String?
+  selfieUrl                 String
+  status                    KycStatus       @default(PENDING)
+  rejectionReason           String?
+  reviewedAt                DateTime?
+  reviewedById              String?
+  submittedAt               DateTime        @default(now())
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  applicant User  @relation("KycApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer  User? @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, submittedAt])
+  @@index([reviewedById])
 }
 
 model PasswordResetToken {
