@@ -1,4 +1,0 @@
-ALTER TABLE "User"
-ADD COLUMN "twoFactorEnabled" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN "twoFactorSecret" TEXT,
-ADD COLUMN "twoFactorRecoveryCodes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

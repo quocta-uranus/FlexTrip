@@ -12,24 +12,6 @@ enum Role {
   ADMIN
 }
 
-enum UserStatus {
-  ACTIVE
-  SUSPENDED
-  DISABLED
-}
-
-enum KycStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum KycDocumentType {
-  NATIONAL_ID
-  PASSPORT
-  DRIVER_LICENSE
-}
-
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -72,99 +54,28 @@ enum NotificationType {
 // ─── User & Auth ─────────────────────────────────────────────────────────────
 
 model User {
-  id                       String     @id @default(cuid())
-  email                    String     @unique
-  password                 String
-  name                     String
-  phone                    String?
-  avatarUrl                String?
-  status                   UserStatus @default(ACTIVE)
-  emailVerifiedAt          DateTime?
-  verificationRequestedAt  DateTime?
-  passwordResetRequestedAt DateTime?
-  isKycVerified            Boolean    @default(false)
-  refreshToken             String?
-  twoFactorEnabled         Boolean    @default(false)
-  twoFactorSecret          String?
-  twoFactorRecoveryCodes   String[]   @default([])
-  createdAt                DateTime   @default(now())
-  updatedAt                DateTime   @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  avatarUrl     String?
+  role          Role      @default(TRAVELER)
+  isVerified    Boolean   @default(false)
+  isKycVerified Boolean   @default(false)
+  refreshToken  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  listings                Listing[]
-  bookings                Booking[]            @relation("TravelerBookings")
-  sentMessages            Message[]            @relation("SentMessages")
-  notifications           Notification[]
-  reviewsGiven            Review[]             @relation("ReviewsGiven")
-  reviewsReceived         Review[]             @relation("ReviewsReceived")
-  conversations           ConversationMember[]
-  roles                   UserRole[]
-  verificationTokens      VerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  kycApplications         KycApplication[]     @relation("KycApplicant")
-  reviewedKycApplications KycApplication[]     @relation("KycReviewer")
+  listings            Listing[]
+  bookings            Booking[]            @relation("TravelerBookings")
+  sentMessages        Message[]            @relation("SentMessages")
+  notifications       Notification[]
+  reviewsGiven        Review[]             @relation("ReviewsGiven")
+  reviewsReceived     Review[]             @relation("ReviewsReceived")
+  conversations       ConversationMember[]
 
   @@index([email])
-}
-
-model KycApplication {
-  id                        String          @id @default(cuid())
-  userId                    String
-  legalName                 String
-  documentType              KycDocumentType
-  documentNumberEncrypted   String
-  documentNumberFingerprint String          @unique
-  documentNumberLast4       String
-  documentFrontUrl          String
-  documentBackUrl           String?
-  selfieUrl                 String
-  status                    KycStatus       @default(PENDING)
-  rejectionReason           String?
-  reviewedAt                DateTime?
-  reviewedById              String?
-  submittedAt               DateTime        @default(now())
-  createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
-
-  applicant User  @relation("KycApplicant", fields: [userId], references: [id], onDelete: Cascade)
-  reviewer  User? @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@index([userId, status])
-  @@index([status, submittedAt])
-  @@index([reviewedById])
-}
-
-model PasswordResetToken {
-  id            String    @id @default(cuid())
-  userId        String
-  tokenHash     String    @unique
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
-  usedAt        DateTime?
-  invalidatedAt DateTime?
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model UserRole {
-  userId String
-  role   Role
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, role])
-}
-
-model VerificationToken {
-  id            String    @id @default(cuid())
-  userId        String
-  tokenHash     String    @unique
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
-  usedAt        DateTime?
-  invalidatedAt DateTime?
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
 
 // ─── Listing ─────────────────────────────────────────────────────────────────
@@ -186,9 +97,9 @@ model Listing {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  provider User      @relation(fields: [providerId], references: [id])
-  bookings Booking[]
-  reviews  Review[]
+  provider    User          @relation(fields: [providerId], references: [id])
+  bookings    Booking[]
+  reviews     Review[]
 
   @@index([providerId])
   @@index([status])
@@ -209,10 +120,10 @@ model Booking {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
-  traveler User      @relation("TravelerBookings", fields: [travelerId], references: [id])
-  listing  Listing   @relation(fields: [listingId], references: [id])
-  payment  Payment?
-  contract Contract?
+  traveler   User          @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing    Listing       @relation(fields: [listingId], references: [id])
+  payment    Payment?
+  contract   Contract?
 
   @@index([travelerId])
   @@index([listingId])
@@ -233,7 +144,7 @@ model Payment {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+  booking         Booking       @relation(fields: [bookingId], references: [id])
 
   @@index([status])
 }
@@ -251,41 +162,41 @@ model Contract {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+  booking       Booking        @relation(fields: [bookingId], references: [id])
 }
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
 
 model Conversation {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String               @id @default(cuid())
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
-  members  ConversationMember[]
-  messages Message[]
+  members   ConversationMember[]
+  messages  Message[]
 }
 
 model ConversationMember {
   userId         String
   conversationId String
-  joinedAt       DateTime @default(now())
+  joinedAt       DateTime     @default(now())
 
-  user         User         @relation(fields: [userId], references: [id])
-  conversation Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
 
   @@id([userId, conversationId])
 }
 
 model Message {
-  id             String   @id @default(cuid())
-  content        String   @db.Text
-  isRead         Boolean  @default(false)
+  id             String       @id @default(cuid())
+  content        String       @db.Text
+  isRead         Boolean      @default(false)
   senderId       String
   conversationId String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 
-  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
-  conversation Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
 
   @@index([conversationId])
   @@index([senderId])
@@ -303,7 +214,7 @@ model Notification {
   data      Json?
   createdAt DateTime         @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([isRead])
@@ -320,9 +231,9 @@ model Review {
   listingId String?
   createdAt DateTime @default(now())
 
-  author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
-  target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])
-  listing Listing? @relation(fields: [listingId], references: [id])
+  author    User     @relation("ReviewsGiven", fields: [authorId], references: [id])
+  target    User     @relation("ReviewsReceived", fields: [targetId], references: [id])
+  listing   Listing? @relation(fields: [listingId], references: [id])
 
   @@index([listingId])
   @@index([targetId])
