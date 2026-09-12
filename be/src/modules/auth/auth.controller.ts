@@ -5,6 +5,9 @@ import {
   HttpCode,
   UseGuards,
   Req,
+  Delete,
+  Param,
+  Get,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
@@ -92,8 +95,15 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'AUTH-02: Login (active, verified accounts only)' })
-  login(@Body() dto: LoginDto): Promise<LoginResult> {
-    return this.authService.login(dto);
+  login(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: LoginDto,
+  ): Promise<LoginResult> {
+    return this.authService.login(dto, {
+      deviceName: dto.deviceName,
+      userAgent: request.get('user-agent'),
+      ipAddress: request.ip,
+    });
   }
 
   @Post('refresh')
@@ -118,6 +128,37 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid request body' })
   async logout(@Body() dto: RefreshDto): Promise<void> {
     await this.authService.logout(dto.refreshToken);
+  }
+
+  @Get('sessions')
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-06: List active sessions and devices' })
+  sessions(@Req() request: AuthenticatedRequest) {
+    return this.authService.listSessions(
+      request.authUserId,
+      request.authSessionId,
+    );
+  }
+
+  @Delete('sessions/others')
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-06: Revoke every other active session' })
+  revokeOthers(@Req() request: AuthenticatedRequest) {
+    return this.authService.revokeOtherSessions(
+      request.authUserId,
+      request.authSessionId,
+    );
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(204)
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-06: Revoke one owned session' })
+  async revokeSession(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.authService.revokeSession(request.authUserId, id);
   }
 
   @Post('forgot-password')

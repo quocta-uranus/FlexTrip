@@ -90,12 +90,13 @@ describe('Group 4 — Integration', () => {
         .expect(403);
       await h.post('login', { email, password }).expect(403);
     });
-    it('rejects wrong credentials, invalid signature, expired, replaced and unknown-user refresh tokens', async () => {
+    it('supports independent sessions and rejects invalid or rotated refresh tokens', async () => {
       const { token, email, userId } = await h.register();
       await h.auth.verifyEmail(token);
       await h.post('login', { email, password: 'wrong-password' }).expect(401);
       const login = await h.auth.login({ email, password });
       const replacement = await h.auth.login({ email, password });
+      await h.post('refresh', { refreshToken: login.refreshToken }).expect(200);
       await h.post('refresh', { refreshToken: login.refreshToken }).expect(401);
       const secret = h.config.getOrThrow<string>('JWT_REFRESH_SECRET');
       const expired = await h.jwt.signAsync(
