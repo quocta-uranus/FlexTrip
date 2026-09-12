@@ -60,19 +60,20 @@ enum NotificationType {
 // ─── User & Auth ─────────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String
-  phone         String?
-  avatarUrl     String?
-  status        UserStatus @default(ACTIVE)
-  emailVerifiedAt DateTime?
-  verificationRequestedAt DateTime?
-  isKycVerified Boolean   @default(false)
-  refreshToken  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                       String     @id @default(cuid())
+  email                    String     @unique
+  password                 String
+  name                     String
+  phone                    String?
+  avatarUrl                String?
+  status                   UserStatus @default(ACTIVE)
+  emailVerifiedAt          DateTime?
+  verificationRequestedAt  DateTime?
+  passwordResetRequestedAt DateTime?
+  isKycVerified            Boolean    @default(false)
+  refreshToken             String?
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
 
   listings            Listing[]
   bookings            Booking[]            @relation("TravelerBookings")
@@ -83,27 +84,41 @@ model User {
   conversations       ConversationMember[]
   roles               UserRole[]
   verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
 }
 
+model PasswordResetToken {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 model UserRole {
   userId String
-  role Role
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, role])
 }
 
 model VerificationToken {
-  id String @id @default(cuid())
-  userId String
-  tokenHash String @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  usedAt DateTime?
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  usedAt        DateTime?
   invalidatedAt DateTime?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -127,9 +142,9 @@ model Listing {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  provider    User          @relation(fields: [providerId], references: [id])
-  bookings    Booking[]
-  reviews     Review[]
+  provider User      @relation(fields: [providerId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
 
   @@index([providerId])
   @@index([status])
@@ -150,10 +165,10 @@ model Booking {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
-  traveler   User          @relation("TravelerBookings", fields: [travelerId], references: [id])
-  listing    Listing       @relation(fields: [listingId], references: [id])
-  payment    Payment?
-  contract   Contract?
+  traveler User      @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing  Listing   @relation(fields: [listingId], references: [id])
+  payment  Payment?
+  contract Contract?
 
   @@index([travelerId])
   @@index([listingId])
@@ -174,7 +189,7 @@ model Payment {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  booking         Booking       @relation(fields: [bookingId], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id])
 
   @@index([status])
 }
@@ -192,41 +207,41 @@ model Contract {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  booking       Booking        @relation(fields: [bookingId], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id])
 }
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
 
 model Conversation {
-  id        String               @id @default(cuid())
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  members   ConversationMember[]
-  messages  Message[]
+  members  ConversationMember[]
+  messages Message[]
 }
 
 model ConversationMember {
   userId         String
   conversationId String
-  joinedAt       DateTime     @default(now())
+  joinedAt       DateTime @default(now())
 
-  user           User         @relation(fields: [userId], references: [id])
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
 
   @@id([userId, conversationId])
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  content        String       @db.Text
-  isRead         Boolean      @default(false)
+  id             String   @id @default(cuid())
+  content        String   @db.Text
+  isRead         Boolean  @default(false)
   senderId       String
   conversationId String
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime @default(now())
 
-  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
 
   @@index([conversationId])
   @@index([senderId])
@@ -244,7 +259,7 @@ model Notification {
   data      Json?
   createdAt DateTime         @default(now())
 
-  user      User             @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([isRead])
@@ -261,9 +276,9 @@ model Review {
   listingId String?
   createdAt DateTime @default(now())
 
-  author    User     @relation("ReviewsGiven", fields: [authorId], references: [id])
-  target    User     @relation("ReviewsReceived", fields: [targetId], references: [id])
-  listing   Listing? @relation(fields: [listingId], references: [id])
+  author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
+  target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])
+  listing Listing? @relation(fields: [listingId], references: [id])
 
   @@index([listingId])
   @@index([targetId])

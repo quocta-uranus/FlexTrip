@@ -16,6 +16,7 @@ import { MailService } from './mail.service';
 
 export const VERIFICATION_TTL_MS = 30 * 60 * 1000;
 export const RESEND_COOLDOWN_MS = 60 * 1000;
+export const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
 const BCRYPT_ROUNDS = 10;
 const AUTH_USER_INCLUDE = { roles: true } as const;
 type AuthUser = Prisma.UserGetPayload<{ include: typeof AUTH_USER_INCLUDE }>;
@@ -239,6 +240,100 @@ export class AuthService {
     });
   }
 
+  async forgotPassword(email: string): Promise<{ code: string }> {
+    const delivery = await this.prisma.$transaction(async (tx) => {
+      const candidate = await tx.user.findUnique({
+        where: { email },
+        include: { roles: true },
+      });
+      if (!candidate) return null;
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${candidate.id} FOR UPDATE`;
+      const user = await tx.user.findUnique({
+        where: { id: candidate.id },
+        include: { roles: true },
+      });
+      const now = new Date();
+      const eligible = user?.roles.some(
+        ({ role }) => role === Role.TRAVELER || role === Role.PROVIDER,
+      );
+      if (
+        !user ||
+        !eligible ||
+        (user.passwordResetRequestedAt &&
+          now.getTime() - user.passwordResetRequestedAt.getTime() <
+            RESEND_COOLDOWN_MS)
+      )
+        return null;
+      const token = randomBytes(32).toString('hex');
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordResetRequestedAt: now },
+      });
+      await tx.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: this.hashToken(token),
+          createdAt: now,
+          expiresAt: new Date(now.getTime() + PASSWORD_RESET_TTL_MS),
+        },
+      });
+      return { userId: user.id, email: user.email, token };
+    });
+    if (delivery)
+      await this.deliverReset(delivery.userId, delivery.email, delivery.token);
+    return { code: 'PASSWORD_RESET_REQUEST_ACCEPTED' };
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ code: string }> {
+    const tokenHash = this.hashToken(token);
+    const password = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.$transaction(async (tx) => {
+      const candidate = await tx.passwordResetToken.findUnique({
+        where: { tokenHash },
+      });
+      if (!candidate) throw this.invalidResetToken();
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${candidate.userId} FOR UPDATE`;
+      const current = await tx.passwordResetToken.findUnique({
+        where: { tokenHash },
+      });
+      const now = new Date();
+      if (
+        !current ||
+        current.usedAt ||
+        current.invalidatedAt ||
+        current.expiresAt <= now
+      )
+        throw this.invalidResetToken();
+      const consumed = await tx.passwordResetToken.updateMany({
+        where: {
+          id: current.id,
+          usedAt: null,
+          invalidatedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      });
+      if (consumed.count !== 1) throw this.invalidResetToken();
+      await tx.user.update({
+        where: { id: current.userId },
+        data: { password, refreshToken: null },
+      });
+      await tx.passwordResetToken.updateMany({
+        where: {
+          userId: current.userId,
+          id: { not: current.id },
+          usedAt: null,
+          invalidatedAt: null,
+        },
+        data: { invalidatedAt: now },
+      });
+    });
+    return { code: 'PASSWORD_RESET_SUCCESS' };
+  }
+
   private assertCanAuthenticate(user: AuthUser): void {
     if (user.status !== UserStatus.ACTIVE)
       throw new ForbiddenException({ code: 'ACCOUNT_NOT_ACTIVE' });
@@ -303,6 +398,10 @@ export class AuthService {
     return new BadRequestException({ code: 'INVALID_VERIFICATION_TOKEN' });
   }
 
+  private invalidResetToken(): BadRequestException {
+    return new BadRequestException({ code: 'INVALID_PASSWORD_RESET_TOKEN' });
+  }
+
   private async deliver(
     userId: string,
     email: string,
@@ -319,6 +418,22 @@ export class AuthService {
         userId,
       });
       return false;
+    }
+  }
+
+  private async deliverReset(
+    userId: string,
+    email: string,
+    token: string,
+  ): Promise<void> {
+    try {
+      await this.mail.sendPasswordReset(email, token);
+    } catch {
+      console.error({
+        event: 'password_reset_email_send_failed',
+        code: 'SMTP_SEND_FAILED',
+        userId,
+      });
     }
   }
 }

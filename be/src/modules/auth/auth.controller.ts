@@ -11,11 +11,14 @@ import {
   RefreshDto,
   RegisterDto,
   VerifyEmailDto,
+  ResetPasswordDto,
 } from './dto';
 import {
   RegisterRateLimitGuard,
   ResendRateLimitGuard,
   VerifyRateLimitGuard,
+  ForgotPasswordRateLimitGuard,
+  ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
 
 @ApiTags('auth')
@@ -101,5 +104,24 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid request body' })
   async logout(@Body() dto: RefreshDto): Promise<void> {
     await this.authService.logout(dto.refreshToken);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(202)
+  @UseGuards(ForgotPasswordRateLimitGuard)
+  @ApiOperation({ summary: 'AUTH-03: Request a password reset email' })
+  @ApiResponse({ status: 202, description: 'Generic accepted response' })
+  forgotPassword(@Body() dto: EmailDto): Promise<{ code: string }> {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @UseGuards(ResetPasswordRateLimitGuard)
+  @ApiOperation({ summary: 'AUTH-03: Reset password with a single-use token' })
+  @ApiResponse({ status: 200, description: 'Password reset; sign in again' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<{ code: string }> {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }

@@ -50,3 +50,13 @@ export class ResendRateLimitGuard extends AuthRateLimitGuard {
 export class VerifyRateLimitGuard extends AuthRateLimitGuard {
   protected readonly limit = 10;
 }
+
+@Injectable()
+export class ForgotPasswordRateLimitGuard extends AuthRateLimitGuard {
+  protected readonly limit = 5;
+}
+
+@Injectable()
+export class ResetPasswordRateLimitGuard extends AuthRateLimitGuard {
+  protected readonly limit = 10;
+}

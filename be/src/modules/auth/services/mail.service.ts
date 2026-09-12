@@ -23,15 +23,39 @@ export class MailService {
   ) {}
 
   async sendVerification(email: string, token: string): Promise<void> {
+    return this.sendLink(
+      email,
+      token,
+      'EMAIL_VERIFICATION_URL',
+      'Verify your FlexTrip email',
+      'Confirm your email within 30 minutes: ',
+    );
+  }
+
+  async sendPasswordReset(email: string, token: string): Promise<void> {
+    return this.sendLink(
+      email,
+      token,
+      'PASSWORD_RESET_URL',
+      'Reset your FlexTrip password',
+      'Reset your password within 30 minutes: ',
+    );
+  }
+
+  private async sendLink(
+    email: string,
+    token: string,
+    urlConfigKey: string,
+    subject: string,
+    instruction: string,
+  ): Promise<void> {
     const host = this.config.getOrThrow<string>('SMTP_HOST');
     const port = Number(this.config.getOrThrow<string>('SMTP_PORT'));
     const secure = this.config.get<string>('SMTP_SECURE', 'false') === 'true';
     const user = this.config.getOrThrow<string>('SMTP_USER');
     const pass = this.config.getOrThrow<string>('SMTP_PASSWORD');
     const from = this.config.getOrThrow<string>('SMTP_FROM');
-    const url = new URL(
-      this.config.getOrThrow<string>('EMAIL_VERIFICATION_URL'),
-    );
+    const url = new URL(this.config.getOrThrow<string>(urlConfigKey));
     if (
       !['http:', 'https:'].includes(url.protocol) ||
       !host ||
@@ -57,9 +81,9 @@ export class MailService {
       const result = await transport.sendMail({
         from,
         to: email,
-        subject: 'Verify your FlexTrip email',
+        subject,
         text:
-          'Confirm your email within 30 minutes: ' +
+          instruction +
           url.toString() +
           '\nIf you did not request this, ignore this email.',
       });
