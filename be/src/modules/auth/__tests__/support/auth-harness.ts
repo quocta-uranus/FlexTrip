@@ -52,6 +52,11 @@ export class AuthHarness {
     process.env.JWT_REFRESH_SECRET = 'auth01-test-refresh-secret-32-characters';
     process.env.JWT_ACCESS_EXPIRES = '15m';
     process.env.JWT_REFRESH_EXPIRES = '7d';
+    process.env.TWO_FACTOR_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString(
+      'base64',
+    );
+    process.env.TWO_FACTOR_CHALLENGE_SECRET =
+      'auth04-test-challenge-secret-32-characters';
     this.mail.sendVerification.mockResolvedValue(undefined);
     this.mail.sendPasswordReset.mockResolvedValue(undefined);
     const module = await Test.createTestingModule({ imports: [AppModule] })

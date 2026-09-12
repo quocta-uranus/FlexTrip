@@ -1,8 +1,16 @@
-import { Controller, Post, Body, HttpCode, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   AuthService,
   AuthTokens,
+  LoginResult,
   RegistrationResult,
 } from './services/auth.service';
 import {
@@ -12,6 +20,8 @@ import {
   RegisterDto,
   VerifyEmailDto,
   ResetPasswordDto,
+  TwoFactorCodeDto,
+  TwoFactorLoginDto,
 } from './dto';
 import {
   RegisterRateLimitGuard,
@@ -20,6 +30,10 @@ import {
   ForgotPasswordRateLimitGuard,
   ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
+import {
+  AccessTokenGuard,
+  AuthenticatedRequest,
+} from './guards/access-token.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -78,7 +92,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'AUTH-02: Login (active, verified accounts only)' })
-  login(@Body() dto: LoginDto): Promise<AuthTokens> {
+  login(@Body() dto: LoginDto): Promise<LoginResult> {
     return this.authService.login(dto);
   }
 
@@ -123,5 +137,39 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   resetPassword(@Body() dto: ResetPasswordDto): Promise<{ code: string }> {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Post('2fa/setup')
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-04: Create a TOTP setup secret' })
+  setupTwoFactor(@Req() request: AuthenticatedRequest) {
+    return this.authService.setupTwoFactor(request.authUserId);
+  }
+
+  @Post('2fa/enable')
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-04: Enable TOTP and issue recovery codes' })
+  enableTwoFactor(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: TwoFactorCodeDto,
+  ) {
+    return this.authService.enableTwoFactor(request.authUserId, dto.code);
+  }
+
+  @Post('2fa/verify')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'AUTH-04: Complete a two-factor login challenge' })
+  verifyTwoFactor(@Body() dto: TwoFactorLoginDto): Promise<AuthTokens> {
+    return this.authService.verifyTwoFactorLogin(dto.challengeToken, dto.code);
+  }
+
+  @Post('2fa/disable')
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'AUTH-04: Disable TOTP and revoke refresh token' })
+  disableTwoFactor(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: TwoFactorCodeDto,
+  ) {
+    return this.authService.disableTwoFactor(request.authUserId, dto.code);
   }
 }

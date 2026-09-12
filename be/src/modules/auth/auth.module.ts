@@ -13,6 +13,7 @@ import {
   ForgotPasswordRateLimitGuard,
   ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
+import { AccessTokenGuard } from './guards/access-token.guard';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import {
     VerifyRateLimitGuard,
     ForgotPasswordRateLimitGuard,
     ResetPasswordRateLimitGuard,
+    AccessTokenGuard,
   ],
   exports: [AuthService, JwtModule],
 })

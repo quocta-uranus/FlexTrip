@@ -4,3 +4,4 @@ export { RefreshDto } from './refresh.dto';
 export { RegisterDto } from './register.dto';
 export { ResetPasswordDto } from './reset-password.dto';
 export { VerifyEmailDto } from './verify-email.dto';
+export { TwoFactorCodeDto, TwoFactorLoginDto } from './two-factor.dto';

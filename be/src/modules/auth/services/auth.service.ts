@@ -8,7 +8,14 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, Role, UserStatus } from '@prisma/client';
-import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  timingSafeEqual,
+} from 'crypto';
+import * as speakeasy from 'speakeasy';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RegisterDto, LoginDto } from '../dto';
@@ -24,6 +31,12 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
+export type LoginResult =
+  | AuthTokens
+  | ({ requiresTwoFactor: true; challengeToken: string } & Record<
+      'accessToken' | 'refreshToken',
+      never
+    >);
 export interface RegistrationResult {
   code:
     | 'REGISTRATION_PENDING_VERIFICATION'
@@ -183,7 +196,7 @@ export class AuthService {
     return { code: 'VERIFICATION_EMAIL_REQUEST_ACCEPTED' };
   }
 
-  async login(dto: LoginDto): Promise<AuthTokens> {
+  async login(dto: LoginDto): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: AUTH_USER_INCLUDE,
@@ -191,7 +204,143 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(dto.password, user.password)))
       throw new UnauthorizedException('Invalid credentials');
     this.assertCanAuthenticate(user);
+    if (user.twoFactorEnabled) {
+      return {
+        requiresTwoFactor: true,
+        challengeToken: await this.jwt.signAsync(
+          { sub: user.id, purpose: '2fa-login' },
+          {
+            secret: this.config.getOrThrow<string>(
+              'TWO_FACTOR_CHALLENGE_SECRET',
+            ),
+            expiresIn: '5m',
+          },
+        ),
+      } as LoginResult;
+    }
     return this.signTokens(user);
+  }
+
+  async setupTwoFactor(
+    userId: string,
+  ): Promise<{ secret: string; otpauthUrl: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: AUTH_USER_INCLUDE,
+    });
+    if (!user) throw new UnauthorizedException();
+    this.assertCanAuthenticate(user);
+    this.assertTwoFactorEligible(user);
+    const generated = speakeasy.generateSecret({
+      name: `FlexTrip:${user.email}`,
+      issuer: 'FlexTrip',
+      length: 20,
+    });
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        twoFactorSecret: this.encryptSecret(generated.base32),
+        twoFactorEnabled: false,
+        twoFactorRecoveryCodes: [],
+      },
+    });
+    return { secret: generated.base32, otpauthUrl: generated.otpauth_url! };
+  }
+
+  async enableTwoFactor(
+    userId: string,
+    code: string,
+  ): Promise<{ code: string; recoveryCodes: string[] }> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: AUTH_USER_INCLUDE,
+    });
+    this.assertCanAuthenticate(user);
+    this.assertTwoFactorEligible(user);
+    if (!user.twoFactorSecret || !this.verifyTotp(user.twoFactorSecret, code))
+      throw new BadRequestException({ code: 'INVALID_TWO_FACTOR_CODE' });
+    const recoveryCodes = Array.from({ length: 8 }, () => {
+      const value = randomBytes(4).toString('hex').toUpperCase();
+      return `${value.slice(0, 4)}-${value.slice(4)}`;
+    });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorRecoveryCodes: recoveryCodes.map((value) =>
+          this.hashToken(value),
+        ),
+      },
+    });
+    return { code: 'TWO_FACTOR_ENABLED', recoveryCodes };
+  }
+
+  async verifyTwoFactorLogin(
+    challengeToken: string,
+    code: string,
+  ): Promise<AuthTokens> {
+    let payload: { sub?: unknown; purpose?: unknown };
+    try {
+      payload = await this.jwt.verifyAsync(challengeToken, {
+        secret: this.config.getOrThrow<string>('TWO_FACTOR_CHALLENGE_SECRET'),
+        algorithms: ['HS256'],
+      });
+    } catch {
+      throw new UnauthorizedException({ code: 'INVALID_TWO_FACTOR_CHALLENGE' });
+    }
+    if (typeof payload.sub !== 'string' || payload.purpose !== '2fa-login')
+      throw new UnauthorizedException({ code: 'INVALID_TWO_FACTOR_CHALLENGE' });
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: AUTH_USER_INCLUDE,
+    });
+    if (!user) throw new UnauthorizedException();
+    this.assertCanAuthenticate(user);
+    if (
+      !user.twoFactorEnabled ||
+      !user.twoFactorSecret ||
+      !(await this.consumeTwoFactorCode(
+        user.id,
+        user.twoFactorSecret,
+        user.twoFactorRecoveryCodes,
+        code,
+      ))
+    )
+      throw new UnauthorizedException({ code: 'INVALID_TWO_FACTOR_CODE' });
+    return this.signTokens(user);
+  }
+
+  async disableTwoFactor(
+    userId: string,
+    code: string,
+  ): Promise<{ code: string }> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: AUTH_USER_INCLUDE,
+    });
+    this.assertCanAuthenticate(user);
+    this.assertTwoFactorEligible(user);
+    if (
+      !user.twoFactorEnabled ||
+      !user.twoFactorSecret ||
+      !(await this.consumeTwoFactorCode(
+        user.id,
+        user.twoFactorSecret,
+        user.twoFactorRecoveryCodes,
+        code,
+      ))
+    )
+      throw new BadRequestException({ code: 'INVALID_TWO_FACTOR_CODE' });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorRecoveryCodes: [],
+        refreshToken: null,
+      },
+    });
+    return { code: 'TWO_FACTOR_DISABLED' };
   }
 
   async refresh(token: string): Promise<AuthTokens> {
@@ -346,6 +495,15 @@ export class AuthService {
       throw new ForbiddenException({ code: 'ACCOUNT_ROLES_INVALID' });
   }
 
+  private assertTwoFactorEligible(user: AuthUser): void {
+    if (
+      !user.roles.some(
+        ({ role }) => role === Role.TRAVELER || role === Role.PROVIDER,
+      )
+    )
+      throw new ForbiddenException({ code: 'TWO_FACTOR_NOT_AVAILABLE' });
+  }
+
   private async signTokens(user: AuthUser): Promise<AuthTokens> {
     const payload = {
       sub: user.id,
@@ -400,6 +558,70 @@ export class AuthService {
 
   private invalidResetToken(): BadRequestException {
     return new BadRequestException({ code: 'INVALID_PASSWORD_RESET_TOKEN' });
+  }
+
+  private encryptionKey(): Buffer {
+    const key = Buffer.from(
+      this.config.getOrThrow<string>('TWO_FACTOR_ENCRYPTION_KEY'),
+      'base64',
+    );
+    if (key.length !== 32) throw new Error('Invalid TWO_FACTOR_ENCRYPTION_KEY');
+    return key;
+  }
+
+  private encryptSecret(secret: string): string {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.encryptionKey(), iv);
+    const encrypted = Buffer.concat([
+      cipher.update(secret, 'utf8'),
+      cipher.final(),
+    ]);
+    return [iv, cipher.getAuthTag(), encrypted]
+      .map((value) => value.toString('base64'))
+      .join('.');
+  }
+
+  private decryptSecret(value: string): string {
+    const [iv, tag, encrypted] = value
+      .split('.')
+      .map((part) => Buffer.from(part, 'base64'));
+    const decipher = createDecipheriv('aes-256-gcm', this.encryptionKey(), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]).toString('utf8');
+  }
+
+  private verifyTotp(secret: string, code: string): boolean {
+    if (!/^\d{6}$/.test(code)) return false;
+    return speakeasy.totp.verify({
+      secret: this.decryptSecret(secret),
+      encoding: 'base32',
+      token: code,
+      window: 1,
+    });
+  }
+
+  private async consumeTwoFactorCode(
+    userId: string,
+    secret: string,
+    recoveryHashes: string[],
+    code: string,
+  ): Promise<boolean> {
+    if (this.verifyTotp(secret, code)) return true;
+    const normalized = code.toUpperCase();
+    const hash = this.hashToken(normalized);
+    if (!recoveryHashes.includes(hash)) return false;
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, twoFactorRecoveryCodes: { has: hash } },
+      data: {
+        twoFactorRecoveryCodes: {
+          set: recoveryHashes.filter((value) => value !== hash),
+        },
+      },
+    });
+    return result.count === 1;
   }
 
   private async deliver(
