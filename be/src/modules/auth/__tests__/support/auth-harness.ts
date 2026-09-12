@@ -42,6 +42,8 @@ export class AuthHarness {
   mail = {
     sendVerification:
       jest.fn<(email: string, token: string) => Promise<void>>(),
+    sendPasswordReset:
+      jest.fn<(email: string, token: string) => Promise<void>>(),
   };
 
   async open(): Promise<void> {
@@ -51,6 +53,7 @@ export class AuthHarness {
     process.env.JWT_ACCESS_EXPIRES = '15m';
     process.env.JWT_REFRESH_EXPIRES = '7d';
     this.mail.sendVerification.mockResolvedValue(undefined);
+    this.mail.sendPasswordReset.mockResolvedValue(undefined);
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(MailService)
       .useValue(this.mail)
@@ -69,6 +72,7 @@ export class AuthHarness {
     this.auth = module.get(AuthService);
     this.jwt = module.get(JwtService);
     this.config = module.get(ConfigService);
+    await this.prisma.passwordResetToken.deleteMany();
     await this.prisma.verificationToken.deleteMany();
     await this.prisma.userRole.deleteMany();
     await this.prisma.user.deleteMany();

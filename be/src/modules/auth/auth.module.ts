@@ -10,6 +10,8 @@ import {
   RegisterRateLimitGuard,
   ResendRateLimitGuard,
   VerifyRateLimitGuard,
+  ForgotPasswordRateLimitGuard,
+  ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
 
 @Module({
@@ -31,6 +33,8 @@ import {
     RegisterRateLimitGuard,
     ResendRateLimitGuard,
     VerifyRateLimitGuard,
+    ForgotPasswordRateLimitGuard,
+    ResetPasswordRateLimitGuard,
   ],
   exports: [AuthService, JwtModule],
 })
