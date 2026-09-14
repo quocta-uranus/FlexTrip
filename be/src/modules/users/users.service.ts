@@ -1,0 +1,65 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Role } from '@prisma/client';
+import { UpdateUserDto } from './users.dto';
+
+@Injectable()
+export class UsersService {
+  constructor(private prisma: PrismaService) {}
+
+  async getMe(userId: string) {
+    const u = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { roles: true, kycApplications: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    });
+    if (!u) throw new NotFoundException('User not found');
+    return this.publicProfile(u);
+  }
+
+  async updateMe(userId: string, dto: UpdateUserDto) {
+    await this.prisma.user.update({ where: { id: userId }, data: dto });
+    return this.getMe(userId);
+  }
+
+  async addRole(userId: string, role: Role) {
+    return this.prisma.userRole.upsert({
+      where: { userId_role: { userId, role } },
+      create: { userId, role },
+      update: {},
+    });
+  }
+
+  async removeRole(userId: string, role: Role) {
+    return this.prisma.userRole.delete({ where: { userId_role: { userId, role } } });
+  }
+
+  async sessions(userId: string) {
+    return this.prisma.authSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    return this.prisma.authSession
+      .update({ where: { id: sessionId }, data: { revokedAt: new Date() } })
+      .catch(() => { throw new NotFoundException('Session not found'); });
+  }
+
+  private publicProfile(u: any) {
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      phone: u.phone,
+      avatarUrl: u.avatarUrl,
+      preferredLanguage: u.preferredLanguage,
+      status: u.status,
+      roles: (u.roles ?? []).map((r: { role: Role }) => r.role),
+      twoFactorEnabled: u.twoFactorEnabled,
+      isKycVerified: u.isKycVerified,
+      kycStatus: u.kycApplications?.[0]?.status ?? null,
+      createdAt: u.createdAt,
+    };
+  }
+}

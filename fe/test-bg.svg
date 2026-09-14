@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <!-- B§u trÝi gradient -->
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bae6fd"/>
+      <stop offset="40%" stop-color="#7dd3fc"/>
+      <stop offset="70%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#075985"/>
+    </linearGradient>
+    <linearGradient id="mountain1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="mountain2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="60%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1920" height="600" fill="url(#sky)"/>
+
+  <!-- Sun glow -->
+  <circle cx="1500" cy="280" r="300" fill="url(#sun)" opacity="0.7"/>
+
+  <!-- Far mountains (lighter) -->
+  <path d="M0 600 L120 480 L260 540 L380 460 L520 520 L660 440 L800 500 L940 420 L1080 480 L1220 400 L1360 470 L1500 390 L1640 460 L1780 400 L1920 460 L1920 600 Z" fill="url(#mountain2)" opacity="0.85"/>
+
+  <!-- Near mountains (darker, sharper) -->
+  <path d="M0 600 L80 540 L200 580 L320 500 L440 560 L560 460 L700 540 L820 480 L940 540 L1060 440 L1200 520 L1320 460 L1460 540 L1580 470 L1720 540 L1840 480 L1920 520 L1920 600 Z" fill="url(#mountain1)"/>
+
+  <!-- Sea -->
+  <rect y="600" width="1920" height="480" fill="url(#sea)"/>
+
+  <!-- Sea waves (subtle horizontal lines) -->
+  <path d="M0 720 Q480 700 960 720 T1920 720" stroke="#7dd3fc" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M0 770 Q480 750 960 770 T1920 770" stroke="#bae6fd" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M0 830 Q480 810 960 830 T1920 830" stroke="#7dd3fc" stroke-width="2" fill="none" opacity="0.4"/>
+  <path d="M0 890 Q480 870 960 890 T1920 890" stroke="#bae6fd" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M0 950 Q480 930 960 950 T1920 950" stroke="#7dd3fc" stroke-width="2" fill="none" opacity="0.4"/>
+
+  <!-- Sun reflection on water -->
+  <ellipse cx="1500" cy="700" rx="200" ry="8" fill="#fde68a" opacity="0.6"/>
+  <ellipse cx="1500" cy="750" rx="160" ry="5" fill="#fde68a" opacity="0.5"/>
+  <ellipse cx="1500" cy="800" rx="120" ry="4" fill="#fde68a" opacity="0.4"/>
+
+  <!-- Small boat -->
+  <g transform="translate(800, 780)">
+    <path d="M0 0 L60 0 L55 12 L5 12 Z" fill="#1e293b"/>
+    <rect x="28" y="-25" width="2" height="25" fill="#1e293b"/>
+    <path d="M30 -25 L30 -5 L48 -5 Z" fill="#fef3c7"/>
+  </g>
+
+  <!-- Birds -->
+  <g fill="#1e293b" opacity="0.6">
+    <path d="M400 240 Q410 230 420 240 Q430 230 440 240" stroke="#1e293b" stroke-width="2" fill="none"/>
+    <path d="M480 200 Q490 190 500 200 Q510 190 520 200" stroke="#1e293b" stroke-width="2" fill="none"/>
+    <path d="M560 260 Q570 250 580 260 Q590 250 600 260" stroke="#1e293b" stroke-width="2" fill="none"/>
+  </g>
+</svg>

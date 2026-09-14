@@ -230,10 +230,44 @@ git checkout -b fix/AUTH-02
 
 ---
 
+## Workflow sau khi pull code từ team member
+
+Khi pull code về mà member có thêm bảng / cột mới trong Prisma:
+
+```bash
+git pull origin develop
+
+cd be
+
+# Áp các migration mới vào DB local (KHÔNG tạo migration mới)
+npx prisma migrate deploy
+
+# Regenerate Prisma Client để TypeScript nhận kiểu mới
+npx prisma generate
+```
+
+> **Phân biệt 2 lệnh migration:**
+>
+> | Lệnh | Dùng khi nào |
+> |------|-------------|
+> | `npx prisma migrate deploy` | Pull code về — áp migration **của người khác** |
+> | `npx prisma migrate dev --name <ten>` | **Bạn** vừa sửa `schema.prisma` — tạo migration mới |
+
+**Nếu DB local bị lỗi / muốn reset sạch:**
+
+```bash
+# Xóa toàn bộ data → chạy lại mọi migration từ đầu
+npx prisma migrate reset
+```
+
+> Cảnh báo: lệnh này xóa hết data local. Chỉ dùng khi dev.
+
+---
+
 ## Lưu ý cho team
 
 - **Node 20 bắt buộc** — `nvm use 20` trước khi chạy bất kỳ lệnh nào. Cả `fe/` và `be/` đều có `.nvmrc` nên `nvm use` (không cần ghi số) cũng chạy được.
 - **`--legacy-peer-deps`** cho BE — do một số package chưa khai báo peer dep đầy đủ, cần flag này khi `npm install`.
-- **Prisma migration** — mỗi khi sửa `schema.prisma`, chạy `npx prisma migrate dev --name <ten>` rồi commit cả file migration vào git.
+- **Prisma migration** — mỗi khi sửa `schema.prisma`, chạy `npx prisma migrate dev --name <ten>` rồi commit cả file migration vào git. Khi pull code của người khác, dùng `npx prisma migrate deploy`.
 - **`.env` không commit** — file `.env` và `.env.local` đã có trong `.gitignore`. Dùng `env.example` làm template khi onboard member mới.
 - **Swagger** — BE expose docs tại `http://localhost:3001/api/docs`. FE dev nên xem đây trước khi gọi API.
