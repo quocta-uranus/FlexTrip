@@ -3,7 +3,17 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
+import { MailService, SMTP_TRANSPORT_FACTORY } from './services/mail.service';
+import { createTransport } from 'nodemailer';
+import {
+  RegisterRateLimitGuard,
+  ResendRateLimitGuard,
+  VerifyRateLimitGuard,
+  ForgotPasswordRateLimitGuard,
+  ResetPasswordRateLimitGuard,
+} from './guards/rate-limit.guard';
+import { AccessTokenGuard } from './guards/access-token.guard';
 
 @Module({
   imports: [
@@ -17,7 +27,17 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [
+    AuthService,
+    MailService,
+    { provide: SMTP_TRANSPORT_FACTORY, useValue: createTransport },
+    RegisterRateLimitGuard,
+    ResendRateLimitGuard,
+    VerifyRateLimitGuard,
+    ForgotPasswordRateLimitGuard,
+    ResetPasswordRateLimitGuard,
+    AccessTokenGuard,
+  ],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
