@@ -5,7 +5,6 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  // Lazy connect: không crash app khi DB chưa sẵn sàng
   private connected = false;
 
   async onModuleInit() {

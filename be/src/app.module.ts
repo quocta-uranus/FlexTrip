@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { KycModule } from './modules/kyc/kyc.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProfileModule } from './modules/profile/profile.module';
 
@@ -12,6 +14,8 @@ import { ProfileModule } from './modules/profile/profile.module';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     CommonModule,
+    AuthModule,
+    KycModule,
     UsersModule,
     ProfileModule,
   ],

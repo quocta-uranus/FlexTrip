@@ -1,11 +1,3 @@
-// FlexTrip — focus: AUTH & PROF groups (ERD lines 22-32)
-// Profile entities (3 nhánh theo role):
-//   - User                : thông tin cơ bản + traveler details
-//   - ProviderProfile     : thông tin shop (Provider only)
-//   - AdminProfile        : thông tin quản trị viên (Admin only)
-// Hỗ trợ: Auth, Session, 2FA, KYC, TravelPreference, PaymentMethod, Wallet
-// Bỏ: Listing/Booking/Review (chưa làm) — không cần cho phần này.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,15 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * ENUMS
- * ─────────────────────────────────────────────────────────────
- */
+// ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum UserStatus {
   ACTIVE
-  LOCKED
+  SUSPENDED
+  DISABLED
 }
 
 enum Role {
@@ -39,16 +28,55 @@ enum AuthProviderName {
   APPLE
 }
 
-enum TwoFaMethod {
-  TOTP
-  SMS
-  EMAIL
-}
-
 enum KycStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum KycDocumentType {
+  NATIONAL_ID
+  PASSPORT
+  DRIVER_LICENSE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REFUNDING
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ContractStatus {
+  PENDING
+  SIGNED
+  ACTIVE
+  CLOSED
+  DISPUTED
+}
+
+enum NotificationType {
+  BOOKING
+  PAYMENT
+  MESSAGE
+  SYSTEM
+  REVIEW
 }
 
 enum PaymentMethodType {
@@ -84,166 +112,330 @@ enum AdminLevel {
   L3
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * USER (Traveler + identity root)
- * ─────────────────────────────────────────────────────────────
- */
+// ─── User & Auth ─────────────────────────────────────────────────────────────
 
 model User {
-  userId       String  @id @default(cuid())
-  email        String  @unique
-  phone        String?
-  passwordHash String
-  fullName     String
-  avatarUrl    String?
+  id                       String     @id @default(cuid())
+  email                    String     @unique
+  password                 String
+  name                     String
+  phone                    String?
+  avatarUrl                String?
+  status                   UserStatus @default(ACTIVE)
+  emailVerifiedAt          DateTime?
+  verificationRequestedAt  DateTime?
+  passwordResetRequestedAt DateTime?
+  isKycVerified            Boolean    @default(false)
+  refreshToken             String?
+  twoFactorEnabled         Boolean    @default(false)
+  twoFactorSecret          String?
+  twoFactorRecoveryCodes   String[]   @default([])
 
-  // ── traveler profile fields (chỉ dùng khi role = TRAVELER) ──
-  dateOfBirth      DateTime?
-  gender           Gender?
-  nationality      String?
-  address          String?
-  bio              String?   @db.Text
-  emergencyContact String?
-  languages        String[]  @default(["vi"])
+  // traveler profile fields
+  dateOfBirth       DateTime?
+  gender            Gender?
+  nationality       String?
+  address           String?
+  bio               String?   @db.Text
+  emergencyContact  String?
+  languages         String[]  @default(["vi"])
+  preferredLanguage String?   @default("vi")
 
-  // ── common ──
-  preferredLanguage String?    @default("vi")
-  status            UserStatus @default(ACTIVE)
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // ── relations ──
-  roles             UserRole[]
-  authProviders     AuthProvider[]
-  sessions          UserSession[]
-  twoFactor         TwoFactorAuth?
-  kycVerifications  KycVerification[]
+  // auth relations
+  roles                   UserRole[]
+  verificationTokens      VerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  kycApplications         KycApplication[]     @relation("KycApplicant")
+  reviewedKycApplications KycApplication[]     @relation("KycReviewer")
+  authSessions            AuthSession[]
+
+  // OAuth
+  authProviders AuthProvider[]
+
+  // profile relations
   travelPreferences TravelPreference[]
   paymentMethods    PaymentMethod[]
   wallet            Wallet?
+  providerProfile   ProviderProfile?
+  adminProfile      AdminProfile?
 
-  // Kyc reviewed by another User (Admin)
-  kycReviewed KycVerification[] @relation("KycReviewer")
-
-  // Profile theo role (1-1, optional — tuỳ user có role đó)
-  providerProfile ProviderProfile?
-  adminProfile    AdminProfile?
+  // business domain
+  listings        Listing[]
+  bookings        Booking[]            @relation("TravelerBookings")
+  sentMessages    Message[]            @relation("SentMessages")
+  notifications   Notification[]
+  reviewsGiven    Review[]             @relation("ReviewsGiven")
+  reviewsReceived Review[]             @relation("ReviewsReceived")
+  conversations   ConversationMember[]
 
   @@index([email])
-  @@index([status])
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * USER ROLE (n-n với Role enum)
- * ─────────────────────────────────────────────────────────────
- */
+model AuthSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  deviceName       String?
+  userAgent        String?
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-model UserRole {
-  id     String @id @default(cuid())
-  userId String
-  role   Role
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+model KycApplication {
+  id                        String          @id @default(cuid())
+  userId                    String
+  legalName                 String
+  documentType              KycDocumentType
+  documentNumberEncrypted   String
+  documentNumberFingerprint String          @unique
+  documentNumberLast4       String
+  documentFrontUrl          String
+  documentBackUrl           String?
+  selfieUrl                 String
+  status                    KycStatus       @default(PENDING)
+  rejectionReason           String?
+  reviewedAt                DateTime?
+  reviewedById              String?
+  submittedAt               DateTime        @default(now())
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
 
-  @@unique([userId, role])
+  applicant User  @relation("KycApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer  User? @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, submittedAt])
+  @@index([reviewedById])
+}
+
+model PasswordResetToken {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * AUTH PROVIDER + SESSION + 2FA
- * ─────────────────────────────────────────────────────────────
- */
+model UserRole {
+  userId String
+  role   Role
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+}
+
+model VerificationToken {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  usedAt        DateTime?
+  invalidatedAt DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
 
 model AuthProvider {
   id          String           @id @default(cuid())
   userId      String
   provider    AuthProviderName
   providerUid String
-
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerUid])
   @@index([userId])
 }
 
-model UserSession {
-  id          String    @id @default(cuid())
-  userId      String
-  deviceInfo  String?
-  ipAddress   String?
-  refreshHash String?
-  revokedAt   DateTime?
-  createdAt   DateTime  @default(now())
+// ─── Listing ─────────────────────────────────────────────────────────────────
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+model Listing {
+  id          String        @id @default(cuid())
+  title       String
+  description String        @db.Text
+  price       Decimal       @db.Decimal(10, 2)
+  currency    String        @default("VND")
+  location    String
+  latitude    Float?
+  longitude   Float?
+  imageUrls   String[]
+  status      ListingStatus @default(DRAFT)
+  category    String
+  amenities   String[]
+  providerId  String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  @@index([userId])
-  @@index([revokedAt])
+  provider User      @relation(fields: [providerId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
+
+  @@index([providerId])
+  @@index([status])
+  @@index([location])
 }
 
-model TwoFactorAuth {
-  id        String      @id @default(cuid())
-  userId    String      @unique
-  isEnabled Boolean     @default(false)
-  secretKey String?
-  method    TwoFaMethod @default(TOTP)
+// ─── Booking ─────────────────────────────────────────────────────────────────
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
-}
+model Booking {
+  id         String        @id @default(cuid())
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Decimal       @db.Decimal(10, 2)
+  status     BookingStatus @default(PENDING)
+  notes      String?
+  travelerId String
+  listingId  String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-/**
- * ─────────────────────────────────────────────────────────────
- * KYC
- * ─────────────────────────────────────────────────────────────
- */
+  traveler User      @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing  Listing   @relation(fields: [listingId], references: [id])
+  payment  Payment?
+  contract Contract?
 
-model KycVerification {
-  id             String    @id @default(cuid())
-  userId         String
-  docType        String
-  docNumber      String?
-  docFrontUrl    String?
-  docBackUrl     String?
-  faceMatchScore Float?
-  ocrResult      Json?
-  status         KycStatus @default(PENDING)
-  reviewedById   String?
-  reviewedAt     DateTime?
-  createdAt      DateTime  @default(now())
-
-  user       User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  reviewedBy User? @relation("KycReviewer", fields: [reviewedById], references: [userId])
-
-  @@index([userId])
+  @@index([travelerId])
+  @@index([listingId])
   @@index([status])
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * TRAVEL PREFERENCE (1-n theo user — lịch sử thay đổi)
- * ─────────────────────────────────────────────────────────────
- */
+// ─── Payment ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("VND")
+  status          PaymentStatus @default(PENDING)
+  method          String
+  transactionId   String?       @unique
+  gatewayResponse Json?
+  bookingId       String        @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([status])
+}
+
+// ─── Contract ────────────────────────────────────────────────────────────────
+
+model Contract {
+  id            String         @id @default(cuid())
+  terms         String         @db.Text
+  status        ContractStatus @default(PENDING)
+  signedAt      DateTime?
+  checkInPhoto  String?
+  checkOutPhoto String?
+  bookingId     String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+// ─── Messaging ───────────────────────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+}
+
+model ConversationMember {
+  userId         String
+  conversationId String
+  joinedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@id([userId, conversationId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  content        String   @db.Text
+  isRead         Boolean  @default(false)
+  senderId       String
+  conversationId String
+  createdAt      DateTime @default(now())
+
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+// ─── Notification ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  userId    String
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ─── Review ──────────────────────────────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?  @db.Text
+  authorId  String
+  targetId  String
+  listingId String?
+  createdAt DateTime @default(now())
+
+  author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
+  target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])
+  listing Listing? @relation(fields: [listingId], references: [id])
+
+  @@index([listingId])
+  @@index([targetId])
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
 
 model TravelPreference {
   id        String   @id @default(cuid())
   userId    String
-  tripType  String // leisure | business | trekking | mixed
+  tripType  String
   budgetMin Decimal? @db.Decimal(10, 2)
   budgetMax Decimal? @db.Decimal(10, 2)
-
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
-
-/**
- * ─────────────────────────────────────────────────────────────
- * PAYMENT METHOD
- * ─────────────────────────────────────────────────────────────
- */
 
 model PaymentMethod {
   id        String            @id @default(cuid())
@@ -253,17 +445,10 @@ model PaymentMethod {
   provider  String
   last4     String?
   isDefault Boolean           @default(false)
-
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
-
-/**
- * ─────────────────────────────────────────────────────────────
- * WALLET (PROF-03)
- * ─────────────────────────────────────────────────────────────
- */
 
 model Wallet {
   walletId  String   @id @default(cuid())
@@ -272,7 +457,7 @@ model Wallet {
   currency  String   @default("VND")
   updatedAt DateTime @updatedAt
 
-  user         User                @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions WalletTransaction[]
 
   @@index([userId])
@@ -282,7 +467,7 @@ model Wallet {
 model WalletTransaction {
   id        String   @id @default(cuid())
   walletId  String
-  type      String // topup | payment | refund | payout | deposit_hold | deposit_release
+  type      String
   amount    Decimal  @db.Decimal(14, 2)
   refType   String?
   refId     String?
@@ -295,73 +480,57 @@ model WalletTransaction {
   @@map("wallet_transactions")
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * PROVIDER PROFILE (1-1 với User, chỉ khi role = PROVIDER)
- * Lưu riêng để không phình User + truy vấn nhanh theo shop.
- * ─────────────────────────────────────────────────────────────
- */
+// ─── Provider Profile ────────────────────────────────────────────────────────
 
 model ProviderProfile {
   id            String       @id @default(cuid())
-  userId        String       @unique // FK -> User.userId (1-1)
-  shopName      String // "Minhan Outdoor Gear"
-  ownerName     String // "Nguyễn Minh"
-  category      ShopCategory // enum
-  pickupAddress String // "12 Bạch Đằng, Sơn Trà, Đà Nẵng"
+  userId        String       @unique
+  shopName      String
+  ownerName     String
+  category      ShopCategory
+  pickupAddress String
   pickupLat     Float?
   pickupLng     Float?
-  responseHours String       @default("24 giờ") // cam kết SLA
+  responseHours String       @default("24 giờ")
   bio           String?      @db.Text
-  highlights    String[]     @default([]) // cam kết ngắn
+  highlights    String[]     @default([])
 
-  // ── KPI cached (denormalized — update qua job/event) ──
   itemsCount    Int     @default(0)
   rentalsCount  Int     @default(0)
   ratingAvg     Decimal @default(0) @db.Decimal(3, 2)
   reviewsCount  Int     @default(0)
   responseTimeH Int     @default(24)
 
-  // ── status & payout ──
-  isLive       Boolean @default(true) // đang nhận đơn?
-  payoutMethod String? // "VCB ••• 4477"
+  isLive       Boolean @default(true)
+  payoutMethod String?
   bankAccount  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([category])
   @@index([isLive])
 }
 
-/**
- * ─────────────────────────────────────────────────────────────
- * ADMIN PROFILE (1-1 với User, chỉ khi role = ADMIN)
- * Tách riêng để RBAC scope và audit riêng.
- * ─────────────────────────────────────────────────────────────
- */
+// ─── Admin Profile ───────────────────────────────────────────────────────────
 
 model AdminProfile {
   id         String          @id @default(cuid())
-  userId     String          @unique // FK -> User.userId (1-1)
-  employeeId String          @unique // "EMP-AD-0042"
-  department AdminDepartment // enum
-  level      AdminLevel      @default(L1) // enum
+  userId     String          @unique
+  employeeId String          @unique
+  department AdminDepartment
+  level      AdminLevel      @default(L1)
   bio        String?         @db.Text
+  scopes     String[]        @default([])
 
-  // ── RBAC ──
-  scopes String[] @default([]) // danh sách scope code
-
-  // ── KPI cached ──
   openTickets       Int @default(0)
   resolvedToday     Int @default(0)
   activeUsers       Int @default(0)
   pendingFlags      Int @default(0)
   configChangesWeek Int @default(0)
 
-  // ── security bắt buộc ──
   twoFactorRequired Boolean   @default(true)
   lastPwRotateAt    DateTime?
   pwRotateDueAt     DateTime?
@@ -369,7 +538,7 @@ model AdminProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([department])
   @@index([level])

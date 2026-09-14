@@ -5,7 +5,7 @@ export class UpdateUserDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
-  fullName?: string;
+  name?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -48,18 +48,14 @@ export class ProfileService {
 
   // Password ------------------------------------------------------------
   async changePassword(userId: string, dto: ChangePasswordDto) {
-    const user = await this.prisma.user.findUnique({ where: { userId } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    if (!user.passwordHash) {
-      throw new BadRequestException('Tài khoản dùng OAuth — hãy set mật khẩu qua Forgot password');
-    }
-    const ok = await bcrypt.compare(dto.oldPassword, user.passwordHash);
+    const ok = await bcrypt.compare(dto.oldPassword, user.password);
     if (!ok) throw new BadRequestException('Mật khẩu cũ không đúng');
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.prisma.user.update({ where: { userId }, data: { passwordHash } });
-    // Đồng thời revoke mọi session đang active
-    await this.prisma.userSession.updateMany({
+    const password = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { password } });
+    await this.prisma.authSession.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
@@ -67,16 +63,16 @@ export class ProfileService {
   }
 
   async setPassword(userId: string, newPassword: string) {
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { userId }, data: { passwordHash } });
+    const password = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { password } });
     return { ok: true };
   }
 
   async setAvatar(userId: string, avatarUrl: string) {
     return this.prisma.user.update({
-      where: { userId },
+      where: { id: userId },
       data: { avatarUrl },
-      select: { userId: true, avatarUrl: true },
+      select: { id: true, avatarUrl: true },
     });
   }
 }
