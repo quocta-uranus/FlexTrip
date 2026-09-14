@@ -5,15 +5,13 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { AppModule } from '../../../../app.module';
 import { AuthService } from '../../services/auth.service';
-import { MailService } from '../../services/mail.service';
-import { createHash } from 'crypto';
+import { OtpService } from '../../services/otp.service';
+import { ResendService } from '../../services/resend.service';
 import { Client } from 'pg';
 import request from 'supertest';
 import { jest } from '@jest/globals';
 
 export const password = 'Valid password 123!';
-export const hashToken = (token: string): string =>
-  createHash('sha256').update(token).digest('hex');
 
 export function assertTestDatabase(): string {
   const connection = process.env.TEST_DATABASE_URL;
@@ -39,11 +37,16 @@ export class AuthHarness {
   auth!: AuthService;
   jwt!: JwtService;
   config!: ConfigService;
-  mail = {
-    sendVerification:
-      jest.fn<(email: string, token: string) => Promise<void>>(),
-    sendPasswordReset:
-      jest.fn<(email: string, token: string) => Promise<void>>(),
+
+  resend = {
+    sendOtp: jest.fn<(email: string, code: string) => Promise<boolean>>(),
+    sendPasswordReset: jest.fn<(email: string, url: string) => Promise<boolean>>(),
+  };
+
+  otp = {
+    generate: jest.fn<(ns: string, key: string) => Promise<string>>(),
+    verify: jest.fn<(ns: string, key: string, code: string) => Promise<boolean>>(),
+    canResend: jest.fn<(ns: string, key: string) => Promise<boolean>>(),
   };
 
   async open(): Promise<void> {
@@ -52,20 +55,27 @@ export class AuthHarness {
     process.env.JWT_REFRESH_SECRET = 'auth01-test-refresh-secret-32-characters';
     process.env.JWT_ACCESS_EXPIRES = '15m';
     process.env.JWT_REFRESH_EXPIRES = '7d';
-    process.env.TWO_FACTOR_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString(
-      'base64',
-    );
+    process.env.TWO_FACTOR_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
     process.env.TWO_FACTOR_CHALLENGE_SECRET =
       'auth04-test-challenge-secret-32-characters';
     process.env.KYC_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
     process.env.KYC_FINGERPRINT_SECRET =
       'auth05-test-fingerprint-secret-32-characters';
-    this.mail.sendVerification.mockResolvedValue(undefined);
-    this.mail.sendPasswordReset.mockResolvedValue(undefined);
+    process.env.RESEND_API_KEY = 'test_key';
+
+    this.resend.sendOtp.mockResolvedValue(true);
+    this.resend.sendPasswordReset.mockResolvedValue(true);
+    this.otp.generate.mockResolvedValue('123456');
+    this.otp.verify.mockResolvedValue(true);
+    this.otp.canResend.mockResolvedValue(true);
+
     const module = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(MailService)
-      .useValue(this.mail)
+      .overrideProvider(ResendService)
+      .useValue(this.resend)
+      .overrideProvider(OtpService)
+      .useValue(this.otp)
       .compile();
+
     this.app = module.createNestApplication();
     this.app.setGlobalPrefix('api/v1');
     this.app.useGlobalPipes(
@@ -80,6 +90,7 @@ export class AuthHarness {
     this.auth = module.get(AuthService);
     this.jwt = module.get(JwtService);
     this.config = module.get(ConfigService);
+
     await this.prisma.kycApplication.deleteMany();
     await this.prisma.authSession.deleteMany();
     await this.prisma.passwordResetToken.deleteMany();
@@ -98,27 +109,20 @@ export class AuthHarness {
       .send(body);
   }
 
+  /** Register + verify OTP so the user can log in */
   async register(
     email = 'traveler@example.com',
-  ): Promise<{ userId: string; token: string; email: string }> {
+  ): Promise<{ userId: string; email: string }> {
     await this.auth.register({ email, name: 'Traveler', password });
+    await this.auth.verifyRegistrationOtp(email, '123456');
     const user = await this.prisma.user.findUniqueOrThrow({ where: { email } });
-    const token = this.mail.sendVerification.mock.calls.at(-1)![1];
-    return { userId: user.id, token, email };
-  }
-
-  async allowResend(userId: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { verificationRequestedAt: new Date(Date.now() - 61_000) },
-    });
+    return { userId: user.id, email };
   }
 
   async injectFailure(
     table: 'User' | 'UserRole' | 'VerificationToken',
     operation: 'INSERT' | 'UPDATE',
   ): Promise<() => Promise<void>> {
-    // Only fixed table names are accepted, and the connection is guarded above.
     const client = new Client({ connectionString: assertTestDatabase() });
     await client.connect();
     await client.query(

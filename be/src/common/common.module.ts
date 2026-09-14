@@ -1,13 +1,8 @@
-import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { DevUserMiddleware } from './middleware/dev-user.middleware';
+import { Global, Module } from '@nestjs/common';
 
 @Global()
 @Module({
   providers: [],
   exports: [],
 })
-export class CommonModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(DevUserMiddleware).forRoutes('*');
-  }
-}
+export class CommonModule {}

@@ -1,6 +1,8 @@
 import * as bcrypt from 'bcrypt';
 import { jest } from '@jest/globals';
-import { AuthHarness, hashToken, password } from './support/auth-harness';
+import { AuthHarness, password } from './support/auth-harness';
+import { createHash } from 'crypto';
+const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
 
 describe('AUTH-03 — Forgot and Reset Password', () => {
   let h: AuthHarness;
@@ -16,14 +18,13 @@ describe('AUTH-03 — Forgot and Reset Password', () => {
   });
 
   async function verifiedAccount(email = 'traveler@example.com') {
-    const account = await h.register(email);
-    await h.auth.verifyEmail(account.token);
-    return account;
+    return h.register(email);
   }
 
   async function requestReset(email: string): Promise<string> {
     await h.post('forgot-password', { email }).expect(202, accepted);
-    return h.mail.sendPasswordReset.mock.calls.at(-1)![1];
+    const callArg = h.resend.sendPasswordReset.mock.calls.at(-1)![1] as string;
+    return new URL(callArg).searchParams.get('token') ?? '';
   }
 
   it('returns one generic response for missing accounts and cooldown', async () => {
@@ -33,17 +34,19 @@ describe('AUTH-03 — Forgot and Reset Password', () => {
     const { email } = await verifiedAccount();
     await requestReset(email);
     await h.post('forgot-password', { email }).expect(202, accepted);
-    expect(h.mail.sendPasswordReset).toHaveBeenCalledTimes(1);
+    expect(h.resend.sendPasswordReset).toHaveBeenCalledTimes(1);
   });
 
   it('creates only a hashed 30-minute token and sends after commit', async () => {
     const { email } = await verifiedAccount();
-    h.mail.sendPasswordReset.mockImplementation(async (_, token) => {
+    h.resend.sendPasswordReset.mockImplementation(async (_, url: string) => {
+      const token = new URL(url).searchParams.get('token') ?? '';
       expect(
         await h.prisma.passwordResetToken.findUnique({
           where: { tokenHash: hashToken(token) },
         }),
       ).not.toBeNull();
+      return true;
     });
     const token = await requestReset(` ${email.toUpperCase()} `);
     const stored = await h.prisma.passwordResetToken.findFirstOrThrow();
@@ -54,16 +57,13 @@ describe('AUTH-03 — Forgot and Reset Password', () => {
     );
   });
 
-  it('keeps the token and cooldown when SMTP fails', async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  it('keeps the token and cooldown when send fails', async () => {
     const { email } = await verifiedAccount();
-    h.mail.sendPasswordReset.mockRejectedValueOnce(
-      new Error('SMTP unavailable'),
-    );
+    h.resend.sendPasswordReset.mockResolvedValueOnce(false);
     await h.post('forgot-password', { email }).expect(202, accepted);
     expect(await h.prisma.passwordResetToken.count()).toBe(1);
     await h.post('forgot-password', { email }).expect(202, accepted);
-    expect(h.mail.sendPasswordReset).toHaveBeenCalledTimes(1);
+    expect(h.resend.sendPasswordReset).toHaveBeenCalledTimes(1);
   });
 
   it('does not create a reset token for an ADMIN-only account', async () => {

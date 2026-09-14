@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMe, useUpdateMe, usePreferences, useSessions, useRevokeSession } from "@/hooks/useSession";
+import { userApi } from "@/lib/api/client";
+import type { UserProfile } from "@/lib/api/client";
+import { TwoFactorSetupModal } from "@/components/profile/TwoFactorSetupModal";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   Card,
@@ -33,8 +38,43 @@ import {
 } from "@/components/profile/wow";
 import { useEditingProfile } from "@/hooks/useEditingProfile";
 
+const LANG_CODE_TO_LABEL: Record<string, string> = {
+  vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
+};
+const LANG_LABEL_TO_CODE: Record<string, string> = {
+  'Tiếng Việt': 'vi', 'English': 'en', '中文': 'zh', '日本語': 'ja', '한국어': 'ko', 'Français': 'fr',
+};
+const GENDER_UP: Record<string, string> = { male: 'MALE', female: 'FEMALE', other: 'OTHER' };
+const GENDER_DOWN: Record<string, string> = { MALE: 'male', FEMALE: 'female', OTHER: 'other' };
+
+function meToForm(me: UserProfile, prefs: any[]): TravelProfile {
+  const firstPref = prefs?.[0];
+  return {
+    fullName: me.name ?? '',
+    email: me.email ?? '',
+    phone: me.phone ?? '',
+    dateOfBirth: me.dateOfBirth ?? '',
+    gender: (GENDER_DOWN[me.gender ?? ''] ?? '') as TravelProfile['gender'],
+    nationality: me.nationality ?? '',
+    address: me.address ?? '',
+    bio: me.bio ?? '',
+    avatar: me.avatarUrl ?? '',
+    emergencyContact: me.emergencyContact ?? '',
+    languages: (me.languages ?? ['vi']).map((c) => LANG_CODE_TO_LABEL[c] ?? c),
+    tripType: (firstPref?.tripType ?? '') as TravelProfile['tripType'],
+    budgetMin: String(firstPref?.budgetMin ?? ''),
+    budgetMax: String(firstPref?.budgetMax ?? ''),
+    tripsCount: 0,
+    rating: 5.0,
+    reviewsGiven: 0,
+    emailNotifications: true,
+    smsNotifications: false,
+    marketingEmails: true,
+  };
+}
+
 /**
- * /profile/travel — Travel profile (Traveler).
+ * /profile/travel — Travel profile (Traveler). PROF-01 + PROF-02
  */
 
 interface TravelProfile {
@@ -61,35 +101,52 @@ interface TravelProfile {
 }
 
 const initialProfile: TravelProfile = {
-  fullName: "Nguyễn Minh Anh",
-  email: "minhanh@gmail.com",
-  phone: "+84 912 345 678",
-  dateOfBirth: "1998-04-12",
-  gender: "female",
-  nationality: "Việt Nam",
-  address: "Quận 1, TP. Hồ Chí Minh",
-  bio: "Yêu thích khám phá văn hóa bản địa và du lịch trải nghiệm.",
+  fullName: "",
+  email: "",
+  phone: "",
+  dateOfBirth: "",
+  gender: "",
+  nationality: "",
+  address: "",
+  bio: "",
   avatar: "",
-  emergencyContact: "Nguyễn Văn A — +84 987 654 321",
-  languages: ["Tiếng Việt", "English"],
-  tripType: "trekking",
-  budgetMin: "500000",
-  budgetMax: "2000000",
-  tripsCount: 7,
-  rating: 5.0,
-  reviewsGiven: 12,
+  emergencyContact: "",
+  languages: [],
+  tripType: "",
+  budgetMin: "",
+  budgetMax: "",
+  tripsCount: 0,
+  rating: 0,
+  reviewsGiven: 0,
   emailNotifications: true,
   smsNotifications: false,
   marketingEmails: true,
 };
 
 const ALL_LANGUAGES = ["Tiếng Việt", "English", "中文", "日本語", "한국어", "Français"];
+const STORAGE_KEY = "flextrip.profile.travel";
 
 export default function TravelProfilePage() {
-  const { data: p, setData: setP, editing, setEditing, save, cancel, savedAt, reset } =
-    useEditingProfile<TravelProfile>("flextrip.profile.travel", initialProfile);
+  const { data: p, setData: setP, editing, setEditing, save, cancel, savedAt } =
+    useEditingProfile<TravelProfile>(STORAGE_KEY, initialProfile);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const confetti = useConfetti(36);
+  const [show2faModal, setShow2faModal] = useState(false);
+  const { data: me } = useMe();
+  const { data: preferences } = usePreferences();
+  const { mutateAsync: updateMe, isPending: isSaving } = useUpdateMe();
+  const { data: sessions } = useSessions();
+  const { mutate: revokeSession, isPending: revoking } = useRevokeSession();
+  const qc = useQueryClient();
+
+  // Sync form from server whenever me/preferences load and user is NOT editing
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  useEffect(() => {
+    if (!me || !preferences || editingRef.current) return;
+    setP(meToForm(me, preferences));
+  }, [me, preferences]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const completion = computeCompletion(p);
 
@@ -103,10 +160,43 @@ export default function TravelProfilePage() {
         : { ...s, languages: [...s.languages, l] }
     );
   }
-  function handleSave() {
-    save();
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 1600);
+
+  async function handleSave() {
+    setSaveError(null);
+    try {
+      await updateMe({
+        name: p.fullName,
+        phone: p.phone || undefined,
+        avatarUrl: p.avatar || undefined,
+        dateOfBirth: p.dateOfBirth || undefined,
+        gender: p.gender ? GENDER_UP[p.gender] : undefined,
+        nationality: p.nationality || undefined,
+        address: p.address || undefined,
+        bio: p.bio || undefined,
+        emergencyContact: p.emergencyContact || undefined,
+        languages: p.languages.map((l) => LANG_LABEL_TO_CODE[l] ?? l),
+      });
+
+      if (p.tripType || p.budgetMin || p.budgetMax) {
+        const prefPayload = {
+          tripType: p.tripType || 'leisure',
+          budgetMin: p.budgetMin ? Number(p.budgetMin) : undefined,
+          budgetMax: p.budgetMax ? Number(p.budgetMax) : undefined,
+        };
+        if (preferences?.[0]) {
+          await userApi.updatePreference(preferences[0].id, prefPayload);
+        } else {
+          await userApi.addPreference(prefPayload);
+        }
+        qc.invalidateQueries({ queryKey: ['preferences'] });
+      }
+
+      save();
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 1600);
+    } catch (err: any) {
+      setSaveError(err?.message ?? 'Lưu thất bại, thử lại.');
+    }
   }
 
   const tripTimeline = [
@@ -159,17 +249,26 @@ export default function TravelProfilePage() {
             <>
               <button
                 onClick={handleSave}
-                className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: "#2a7bd9", boxShadow: "0 8px 20px -8px rgba(42,123,217,0.5)" }}
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Lưu thay đổi
+                {isSaving ? (
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
               <button
                 onClick={cancel}
-                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)]"
+                disabled={isSaving}
+                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)] disabled:opacity-50"
                 style={{ borderColor: "#e2e8f3" }}
               >
                 Hủy
@@ -180,6 +279,20 @@ export default function TravelProfilePage() {
       />
 
       <EditingBanner visible={editing} />
+
+      {saveError && (
+        <div className="mx-auto max-w-6xl px-6">
+          <div
+            className="mt-3 flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm"
+            style={{ borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#b91c1c" }}
+          >
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z" />
+            </svg>
+            {saveError}
+          </div>
+        </div>
+      )}
 
       {savedAt && !editing && (
         <div className="mx-auto max-w-6xl px-6">
@@ -416,16 +529,34 @@ export default function TravelProfilePage() {
               desc="Cập nhật lần cuối 3 tháng trước"
               action="Đổi"
             />
-            <SecurityItem
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              }
-              title="Xác thực 2 bước (2FA)"
-              desc="Đang bật — qua Authenticator"
-              action="Quản lý"
-            />
+            <div
+              className="rounded-xl border p-4"
+              style={{ borderColor: "#e2e8f3" }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold" style={{ color: "#0f1729" }}>Xác thực 2 bước</div>
+                  <div className="mt-0.5 text-xs" style={{ color: "#5a6b85" }}>
+                    {me?.twoFactorEnabled ? "Đang bật — TOTP Authenticator" : "Chưa bật"}
+                  </div>
+                  <button
+                    onClick={() => setShow2faModal(true)}
+                    className="mt-2 text-xs font-semibold"
+                    style={{ color: "#2a7bd9" }}
+                  >
+                    {me?.twoFactorEnabled ? "Quản lý" : "Bật 2FA"}
+                  </button>
+                </div>
+              </div>
+            </div>
             <SecurityItem
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -437,7 +568,58 @@ export default function TravelProfilePage() {
               action="Sửa"
             />
           </div>
+
+          {/* Active sessions */}
+          {sessions && sessions.length > 0 && (
+            <div className="mt-6 border-t pt-5" style={{ borderColor: "#e2e8f3" }}>
+              <div className="mb-3 text-sm font-semibold" style={{ color: "#0f1729" }}>
+                Phiên đăng nhập đang hoạt động
+              </div>
+              <div className="space-y-2">
+                {sessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2.5"
+                    style={{ borderColor: "#e2e8f3", background: "#f1f5fa" }}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium" style={{ color: "#0f1729" }}>
+                        {s.deviceName || s.userAgent || "Thiết bị không xác định"}
+                      </div>
+                      <div className="text-xs" style={{ color: "#8694ad" }}>
+                        {s.ipAddress || "—"} · {new Date(s.lastUsedAt).toLocaleDateString("vi")}
+                      </div>
+                    </div>
+                    {!s.isCurrent && (
+                      <button
+                        disabled={revoking}
+                        onClick={() => revokeSession(s.id)}
+                        className="ml-3 shrink-0 text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-50"
+                      >
+                        Thu hồi
+                      </button>
+                    )}
+                    {s.isCurrent && (
+                      <span className="ml-3 shrink-0 text-[10px] font-bold uppercase tracking-wider" style={{ color: "#2a7bd9" }}>
+                        Hiện tại
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
+
+        {show2faModal && (
+          <TwoFactorSetupModal
+            onClose={() => setShow2faModal(false)}
+            onEnabled={() => {
+              setShow2faModal(false);
+              qc.invalidateQueries({ queryKey: ["me"] });
+            }}
+          />
+        )}
 
         <Card title="Vùng nguy hiểm" subtitle="Các hành động không thể hoàn tác" className="lg:col-span-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -494,7 +676,7 @@ export default function TravelProfilePage() {
 
       <StickyCta primary={{ label: "💬 Chat với CSKH" }} secondary={{ label: "📅 Đặt chuyến mới" }} />
 
-      <StickyEditBar visible={editing} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" />
+      <StickyEditBar visible={editing} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" saving={isSaving} />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
     </div>
   );

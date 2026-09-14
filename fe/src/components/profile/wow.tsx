@@ -502,11 +502,13 @@ export function StickyEditBar({
   onSave,
   onCancel,
   brand = "#2a7bd9",
+  saving = false,
 }: {
   visible: boolean;
   onSave: () => void;
   onCancel: () => void;
   brand?: string;
+  saving?: boolean;
 }) {
   if (!visible) return null;
   return (
@@ -522,7 +524,8 @@ export function StickyEditBar({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full border bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-muted)]"
+            disabled={saving}
+            className="rounded-full border bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-muted)] disabled:opacity-50"
             style={{ borderColor: "#e2e8f3" }}
           >
             Hủy
@@ -530,7 +533,8 @@ export function StickyEditBar({
           <button
             type="button"
             onClick={onSave}
-            className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-md"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-60"
             style={{ background: brand, boxShadow: `0 8px 20px -8px ${brand}80` }}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

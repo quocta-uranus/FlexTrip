@@ -21,15 +21,14 @@ import {
   LoginDto,
   RefreshDto,
   RegisterDto,
-  VerifyEmailDto,
+  VerifyOtpDto,
+  ResendOtpDto,
   ResetPasswordDto,
   TwoFactorCodeDto,
   TwoFactorLoginDto,
 } from './dto';
 import {
   RegisterRateLimitGuard,
-  ResendRateLimitGuard,
-  VerifyRateLimitGuard,
   ForgotPasswordRateLimitGuard,
   ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
@@ -61,35 +60,21 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  @Post('verify-email')
+  @Post('verify-otp')
   @HttpCode(200)
-  @UseGuards(VerifyRateLimitGuard)
-  @ApiOperation({ summary: 'AUTH-01: Verify email with a single-use token' })
-  @ApiResponse({
-    status: 200,
-    description: 'Email verified; sign in separately',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid, expired or consumed token',
-  })
-  verify(@Body() dto: VerifyEmailDto): Promise<{ code: string }> {
-    return this.authService.verifyEmail(dto.token);
+  @ApiOperation({ summary: 'AUTH-01: Xác thực email bằng OTP 6 chữ số' })
+  @ApiResponse({ status: 200, description: 'Email đã xác thực; đăng nhập để tiếp tục' })
+  @ApiResponse({ status: 400, description: 'OTP không đúng hoặc đã hết hạn' })
+  verifyOtp(@Body() dto: VerifyOtpDto): Promise<{ code: string }> {
+    return this.authService.verifyRegistrationOtp(dto.email, dto.code);
   }
 
-  @Post('resend-verification')
-  @HttpCode(202)
-  @UseGuards(ResendRateLimitGuard)
-  @ApiOperation({
-    summary:
-      'AUTH-01: Request verification email; response does not confirm delivery',
-  })
-  @ApiResponse({
-    status: 202,
-    description: 'Generic response, including cooldown and SMTP failure',
-  })
-  resend(@Body() dto: EmailDto): Promise<{ code: string }> {
-    return this.authService.resendVerification(dto.email);
+  @Post('resend-otp')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'AUTH-01: Gửi lại OTP xác thực (cooldown 60s)' })
+  @ApiResponse({ status: 200, description: 'OTP đã được gửi lại' })
+  resendOtp(@Body() dto: ResendOtpDto): Promise<{ code: string }> {
+    return this.authService.resendRegistrationOtp(dto.email);
   }
 
   @Post('login')
