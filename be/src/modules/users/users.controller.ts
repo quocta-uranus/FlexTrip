@@ -7,50 +7,57 @@ import {
   Patch,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import {
+  AccessTokenGuard,
+  AuthenticatedRequest,
+} from '../auth/guards/access-token.guard';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './users.dto';
 
 @ApiTags('users')
+@ApiBearerAuth()
+@UseGuards(AccessTokenGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly svc: UsersService) {}
 
   @Get('me')
   @ApiOperation({ summary: 'PROF-01: Lấy hồ sơ hiện tại' })
-  me(@Req() req: any) {
-    return this.svc.getMe(req.user.userId);
+  me(@Req() req: AuthenticatedRequest) {
+    return this.svc.getMe(req.authUserId);
   }
 
   @Patch('me')
   @ApiOperation({ summary: 'PROF-01: Cập nhật hồ sơ' })
-  updateMe(@Req() req: any, @Body() dto: UpdateUserDto) {
-    return this.svc.updateMe(req.user.userId, dto);
+  updateMe(@Req() req: AuthenticatedRequest, @Body() dto: UpdateUserDto) {
+    return this.svc.updateMe(req.authUserId, dto);
   }
 
   @Post('me/roles/:role')
   @ApiOperation({ summary: 'Thêm role (vd upgrade lên Provider)' })
-  addRole(@Req() req: any, @Param('role') role: Role) {
-    return this.svc.addRole(req.user.userId, role);
+  addRole(@Req() req: AuthenticatedRequest, @Param('role') role: Role) {
+    return this.svc.addRole(req.authUserId, role);
   }
 
   @Delete('me/roles/:role')
   @ApiOperation({ summary: 'Thu hồi role' })
-  removeRole(@Req() req: any, @Param('role') role: Role) {
-    return this.svc.removeRole(req.user.userId, role);
+  removeRole(@Req() req: AuthenticatedRequest, @Param('role') role: Role) {
+    return this.svc.removeRole(req.authUserId, role);
   }
 
   @Get('me/sessions')
   @ApiOperation({ summary: 'AUTH-06: Danh sách session đang hoạt động' })
-  sessions(@Req() req: any) {
-    return this.svc.sessions(req.user.userId);
+  sessions(@Req() req: AuthenticatedRequest) {
+    return this.svc.sessions(req.authUserId);
   }
 
   @Delete('me/sessions/:id')
   @ApiOperation({ summary: 'AUTH-06: Revoke 1 session' })
-  revoke(@Req() req: any, @Param('id') id: string) {
-    return this.svc.revokeSession(req.user.userId, id);
+  revoke(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.svc.revokeSession(req.authUserId, id);
   }
 }

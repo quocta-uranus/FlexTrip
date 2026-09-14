@@ -13,9 +13,7 @@ describe('AUTH-02 — Login, Refresh and Logout', () => {
   });
 
   async function verifiedAccount() {
-    const account = await h.register();
-    await h.auth.verifyEmail(account.token);
-    return account;
+    return h.register();
   }
 
   it('logs in a verified active account and returns current database roles', async () => {

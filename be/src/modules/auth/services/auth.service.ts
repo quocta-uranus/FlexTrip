@@ -18,9 +18,9 @@ import * as speakeasy from 'speakeasy';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RegisterDto, LoginDto } from '../dto';
-import { MailService } from './mail.service';
+import { OtpService } from './otp.service';
+import { ResendService } from './resend.service';
 
-export const VERIFICATION_TTL_MS = 30 * 60 * 1000;
 export const RESEND_COOLDOWN_MS = 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
 const BCRYPT_ROUNDS = 10;
@@ -42,12 +42,9 @@ export type LoginResult =
       never
     >);
 export interface RegistrationResult {
-  code:
-    | 'REGISTRATION_PENDING_VERIFICATION'
-    | 'REGISTRATION_CREATED_EMAIL_SEND_FAILED';
+  code: 'OTP_SENT' | 'OTP_SEND_FAILED';
+  email: string;
   message: string;
-  nextAction: 'VERIFY_EMAIL' | 'RESEND_VERIFICATION';
-  retryAfterSeconds?: number;
 }
 
 @Injectable()
@@ -56,33 +53,30 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
-    private readonly mail: MailService,
+    private readonly otp: OtpService,
+    private readonly resend: ResendService,
   ) {}
 
   async register(dto: RegisterDto): Promise<RegistrationResult> {
     const password = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const token = randomBytes(32).toString('hex');
-    const now = new Date();
-    let user: { id: string; email: string };
+    let userId: string;
     try {
-      user = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.user.create({
+      const created = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
           data: {
             email: dto.email,
             name: dto.name,
             password,
-            verificationRequestedAt: now,
+            ...(dto.phone ? { phone: dto.phone } : {}),
           },
-          select: { id: true, email: true },
+          select: { id: true },
         });
         await tx.userRole.create({
-          data: { userId: created.id, role: Role.TRAVELER },
+          data: { userId: user.id, role: Role.TRAVELER },
         });
-        await tx.verificationToken.create({
-          data: this.tokenData(created.id, token, now),
-        });
-        return created;
+        return user;
       });
+      userId = created.id;
     } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -92,112 +86,60 @@ export class AuthService {
       ) {
         throw new ConflictException({
           code: 'EMAIL_ALREADY_REGISTERED',
-          message:
-            'Email already registered. Sign in or request verification again.',
+          message: 'Email already registered. Sign in or use forgot password.',
         });
       }
       throw error;
     }
-    if (!(await this.deliver(user.id, user.email, token))) {
-      return {
-        code: 'REGISTRATION_CREATED_EMAIL_SEND_FAILED',
-        message:
-          'Account created, but verification email could not be sent. Request another email after 60 seconds.',
-        nextAction: 'RESEND_VERIFICATION',
-        retryAfterSeconds: 60,
-      };
-    }
-    return {
-      code: 'REGISTRATION_PENDING_VERIFICATION',
-      message:
-        'Account created. Verification email accepted by SMTP; verify your email before signing in.',
-      nextAction: 'VERIFY_EMAIL',
-    };
+    const code = await this.otp.generate('register', dto.email);
+    const sent = await this.resend.sendOtp(dto.email, code);
+    return sent
+      ? {
+          code: 'OTP_SENT',
+          email: dto.email,
+          message: 'Mã OTP đã được gửi tới email của bạn.',
+        }
+      : {
+          code: 'OTP_SEND_FAILED',
+          email: dto.email,
+          message: 'Tài khoản đã được tạo nhưng không thể gửi OTP. Thử lại sau.',
+        };
   }
 
-  async verifyEmail(token: string): Promise<{ code: string }> {
-    const tokenHash = this.hashToken(token);
-    await this.prisma.$transaction(async (tx) => {
-      const candidate = await tx.verificationToken.findUnique({
-        where: { tokenHash },
-      });
-      if (!candidate) throw this.invalidToken();
-      // Both verify and resend lock the user first, so competing requests serialize.
-      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${candidate.userId} FOR UPDATE`;
-      const current = await tx.verificationToken.findUnique({
-        where: { tokenHash },
-      });
-      const user = await tx.user.findUnique({
-        where: { id: candidate.userId },
-      });
-      const now = new Date();
-      if (
-        !current ||
-        !user ||
-        user.emailVerifiedAt ||
-        current.usedAt ||
-        current.invalidatedAt ||
-        current.expiresAt <= now
-      )
-        throw this.invalidToken();
-      const consumed = await tx.verificationToken.updateMany({
-        where: {
-          id: current.id,
-          usedAt: null,
-          invalidatedAt: null,
-          expiresAt: { gt: now },
-        },
-        data: { usedAt: now },
-      });
-      if (consumed.count !== 1) throw this.invalidToken();
-      await tx.user.update({
-        where: { id: user.id },
-        data: { emailVerifiedAt: now },
-      });
-      await tx.verificationToken.updateMany({
-        where: {
-          userId: user.id,
-          id: { not: current.id },
-          usedAt: null,
-          invalidatedAt: null,
-        },
-        data: { invalidatedAt: now },
-      });
+  async verifyRegistrationOtp(
+    email: string,
+    code: string,
+  ): Promise<{ code: string }> {
+    const valid = await this.otp.verify('register', email, code);
+    if (!valid)
+      throw new BadRequestException({ code: 'INVALID_OTP', message: 'Mã OTP không đúng hoặc đã hết hạn.' });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, emailVerifiedAt: true },
+    });
+    if (!user)
+      throw new BadRequestException({ code: 'INVALID_OTP', message: 'Mã OTP không đúng hoặc đã hết hạn.' });
+    if (user.emailVerifiedAt) return { code: 'EMAIL_ALREADY_VERIFIED' };
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date() },
     });
     return { code: 'EMAIL_VERIFIED' };
   }
 
-  async resendVerification(email: string): Promise<{ code: string }> {
-    const delivery = await this.prisma.$transaction(async (tx) => {
-      const candidate = await tx.user.findUnique({
-        where: { email },
-        select: { id: true },
-      });
-      if (!candidate) return null;
-      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${candidate.id} FOR UPDATE`;
-      const user = await tx.user.findUnique({ where: { id: candidate.id } });
-      const now = new Date();
-      if (
-        !user ||
-        user.emailVerifiedAt ||
-        (user.verificationRequestedAt &&
-          now.getTime() - user.verificationRequestedAt.getTime() <
-            RESEND_COOLDOWN_MS)
-      )
-        return null;
-      const token = randomBytes(32).toString('hex');
-      await tx.user.update({
-        where: { id: user.id },
-        data: { verificationRequestedAt: now },
-      });
-      await tx.verificationToken.create({
-        data: this.tokenData(user.id, token, now),
-      });
-      return { userId: user.id, email: user.email, token };
+  async resendRegistrationOtp(email: string): Promise<{ code: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, emailVerifiedAt: true },
     });
-    if (delivery)
-      await this.deliver(delivery.userId, delivery.email, delivery.token);
-    return { code: 'VERIFICATION_EMAIL_REQUEST_ACCEPTED' };
+    if (!user || user.emailVerifiedAt)
+      return { code: 'RESEND_ACCEPTED' };
+    const allowed = await this.otp.canResend('register', email);
+    if (!allowed)
+      throw new BadRequestException({ code: 'RESEND_TOO_SOON', message: 'Vui lòng đợi ít nhất 60 giây trước khi gửi lại.' });
+    const code = await this.otp.generate('register', email);
+    await this.resend.sendOtp(email, code);
+    return { code: 'RESEND_ACCEPTED' };
   }
 
   async login(
@@ -677,19 +619,6 @@ export class AuthService {
     this.assertTwoFactorEligible(user);
   }
 
-  private tokenData(
-    userId: string,
-    token: string,
-    now: Date,
-  ): Prisma.VerificationTokenUncheckedCreateInput {
-    return {
-      userId,
-      tokenHash: this.hashToken(token),
-      createdAt: now,
-      expiresAt: new Date(now.getTime() + VERIFICATION_TTL_MS),
-    };
-  }
-
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
@@ -776,38 +705,18 @@ export class AuthService {
     return result.count === 1;
   }
 
-  private async deliver(
-    userId: string,
-    email: string,
-    token: string,
-  ): Promise<boolean> {
-    try {
-      await this.mail.sendVerification(email, token);
-      return true;
-    } catch {
-      // SMTP exceptions may contain credentials or addresses; never log the exception.
-      console.error({
-        event: 'verification_email_send_failed',
-        code: 'SMTP_SEND_FAILED',
-        userId,
-      });
-      return false;
-    }
-  }
-
   private async deliverReset(
-    userId: string,
+    _userId: string,
     email: string,
     token: string,
   ): Promise<void> {
-    try {
-      await this.mail.sendPasswordReset(email, token);
-    } catch {
-      console.error({
-        event: 'password_reset_email_send_failed',
-        code: 'SMTP_SEND_FAILED',
-        userId,
-      });
-    }
+    const base = this.config.get<string>(
+      'PASSWORD_RESET_URL',
+      'http://localhost:3000/reset-password',
+    );
+    const url = new URL(base);
+    url.searchParams.set('token', token);
+    await this.resend.sendPasswordReset(email, url.toString());
   }
+
 }

@@ -11,9 +11,7 @@ describe('AUTH-06 — Session and Device Management', () => {
   afterEach(() => h.close());
 
   async function verifiedAccount() {
-    const account = await h.register();
-    await h.auth.verifyEmail(account.token);
-    return account;
+    return h.register();
   }
 
   async function login(email: string, deviceName: string) {
@@ -115,7 +113,6 @@ describe('AUTH-06 — Session and Device Management', () => {
       firstLogin.body.accessToken,
     );
     const second = await h.register('second@example.com');
-    await h.auth.verifyEmail(second.token);
     const secondLogin = await login(second.email, 'Second');
 
     await bearer(

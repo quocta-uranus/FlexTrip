@@ -4,19 +4,42 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, History, LogOut, ShieldCheck, User, Wallet } from 'lucide-react';
 import { cn } from 'cn';
+import { useAuthStore } from '@/store/auth.store';
+import { useLogout } from '@/hooks/useAuthMutations';
 
 const NAV_ITEMS = [
-  { href: '/profile', label: 'Hồ sơ cá nhân', icon: User },
+  { href: '/profile/travel', label: 'Hồ sơ cá nhân', icon: User },
   { href: '/profile/security', label: 'Bảo mật', icon: ShieldCheck },
   { href: '/profile/payments', label: 'Thanh toán & Ví', icon: Wallet },
   { href: '/profile/history', label: 'Lịch sử thuê / cho thuê', icon: History },
   { href: '/profile/notifications', label: 'Thông báo', icon: Bell },
 ] as const;
 
-const AVAILABLE_ROUTES = new Set(['/profile/payments', '/profile/history']);
+const AVAILABLE_ROUTES = new Set(['/profile/travel', '/profile/payments', '/profile/history']);
+
+const ROLE_LABELS: Record<string, string> = {
+  TRAVELER: 'Traveler',
+  PROVIDER: 'Provider',
+  ADMIN: 'Admin',
+};
+
+function getInitials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .slice(-2)
+    .join('');
+}
 
 export function ProfileSidebar() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
+  const { mutate: logout } = useLogout();
+
+  const name = user?.name ?? '…';
+  const initials = user ? getInitials(user.name) : '?';
+  const roleLabel = user?.roles?.map((r) => ROLE_LABELS[r] ?? r).join(' · ') ?? '';
 
   return (
     <aside className="flex w-64 shrink-0 flex-col gap-6 border-r border-border bg-card px-4 py-7">
@@ -31,11 +54,13 @@ export function ProfileSidebar() {
 
       <div className="flex items-center gap-2.5 rounded-2xl bg-muted p-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-from to-brand-to font-heading text-sm font-semibold text-white">
-          NH
+          {initials}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">Nguyễn Hữu Huy</p>
-          <p className="text-xs text-muted-foreground">Traveler · Provider</p>
+          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+          {roleLabel && (
+            <p className="text-xs text-muted-foreground">{roleLabel}</p>
+          )}
         </div>
       </div>
 
@@ -75,6 +100,7 @@ export function ProfileSidebar() {
 
       <button
         type="button"
+        onClick={() => logout()}
         className="flex items-center gap-3 border-t border-border px-3.5 pt-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <LogOut className="size-5" strokeWidth={1.8} />
