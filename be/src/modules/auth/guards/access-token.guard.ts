@@ -10,6 +10,7 @@ import { Request } from 'express';
 
 export interface AuthenticatedRequest extends Request {
   authUserId: string;
+  authSessionId?: string;
 }
 
 @Injectable()
@@ -24,12 +25,16 @@ export class AccessTokenGuard implements CanActivate {
     const [scheme, token] = request.headers.authorization?.split(' ') ?? [];
     if (scheme !== 'Bearer' || !token) throw new UnauthorizedException();
     try {
-      const payload = await this.jwt.verifyAsync<{ sub?: unknown }>(token, {
+      const payload = await this.jwt.verifyAsync<{
+        sub?: unknown;
+        sid?: unknown;
+      }>(token, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         algorithms: ['HS256'],
       });
       if (typeof payload.sub !== 'string') throw new Error('Invalid subject');
       request.authUserId = payload.sub;
+      if (typeof payload.sid === 'string') request.authSessionId = payload.sid;
       return true;
     } catch {
       throw new UnauthorizedException();

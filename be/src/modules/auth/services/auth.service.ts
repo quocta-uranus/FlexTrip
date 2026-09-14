@@ -13,7 +13,6 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
-  timingSafeEqual,
 } from 'crypto';
 import * as speakeasy from 'speakeasy';
 import * as bcrypt from 'bcrypt';
@@ -30,6 +29,11 @@ type AuthUser = Prisma.UserGetPayload<{ include: typeof AUTH_USER_INCLUDE }>;
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+}
+export interface SessionContext {
+  deviceName?: string;
+  userAgent?: string;
+  ipAddress?: string;
 }
 export type LoginResult =
   | AuthTokens
@@ -196,7 +200,10 @@ export class AuthService {
     return { code: 'VERIFICATION_EMAIL_REQUEST_ACCEPTED' };
   }
 
-  async login(dto: LoginDto): Promise<LoginResult> {
+  async login(
+    dto: LoginDto,
+    context: SessionContext = {},
+  ): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: AUTH_USER_INCLUDE,
@@ -208,7 +215,11 @@ export class AuthService {
       return {
         requiresTwoFactor: true,
         challengeToken: await this.jwt.signAsync(
-          { sub: user.id, purpose: '2fa-login' },
+          {
+            sub: user.id,
+            purpose: '2fa-login',
+            context: { ...context, deviceName: dto.deviceName },
+          },
           {
             secret: this.config.getOrThrow<string>(
               'TWO_FACTOR_CHALLENGE_SECRET',
@@ -218,7 +229,7 @@ export class AuthService {
         ),
       } as LoginResult;
     }
-    return this.signTokens(user);
+    return this.signTokens(user, { ...context, deviceName: dto.deviceName });
   }
 
   async setupTwoFactor(
@@ -279,7 +290,7 @@ export class AuthService {
     challengeToken: string,
     code: string,
   ): Promise<AuthTokens> {
-    let payload: { sub?: unknown; purpose?: unknown };
+    let payload: { sub?: unknown; purpose?: unknown; context?: SessionContext };
     try {
       payload = await this.jwt.verifyAsync(challengeToken, {
         secret: this.config.getOrThrow<string>('TWO_FACTOR_CHALLENGE_SECRET'),
@@ -307,7 +318,7 @@ export class AuthService {
       ))
     )
       throw new UnauthorizedException({ code: 'INVALID_TWO_FACTOR_CODE' });
-    return this.signTokens(user);
+    return this.signTokens(user, payload.context ?? {});
   }
 
   async disableTwoFactor(
@@ -340,16 +351,23 @@ export class AuthService {
         refreshToken: null,
       },
     });
+    await this.prisma.authSession.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
     return { code: 'TWO_FACTOR_DISABLED' };
   }
 
   async refresh(token: string): Promise<AuthTokens> {
-    let payload: { sub?: unknown };
+    let payload: { sub?: unknown; sid?: unknown };
     try {
-      payload = await this.jwt.verifyAsync<{ sub?: unknown }>(token, {
-        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        algorithms: ['HS256'],
-      });
+      payload = await this.jwt.verifyAsync<{ sub?: unknown; sid?: unknown }>(
+        token,
+        {
+          secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          algorithms: ['HS256'],
+        },
+      );
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -359,20 +377,39 @@ export class AuthService {
       where: { id: payload.sub },
       include: AUTH_USER_INCLUDE,
     });
-    if (
-      !user?.refreshToken ||
-      !timingSafeEqual(
-        Buffer.from(this.hashToken(token), 'hex'),
-        Buffer.from(this.hashToken(user.refreshToken), 'hex'),
-      )
-    )
-      throw new UnauthorizedException('Invalid refresh token');
+    if (!user) throw new UnauthorizedException('Invalid refresh token');
     this.assertCanAuthenticate(user);
-    return this.signTokens(user);
+    const tokenHash = this.hashToken(token);
+    if (typeof payload.sid === 'string') {
+      const session = await this.prisma.authSession.findUnique({
+        where: { id: payload.sid },
+      });
+      if (
+        !session ||
+        session.userId !== user.id ||
+        session.refreshTokenHash !== tokenHash ||
+        session.revokedAt ||
+        session.expiresAt <= new Date()
+      )
+        throw new UnauthorizedException('Invalid refresh token');
+      return this.signTokens(
+        user,
+        {
+          deviceName: session.deviceName ?? undefined,
+          userAgent: session.userAgent ?? undefined,
+          ipAddress: session.ipAddress ?? undefined,
+        },
+        session.id,
+        tokenHash,
+      );
+    }
+    if (!user.refreshToken || this.hashToken(user.refreshToken) !== tokenHash)
+      throw new UnauthorizedException('Invalid refresh token');
+    return this.signTokens(user, { deviceName: 'Legacy session' });
   }
 
   async logout(token: string): Promise<void> {
-    let payload: { sub?: unknown };
+    let payload: { sub?: unknown; sid?: unknown };
     try {
       payload = await this.jwt.verifyAsync<{ sub?: unknown }>(token, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
@@ -383,10 +420,74 @@ export class AuthService {
       return;
     }
     if (typeof payload.sub !== 'string') return;
+    if (typeof payload.sid === 'string') {
+      await this.prisma.authSession.updateMany({
+        where: { id: payload.sid, userId: payload.sub, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
     await this.prisma.user.updateMany({
       where: { id: payload.sub, refreshToken: token },
       data: { refreshToken: null },
     });
+  }
+
+  async listSessions(userId: string, currentSessionId?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: AUTH_USER_INCLUDE,
+    });
+    if (!user) throw new UnauthorizedException();
+    this.assertCanAuthenticate(user);
+    this.assertTwoFactorEligible(user);
+    const sessions = await this.prisma.authSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { lastUsedAt: 'desc' },
+    });
+    return sessions.map(
+      ({
+        id,
+        deviceName,
+        userAgent,
+        ipAddress,
+        createdAt,
+        lastUsedAt,
+        expiresAt,
+      }) => ({
+        id,
+        deviceName,
+        userAgent,
+        ipAddress,
+        createdAt,
+        lastUsedAt,
+        expiresAt,
+        current: id === currentSessionId,
+      }),
+    );
+  }
+
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    await this.requireSessionEligibleUser(userId);
+    const result = await this.prisma.authSession.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (!result.count)
+      throw new BadRequestException({ code: 'SESSION_NOT_FOUND' });
+  }
+
+  async revokeOtherSessions(
+    userId: string,
+    currentSessionId?: string,
+  ): Promise<{ revokedCount: number }> {
+    await this.requireSessionEligibleUser(userId);
+    if (!currentSessionId)
+      throw new BadRequestException({ code: 'CURRENT_SESSION_REQUIRED' });
+    const result = await this.prisma.authSession.updateMany({
+      where: { userId, id: { not: currentSessionId }, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { revokedCount: result.count };
   }
 
   async forgotPassword(email: string): Promise<{ code: string }> {
@@ -470,6 +571,10 @@ export class AuthService {
         where: { id: current.userId },
         data: { password, refreshToken: null },
       });
+      await tx.authSession.updateMany({
+        where: { userId: current.userId, revokedAt: null },
+        data: { revokedAt: now },
+      });
       await tx.passwordResetToken.updateMany({
         where: {
           userId: current.userId,
@@ -504,11 +609,30 @@ export class AuthService {
       throw new ForbiddenException({ code: 'TWO_FACTOR_NOT_AVAILABLE' });
   }
 
-  private async signTokens(user: AuthUser): Promise<AuthTokens> {
+  private async signTokens(
+    user: AuthUser,
+    context: SessionContext = {},
+    existingSessionId?: string,
+    expectedHash?: string,
+  ): Promise<AuthTokens> {
+    const placeholder = randomBytes(32).toString('hex');
+    const session = existingSessionId
+      ? { id: existingSessionId }
+      : await this.prisma.authSession.create({
+          data: {
+            userId: user.id,
+            refreshTokenHash: placeholder,
+            deviceName: context.deviceName,
+            userAgent: context.userAgent?.slice(0, 500),
+            ipAddress: context.ipAddress?.slice(0, 64),
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
     const payload = {
       sub: user.id,
       email: user.email,
       roles: user.roles.map(({ role }) => role),
+      sid: session.id,
     };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(payload),
@@ -518,11 +642,39 @@ export class AuthService {
         jwtid: randomBytes(16).toString('hex'),
       }),
     ]);
+    const decoded = this.jwt.decode(refreshToken) as { exp?: number };
+    const update = await this.prisma.authSession.updateMany({
+      where: {
+        id: session.id,
+        userId: user.id,
+        revokedAt: null,
+        ...(expectedHash
+          ? { refreshTokenHash: expectedHash }
+          : { refreshTokenHash: placeholder }),
+      },
+      data: {
+        refreshTokenHash: this.hashToken(refreshToken),
+        lastUsedAt: new Date(),
+        expiresAt: new Date((decoded.exp ?? 0) * 1000),
+      },
+    });
+    if (update.count !== 1)
+      throw new UnauthorizedException('Invalid refresh token');
     await this.prisma.user.update({
       where: { id: user.id },
       data: { refreshToken },
     });
     return { accessToken, refreshToken };
+  }
+
+  private async requireSessionEligibleUser(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: AUTH_USER_INCLUDE,
+    });
+    if (!user) throw new UnauthorizedException();
+    this.assertCanAuthenticate(user);
+    this.assertTwoFactorEligible(user);
   }
 
   private tokenData(

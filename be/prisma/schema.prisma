@@ -102,8 +102,26 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   kycApplications         KycApplication[]     @relation("KycApplicant")
   reviewedKycApplications KycApplication[]     @relation("KycReviewer")
+  authSessions            AuthSession[]
 
   @@index([email])
+}
+
+model AuthSession {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  deviceName       String?
+  userAgent        String?
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
 }
 
 model KycApplication {

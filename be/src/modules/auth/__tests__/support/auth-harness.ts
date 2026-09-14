@@ -81,6 +81,7 @@ export class AuthHarness {
     this.jwt = module.get(JwtService);
     this.config = module.get(ConfigService);
     await this.prisma.kycApplication.deleteMany();
+    await this.prisma.authSession.deleteMany();
     await this.prisma.passwordResetToken.deleteMany();
     await this.prisma.verificationToken.deleteMany();
     await this.prisma.userRole.deleteMany();
