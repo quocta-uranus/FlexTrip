@@ -17,7 +17,16 @@ export class UsersService {
   }
 
   async updateMe(userId: string, dto: UpdateUserDto) {
-    await this.prisma.user.update({ where: { id: userId }, data: dto });
+    const { dateOfBirth, ...rest } = dto;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...rest,
+        ...(dateOfBirth !== undefined
+          ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null }
+          : {}),
+      },
+    });
     return this.getMe(userId);
   }
 
@@ -51,15 +60,22 @@ export class UsersService {
       id: u.id,
       email: u.email,
       name: u.name,
-      phone: u.phone,
-      avatarUrl: u.avatarUrl,
-      preferredLanguage: u.preferredLanguage,
+      phone: u.phone ?? null,
+      avatarUrl: u.avatarUrl ?? null,
+      preferredLanguage: u.preferredLanguage ?? 'vi',
       status: u.status,
       roles: (u.roles ?? []).map((r: { role: Role }) => r.role),
       twoFactorEnabled: u.twoFactorEnabled,
       isKycVerified: u.isKycVerified,
       kycStatus: u.kycApplications?.[0]?.status ?? null,
       createdAt: u.createdAt,
+      dateOfBirth: u.dateOfBirth ? (u.dateOfBirth as Date).toISOString().split('T')[0] : null,
+      gender: u.gender ?? null,
+      nationality: u.nationality ?? null,
+      address: u.address ?? null,
+      bio: u.bio ?? null,
+      emergencyContact: u.emergencyContact ?? null,
+      languages: u.languages ?? ['vi'],
     };
   }
 }

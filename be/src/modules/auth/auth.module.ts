@@ -2,14 +2,13 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Redis } from 'ioredis';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
-import { MailService, SMTP_TRANSPORT_FACTORY } from './services/mail.service';
-import { createTransport } from 'nodemailer';
+import { OtpService, REDIS_CLIENT } from './services/otp.service';
+import { ResendService } from './services/resend.service';
 import {
   RegisterRateLimitGuard,
-  ResendRateLimitGuard,
-  VerifyRateLimitGuard,
   ForgotPasswordRateLimitGuard,
   ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
@@ -29,11 +28,18 @@ import { AccessTokenGuard } from './guards/access-token.guard';
   controllers: [AuthController],
   providers: [
     AuthService,
-    MailService,
-    { provide: SMTP_TRANSPORT_FACTORY, useValue: createTransport },
+    OtpService,
+    ResendService,
+    {
+      provide: REDIS_CLIENT,
+      useFactory: (config: ConfigService) =>
+        new Redis({
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+        }),
+      inject: [ConfigService],
+    },
     RegisterRateLimitGuard,
-    ResendRateLimitGuard,
-    VerifyRateLimitGuard,
     ForgotPasswordRateLimitGuard,
     ResetPasswordRateLimitGuard,
     AccessTokenGuard,

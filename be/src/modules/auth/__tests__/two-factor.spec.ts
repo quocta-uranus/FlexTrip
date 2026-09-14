@@ -11,7 +11,6 @@ describe('AUTH-04 — Two-Factor Authentication', () => {
 
   async function account() {
     const registered = await h.register();
-    await h.auth.verifyEmail(registered.token);
     const login = await h.auth.login({ email: registered.email, password });
     if (!('accessToken' in login)) throw new Error('Unexpected challenge');
     return { ...registered, accessToken: login.accessToken };

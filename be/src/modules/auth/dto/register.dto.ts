@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, Length, MinLength, ValidateBy } from 'class-validator';
+import { IsOptional, IsString, Length, MinLength, ValidateBy } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { EmailDto } from './email.dto';
 
@@ -27,4 +27,9 @@ export class RegisterDto extends EmailDto {
     },
   })
   password!: string;
+
+  @ApiProperty({ required: false, description: 'Số điện thoại (optional tại đăng ký)' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
 }

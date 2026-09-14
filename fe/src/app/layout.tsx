@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
+import { AuthBootstrap } from "@/components/auth-bootstrap";
 import "./globals.css";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -38,7 +39,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       >
         {/* Wrapper giữ layout flex, không che background */}
         <div className="relative min-h-full flex flex-col">
-          <Providers>{children}</Providers>
+          <Providers>
+            <AuthBootstrap />
+            {children}
+          </Providers>
         </div>
       </body>
     </html>

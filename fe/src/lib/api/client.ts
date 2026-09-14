@@ -1,17 +1,106 @@
+import type {
+  AuthTokens,
+  LoginResult,
+  RegistrationResult,
+  Session,
+  TwoFactorSetup,
+  TwoFactorEnableResult,
+} from '@/types/auth';
+import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+let _isRefreshing = false;
+// Queued callbacks waiting for the in-flight refresh to resolve
+let _refreshWaiters: Array<(token: string | null) => void> = [];
+
+function redirectToLogin() {
+  if (typeof window === 'undefined') return;
+  if (window.location.pathname === '/login') return;
+  const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.replace(`/login?redirect=${redirect}`);
+}
+
+function clearTokens() {
+  setAccessToken(null);
+  setRefreshToken(null); // clears localStorage + cookie
+}
+
+async function tryRefresh(): Promise<string | null> {
+  // If a refresh is already in-flight, queue this caller
+  if (_isRefreshing) {
+    return new Promise((resolve) => { _refreshWaiters.push(resolve); });
+  }
+
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    redirectToLogin();
+    return null;
+  }
+
+  _isRefreshing = true;
+  try {
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
+    });
+
+    if (!res.ok) {
+      // Refresh token is expired / revoked — force re-login
+      clearTokens();
+      _refreshWaiters.forEach((fn) => fn(null));
+      _refreshWaiters = [];
+      redirectToLogin();
+      return null;
+    }
+
+    const data: AuthTokens = await res.json();
+    setAccessToken(data.accessToken);
+    setRefreshToken(data.refreshToken);
+    _refreshWaiters.forEach((fn) => fn(data.accessToken));
+    _refreshWaiters = [];
+    return data.accessToken;
+  } catch {
+    clearTokens();
+    _refreshWaiters.forEach((fn) => fn(null));
+    _refreshWaiters = [];
+    redirectToLogin();
+    return null;
+  } finally {
+    _isRefreshing = false;
+  }
+}
+
+function buildHeaders(extra?: HeadersInit): HeadersInit {
+  const token = getAccessToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
 
 async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    credentials: 'include',
-  });
+  const doFetch = (headers: HeadersInit) =>
+    fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+  let res = await doFetch(buildHeaders(options.headers));
+
+  if (res.status === 401) {
+    const newToken = await tryRefresh();
+    if (newToken) {
+      res = await doFetch(buildHeaders(options.headers));
+    }
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: 'Network error' }));
@@ -57,28 +146,45 @@ export const api = {
 // ─── User / Profile ─────────────────────────────────────────────────────────
 
 export interface UserProfile {
-  userId: string;
+  id: string;
   email: string;
-  fullName: string;
-  avatarUrl?: string;
-  phone?: string;
-  preferredLanguage?: string;
+  name: string;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  preferredLanguage?: string | null;
   roles: string[];
   status: string;
   twoFactorEnabled?: boolean;
-  kycStatus?: string;
+  isKycVerified?: boolean;
+  kycStatus?: string | null;
   createdAt?: string;
+  dateOfBirth?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  nationality?: string | null;
+  address?: string | null;
+  bio?: string | null;
+  emergencyContact?: string | null;
+  languages?: string[];
+}
+
+export interface UpdateMePayload {
+  name?: string;
+  phone?: string;
+  avatarUrl?: string;
+  preferredLanguage?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  address?: string;
+  bio?: string;
+  emergencyContact?: string;
+  languages?: string[];
 }
 
 export const userApi = {
   me: () => api.get('/users/me') as Promise<UserProfile>,
 
-  updateMe: (data: {
-    fullName?: string;
-    phone?: string;
-    avatarUrl?: string;
-    preferredLanguage?: string;
-  }) => api.patch('/users/me', data) as Promise<UserProfile>,
+  updateMe: (data: UpdateMePayload) => api.patch('/users/me', data) as Promise<UserProfile>,
 
   // Travel preferences
   getPreferences: () =>
@@ -142,15 +248,61 @@ export const walletApi = {
     }>,
 };
 
-// ─── 2FA ──────────────────────────────────────────────────────────────────
+// ─── Auth ────────────────────────────────────────────────────────────────────
 
+export const authApi = {
+  register: (data: { name: string; email: string; password: string; phone?: string }) =>
+    api.post('/auth/register', data) as Promise<RegistrationResult>,
+
+  verifyOtp: (email: string, code: string) =>
+    api.post('/auth/verify-otp', { email, code }) as Promise<{ code: string }>,
+
+  resendOtp: (email: string) =>
+    api.post('/auth/resend-otp', { email }) as Promise<{ code: string }>,
+
+  login: (data: { email: string; password: string; deviceName?: string }) =>
+    api.post('/auth/login', data) as Promise<LoginResult>,
+
+  refresh: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }) as Promise<AuthTokens>,
+
+  logout: (refreshToken: string) =>
+    api.post('/auth/logout', { refreshToken }) as Promise<void>,
+
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }) as Promise<{ code: string }>,
+
+  resetPassword: (token: string, newPassword: string) =>
+    api.post('/auth/reset-password', { token, newPassword }) as Promise<{ code: string }>,
+
+  setup2fa: () =>
+    api.post('/auth/2fa/setup', {}) as Promise<TwoFactorSetup>,
+
+  enable2fa: (code: string) =>
+    api.post('/auth/2fa/enable', { code }) as Promise<TwoFactorEnableResult>,
+
+  verify2fa: (challengeToken: string, code: string) =>
+    api.post('/auth/2fa/verify', { challengeToken, code }) as Promise<AuthTokens>,
+
+  disable2fa: (code: string) =>
+    api.post('/auth/2fa/disable', { code }) as Promise<{ ok: boolean }>,
+
+  sessions: () =>
+    api.get('/auth/sessions') as Promise<Session[]>,
+
+  revokeSession: (id: string) =>
+    api.delete(`/auth/sessions/${id}`) as Promise<void>,
+
+  revokeOtherSessions: () =>
+    api.delete('/auth/sessions/others') as Promise<{ revoked: number }>,
+};
+
+/** @deprecated Dùng authApi thay thế */
 export const twoFactorApi = {
-  getStatus: () => api.get('/2fa') as Promise<{ enabled: boolean; method: string | null }>,
-  enable: (method: 'TOTP' | 'SMS' | 'EMAIL') =>
-    api.post('/2fa/enable', { method }) as Promise<any>,
-  verify: (code: string) =>
-    api.post('/2fa/verify', { code }) as Promise<{ ok: boolean; enabled: boolean }>,
-  disable: () => api.delete('/2fa') as Promise<{ ok: boolean; enabled: boolean }>,
+  setup: () => authApi.setup2fa(),
+  enable: (code: string) => authApi.enable2fa(code),
+  verify: (challengeToken: string, code: string) => authApi.verify2fa(challengeToken, code),
+  disable: (code: string) => authApi.disable2fa(code),
 };
 
 // ─── KYC ──────────────────────────────────────────────────────────────────
