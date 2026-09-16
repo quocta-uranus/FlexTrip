@@ -42,14 +42,22 @@ export function useLogin() {
         router.push(`/2fa-challenge?token=${encodeURIComponent(result.challengeToken)}`);
         return;
       }
-      // Set token vào memory trước để userApi.me() gửi được Authorization header
-      setAccessToken(result.accessToken);
-      const user = await userApi.me();
+      // Truyền token trực tiếp vào userApi.me() để tránh race condition với React Query
+      const user = await userApi.me(result.accessToken);
       setAuth(user, result.accessToken, result.refreshToken);
       qc.setQueryData(['me'], user);
 
-      const params = new URLSearchParams(window.location.search);
-      router.push(params.get('redirect') ?? '/profile');
+      // Route theo role — mỗi user chỉ giữ 1 role duy nhất
+      const roles = user.roles as string[];
+      if (roles.includes('PROVIDER')) {
+        router.push('/profile/shop');
+      } else if (roles.includes('TRAVELER')) {
+        router.push('/profile/travel');
+      } else if (roles.includes('ADMIN')) {
+        router.push('/profile/admin');
+      } else {
+        router.push('/profile');
+      }
     },
   });
 }
@@ -63,7 +71,8 @@ export function useVerify2faLogin() {
     mutationFn: ({ challengeToken, code }: { challengeToken: string; code: string }) =>
       authApi.verify2fa(challengeToken, code),
     onSuccess: async (tokens) => {
-      const user = await userApi.me();
+      // Truyền token trực tiếp để tránh race condition
+      const user = await userApi.me(tokens.accessToken);
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
       router.push('/profile');

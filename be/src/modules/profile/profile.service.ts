@@ -5,11 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  ChangePasswordDto,
-  CreatePreferenceDto,
-  UpdatePreferenceDto,
-} from './profile.dto';
+import { uploadImage, deleteFromSupabase } from '../../common/upload.util';
 
 @Injectable()
 export class ProfileService {
@@ -23,7 +19,7 @@ export class ProfileService {
     });
   }
 
-  async addPreference(userId: string, dto: CreatePreferenceDto) {
+  async addPreference(userId: string, dto: any) {
     return this.prisma.travelPreference.create({
       data: {
         userId,
@@ -34,7 +30,7 @@ export class ProfileService {
     });
   }
 
-  async updatePreference(userId: string, id: string, dto: UpdatePreferenceDto) {
+  async updatePreference(userId: string, id: string, dto: any) {
     return this.prisma.travelPreference.update({
       where: { id },
       data: { ...dto, budgetMin: dto.budgetMin as any, budgetMax: dto.budgetMax as any },
@@ -47,7 +43,7 @@ export class ProfileService {
   }
 
   // Password ------------------------------------------------------------
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(userId: string, dto: any) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
     const ok = await bcrypt.compare(dto.oldPassword, user.password);
@@ -74,5 +70,37 @@ export class ProfileService {
       data: { avatarUrl },
       select: { id: true, avatarUrl: true },
     });
+  }
+
+  /**
+   * Upload avatar lên Supabase Storage, cập nhật User.avatarUrl = public_url,
+   * xoá ảnh cũ trên Supabase (nếu là Supabase URL).
+   * Trả về URL public — ai cũng xem được, không phụ thuộc localhost.
+   */
+  async setAvatarFromFile(userId: string, file: Express.Multer.File) {
+    // Xoá ảnh cũ trên Supabase (nếu có)
+    const old = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    if (old?.avatarUrl && old.avatarUrl.includes('supabase.co')) {
+      await deleteFromSupabase(old.avatarUrl);
+    }
+
+    // Upload ảnh mới lên Supabase
+    const filename = `avatar-${userId}-${Date.now()}.${file.originalname.split('.').pop() || 'jpg'}`;
+    const avatarPublicUrl = await uploadImage(file.buffer, filename);
+
+    // Lưu public_url vào DB
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: avatarPublicUrl },
+    });
+
+    return {
+      userId,
+      avatarUrl: avatarPublicUrl,
+      avatarPublicUrl,
+    };
   }
 }

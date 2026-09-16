@@ -7,9 +7,13 @@ import {
   Patch,
   Post,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   AccessTokenGuard,
   AuthenticatedRequest,
@@ -63,8 +67,24 @@ export class ProfileController {
   }
 
   @Post('avatar')
-  @ApiOperation({ summary: 'PROF-01: Cập nhật avatar' })
-  setAvatar(@Req() req: AuthenticatedRequest, @Body() body: { avatarUrl: string }) {
-    return this.svc.setAvatar(req.authUserId, body.avatarUrl);
+  @ApiOperation({ summary: 'PROF-01: Upload avatar (multipart/form-data, field "file")' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  setAvatar(
+    @Req() req: AuthenticatedRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Thiếu file ảnh (field "file")');
+    if (!file.mimetype?.startsWith('image/')) {
+      throw new BadRequestException('File phải là ảnh');
+    }
+    return this.svc.setAvatarFromFile(req.authUserId, file);
   }
 }

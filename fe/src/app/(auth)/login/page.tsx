@@ -105,7 +105,43 @@ function LoginForm() {
           {isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </button>
       </form>
+
+      {/* Vai trò gợi ý — không cần chọn, hệ thống tự route theo tài khoản */}
+      <div className="mt-6">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="h-px flex-1" style={{ background: '#e2e8f3' }} />
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8694ad' }}>
+            Tài khoản của bạn sẽ vào đúng hồ sơ
+          </span>
+          <div className="h-px flex-1" style={{ background: '#e2e8f3' }} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <RoleHint
+            emoji="🎒"
+            title="Traveler"
+            desc="Thuê đồ & đặt trải nghiệm"
+          />
+          <RoleHint
+            emoji="🏪"
+            title="Provider"
+            desc="Cho thuê đồ & quản lý shop"
+          />
+        </div>
+      </div>
     </>
+  );
+}
+
+function RoleHint({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+  return (
+    <div
+      className="rounded-xl border bg-white px-3 py-2.5 text-center"
+      style={{ borderColor: '#e2e8f3' }}
+    >
+      <div className="text-lg leading-none">{emoji}</div>
+      <div className="mt-1 text-xs font-semibold" style={{ color: '#0f1729' }}>{title}</div>
+      <div className="mt-0.5 text-[10px]" style={{ color: '#8694ad' }}>{desc}</div>
+    </div>
   );
 }
 

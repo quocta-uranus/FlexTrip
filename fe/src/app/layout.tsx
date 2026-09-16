@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
+import { UserMenu } from "@/components/user-menu";
 import "./globals.css";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -41,6 +42,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative min-h-full flex flex-col">
           <Providers>
             <AuthBootstrap />
+            {/* Floating header — chỉ chứa nút user, không che nội dung */}
+            <header className="pointer-events-none absolute right-0 top-0 z-40 flex w-full justify-end gap-3 px-6 py-4">
+              <div className="pointer-events-auto">
+                <UserMenu />
+              </div>
+            </header>
             {children}
           </Providers>
         </div>

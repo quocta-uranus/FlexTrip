@@ -28,13 +28,13 @@ export class UsersController {
   @Get('me')
   @ApiOperation({ summary: 'PROF-01: Lấy hồ sơ hiện tại' })
   me(@Req() req: AuthenticatedRequest) {
-    return this.svc.getMe(req.authUserId);
+    return this.svc.getMe(req.authUserId, req);
   }
 
   @Patch('me')
   @ApiOperation({ summary: 'PROF-01: Cập nhật hồ sơ' })
   updateMe(@Req() req: AuthenticatedRequest, @Body() dto: UpdateUserDto) {
-    return this.svc.updateMe(req.authUserId, dto);
+    return this.svc.updateMe(req.authUserId, dto, req);
   }
 
   @Post('me/roles/:role')

@@ -73,13 +73,17 @@ async function tryRefresh(): Promise<string | null> {
   }
 }
 
-function buildHeaders(extra?: HeadersInit): HeadersInit {
+function buildHeaders(extra?: HeadersInit, body?: BodyInit | null): HeadersInit {
   const token = getAccessToken();
-  return {
-    'Content-Type': 'application/json',
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers: HeadersInit = {
+    // FormData: browser tự set 'multipart/form-data; boundary=...'
+    // KHÔNG set 'application/json' vì sẽ thiếu boundary
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   };
+  return headers;
 }
 
 async function apiFetch<T = any>(
@@ -93,12 +97,12 @@ async function apiFetch<T = any>(
       credentials: 'include',
     });
 
-  let res = await doFetch(buildHeaders(options.headers));
+  let res = await doFetch(buildHeaders(options.headers, options.body));
 
   if (res.status === 401) {
     const newToken = await tryRefresh();
     if (newToken) {
-      res = await doFetch(buildHeaders(options.headers));
+      res = await doFetch(buildHeaders(options.headers, options.body));
     }
   }
 
@@ -123,6 +127,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
       headers,
+    }),
+
+  /** Multipart upload. Body là FormData, KHÔNG set Content-Type (browser tự thêm boundary). */
+  upload: <T = any>(path: string, formData: FormData) =>
+    apiFetch<T>(path, {
+      method: 'POST',
+      body: formData,
+      headers: undefined, // để apiFetch KHÔNG inject 'application/json'
     }),
 
   patch: (path: string, body: unknown, headers?: HeadersInit) =>
@@ -182,7 +194,7 @@ export interface UpdateMePayload {
 }
 
 export const userApi = {
-  me: () => api.get('/users/me') as Promise<UserProfile>,
+  me: (accessToken?: string) => api.get('/users/me', accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined) as Promise<UserProfile>,
 
   updateMe: (data: UpdateMePayload) => api.patch('/users/me', data) as Promise<UserProfile>,
 
@@ -203,9 +215,19 @@ export const userApi = {
   changePassword: (oldPassword: string, newPassword: string) =>
     api.post('/profile/password', { oldPassword, newPassword }) as Promise<{ ok: boolean }>,
 
-  // Avatar
-  setAvatar: (avatarUrl: string) =>
-    api.post('/profile/avatar', { avatarUrl }) as Promise<{ userId: string; avatarUrl: string }>,
+  /**
+   * Upload file avatar lên BE (multipart/form-data, field "file").
+   * BE lưu vào /uploads và trả về { avatarUrl, avatarPublicUrl }.
+   * FE trả URL tuyệt đối cho <img src> (không dùng base64).
+   */
+  setAvatar: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ userId: string; avatarUrl: string; avatarPublicUrl: string }>(
+      '/profile/avatar',
+      fd,
+    );
+  },
 
   // Sessions
   getSessions: () => api.get('/users/me/sessions') as Promise<any[]>,
@@ -317,6 +339,41 @@ export const kycApi = {
 
   review: (id: string, decision: 'APPROVED' | 'REJECTED', reason?: string) =>
     api.post(`/kyc/submissions/${id}/review`, { decision, reason }) as Promise<any>,
+};
+
+// ─── Provider Profile ─────────────────────────────────────────────────────────
+
+export interface ProviderProfile {
+  id: string;
+  userId: string;
+  shopName: string;
+  ownerName: string;
+  category: string;
+  pickupAddress: string;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  responseHours: string;
+  bio?: string | null;
+  highlights: string[];
+  itemsCount: number;
+  rentalsCount: number;
+  ratingAvg: number;
+  reviewsCount: number;
+  responseTimeH: number;
+  isLive: boolean;
+  payoutMethod?: string | null;
+  bankAccount?: string | null;
+  // User fields
+  email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  wallet?: { balance: unknown; currency: string } | null;
+}
+
+export const providersApi = {
+  me: () => api.get('/providers/me') as Promise<ProviderProfile>,
+  updateMe: (data: Partial<ProviderProfile>) =>
+    api.patch('/providers/me', data) as Promise<ProviderProfile>,
 };
 
 // ─── Payment Methods ────────────────────────────────────────────────────────

@@ -2,21 +2,22 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { UpdateUserDto } from './users.dto';
+import { toAbsoluteUrl } from '../../common/absolute-url.util';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async getMe(userId: string) {
+  async getMe(userId: string, req?: import('express').Request) {
     const u = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { roles: true, kycApplications: { orderBy: { createdAt: 'desc' }, take: 1 } },
     });
     if (!u) throw new NotFoundException('User not found');
-    return this.publicProfile(u);
+    return this.publicProfile(u, req);
   }
 
-  async updateMe(userId: string, dto: UpdateUserDto) {
+  async updateMe(userId: string, dto: UpdateUserDto, req?: import('express').Request) {
     const { dateOfBirth, ...rest } = dto;
     await this.prisma.user.update({
       where: { id: userId },
@@ -27,7 +28,7 @@ export class UsersService {
           : {}),
       },
     });
-    return this.getMe(userId);
+    return this.getMe(userId, req);
   }
 
   async addRole(userId: string, role: Role) {
@@ -55,13 +56,13 @@ export class UsersService {
       .catch(() => { throw new NotFoundException('Session not found'); });
   }
 
-  private publicProfile(u: any) {
+  private publicProfile(u: any, req?: import('express').Request) {
     return {
       id: u.id,
       email: u.email,
       name: u.name,
       phone: u.phone ?? null,
-      avatarUrl: u.avatarUrl ?? null,
+      avatarUrl: toAbsoluteUrl(u.avatarUrl, req),
       preferredLanguage: u.preferredLanguage ?? 'vi',
       status: u.status,
       roles: (u.roles ?? []).map((r: { role: Role }) => r.role),
@@ -78,4 +79,7 @@ export class UsersService {
       languages: u.languages ?? ['vi'],
     };
   }
+
+  /** @deprecated dùng util chung toAbsoluteUrl từ common/absolute-url.util */
+  private toAbsoluteUrl = toAbsoluteUrl;
 }

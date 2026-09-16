@@ -468,7 +468,7 @@ export default function AdminProfilePage() {
       </section>
 
       <StickyCta primary={{ label: "📋 Mở ticket queue" }} secondary={{ label: "🚩 Xem fraud flag" }} />
-      <StickyEditBar visible={editing} onSave={handleSave} onCancel={cancel} brand="#0f1729" />
+      <StickyEditBar visible={editing} savedAt={savedAt} onSave={handleSave} onCancel={cancel} brand="#0f1729" />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
     </div>
   );

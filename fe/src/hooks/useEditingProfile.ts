@@ -31,7 +31,7 @@ export function useEditingProfile<T>(
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.data) setData(parsed.data as T);
-        if (parsed?.savedAt) setSavedAt(parsed.savedAt as string);
+        // savedAt không hydrate - chỉ dùng để hiện toast khi save thật sự
       }
     } catch {
       /* ignore */
@@ -39,15 +39,21 @@ export function useEditingProfile<T>(
     setHydrated(true);
   }, [storageKey]);
 
-  // Persist every change
+  // Persist data + lastSaved, KHÔNG persist savedAt để tránh toast hiện khi F5
   useEffect(() => {
     if (!hydrated) return;
     try {
-      sessionStorage.setItem(storageKey, JSON.stringify({ data, savedAt }));
+      const raw = sessionStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed.data = data;
+      if (!editing) {
+        parsed.lastSaved = data;
+      }
+      sessionStorage.setItem(storageKey, JSON.stringify(parsed));
     } catch {
       /* ignore quota errors */
     }
-  }, [data, savedAt, storageKey, hydrated]);
+  }, [data, editing, storageKey, hydrated]);
 
   function save() {
     setEditing(false);
@@ -75,20 +81,6 @@ export function useEditingProfile<T>(
       /* ignore */
     }
   }
-
-  // Snapshot lastSaved khi save xong
-  useEffect(() => {
-    if (!editing && savedAt) {
-      try {
-        const raw = sessionStorage.getItem(storageKey);
-        const parsed = raw ? JSON.parse(raw) : {};
-        parsed.lastSaved = data;
-        sessionStorage.setItem(storageKey, JSON.stringify(parsed));
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [editing, savedAt, data, storageKey]);
 
   return { data, setData, editing, setEditing, save, cancel, savedAt, reset };
 }
