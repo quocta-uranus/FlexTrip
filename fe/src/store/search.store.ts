@@ -1,32 +1,35 @@
 import { create } from 'zustand';
-
-interface SearchFilters {
-  location: string;
-  startDate: string | null;
-  endDate: string | null;
-  minPrice: number | null;
-  maxPrice: number | null;
-  category: string | null;
-}
+import type { SearchFilters } from '@/types/listing';
 
 interface SearchState {
   filters: SearchFilters;
-  setFilters: (filters: Partial<SearchFilters>) => void;
+  setFilters: (f: Partial<SearchFilters>) => void;
   resetFilters: () => void;
 }
 
-const defaultFilters: SearchFilters = {
+const DEFAULT_FILTERS: SearchFilters = {
+  keyword: '',
+  category: '',
   location: '',
-  startDate: null,
-  endDate: null,
-  minPrice: null,
-  maxPrice: null,
-  category: null,
+  dateFrom: '',
+  dateTo: '',
+  priceMin: undefined,
+  priceMax: undefined,
+  sortBy: 'newest',
+  page: 1,
+  limit: 12,
 };
 
 export const useSearchStore = create<SearchState>((set) => ({
-  filters: defaultFilters,
-  setFilters: (partial) =>
-    set((state) => ({ filters: { ...state.filters, ...partial } })),
-  resetFilters: () => set({ filters: defaultFilters }),
+  filters: DEFAULT_FILTERS,
+
+  setFilters(partial) {
+    set((s) => ({
+      filters: { ...s.filters, ...partial, page: partial.page ?? 1 },
+    }));
+  },
+
+  resetFilters() {
+    set({ filters: DEFAULT_FILTERS });
+  },
 }));

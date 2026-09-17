@@ -1,0 +1,257 @@
+'use client';
+
+import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { useBooking, useCancelBooking } from '@/hooks/useBookings';
+import { BookingStatusBadge } from '@/components/booking-status-badge';
+import type { BookingStatus } from '@/types/booking';
+import { CATEGORY_LABELS } from '@/types/listing';
+
+const STATUS_STEPS: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED'];
+
+function BookingDetailContent() {
+  const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const justCreated = searchParams.get('created') === '1';
+  const { data: booking, isLoading, error } = useBooking(id);
+  const { mutate: cancelBooking, isPending: cancelling } = useCancelBooking();
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 w-64 rounded bg-[#e2e8f3]" />
+        <div className="h-48 rounded-2xl bg-[#e2e8f3]" />
+        <div className="h-32 rounded-2xl bg-[#e2e8f3]" />
+      </div>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <span className="mb-4 text-5xl">😕</span>
+        <h1 className="mb-2 text-xl font-bold" style={{ color: '#0f1729' }}>Không tìm thấy đơn</h1>
+        <Link href="/bookings" className="mt-4 rounded-full px-5 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
+          Về danh sách đơn
+        </Link>
+      </div>
+    );
+  }
+
+  const price = typeof booking.totalPrice === 'number' ? booking.totalPrice : Number(booking.totalPrice);
+  const startDate = new Date(booking.startDate);
+  const endDate = new Date(booking.endDate);
+  const nights = Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000);
+  const currentStepIdx = STATUS_STEPS.indexOf(booking.status as BookingStatus);
+  const canCancel = booking.status === 'PENDING' || booking.status === 'CONFIRMED';
+
+  return (
+    <div className="space-y-6">
+      {/* Success toast */}
+      {justCreated && (
+        <div className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'rgba(146,238,232,0.4)', background: 'rgba(146,238,232,0.12)', color: '#15803d' }}>
+          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Đặt thuê thành công! Provider sẽ xác nhận trong vòng 24 giờ.
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm" style={{ color: '#8694ad' }}>Đơn #{booking.id.slice(-12).toUpperCase()}</p>
+          <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>Chi tiết đặt thuê</h1>
+        </div>
+        <BookingStatusBadge status={booking.status as BookingStatus} />
+      </div>
+
+      {/* Progress tracker */}
+      {!['CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
+        <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
+          <h2 className="mb-5 text-sm font-semibold" style={{ color: '#0f1729' }}>Tiến trình</h2>
+          <div className="flex items-center">
+            {STATUS_STEPS.map((step, i) => {
+              const done = currentStepIdx >= i;
+              const current = currentStepIdx === i;
+              const labels: Record<string, string> = {
+                PENDING: 'Chờ xác nhận',
+                CONFIRMED: 'Đã xác nhận',
+                COMPLETED: 'Hoàn thành',
+              };
+              return (
+                <div key={step} className="flex flex-1 items-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white transition-all"
+                      style={{ background: done ? '#2a7bd9' : '#e2e8f3', color: done ? '#fff' : '#8694ad' }}
+                    >
+                      {done && !current ? '✓' : i + 1}
+                    </div>
+                    <span className="text-center text-[10px] font-medium" style={{ color: done ? '#2a7bd9' : '#8694ad' }}>
+                      {labels[step]}
+                    </span>
+                  </div>
+                  {i < STATUS_STEPS.length - 1 && (
+                    <div className="mx-2 h-0.5 flex-1" style={{ background: done && currentStepIdx > i ? '#2a7bd9' : '#e2e8f3' }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main content grid */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left: listing + dates */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Listing card */}
+          {booking.listing && (
+            <div className="overflow-hidden rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+              <div className="flex items-stretch gap-0">
+                <div className="h-auto w-40 shrink-0 overflow-hidden bg-[#f1f5fa]">
+                  {booking.listing.imageUrls?.[0] ? (
+                    <img src={booking.listing.imageUrls[0]} alt={booking.listing.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-4xl">⛺</div>
+                  )}
+                </div>
+                <div className="flex-1 p-5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
+                    {CATEGORY_LABELS[booking.listing.category] ?? booking.listing.category}
+                  </span>
+                  <p className="mt-1 font-semibold" style={{ color: '#0f1729' }}>{booking.listing.title}</p>
+                  <p className="mt-1 text-sm" style={{ color: '#8694ad' }}>{booking.listing.location}</p>
+                  <Link
+                    href={`/listings/${booking.listing.id}`}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium"
+                    style={{ color: '#2a7bd9' }}
+                  >
+                    Xem sản phẩm →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dates */}
+          <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Thời gian thuê</h2>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>Nhận đồ</p>
+                <p className="font-semibold" style={{ color: '#0f1729' }}>{startDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>Trả đồ</p>
+                <p className="font-semibold" style={{ color: '#0f1729' }}>{endDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+            </div>
+            <div className="mt-3 rounded-lg px-3 py-2.5 text-sm" style={{ background: '#f6fbfe' }}>
+              Tổng: <strong style={{ color: '#0f1729' }}>{nights} ngày</strong>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {booking.notes && (
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Ghi chú</h2>
+              <p className="text-sm" style={{ color: '#5a6b85' }}>{booking.notes}</p>
+            </div>
+          )}
+
+          {/* Contract */}
+          {booking.contract && (
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-3 text-sm font-semibold" style={{ color: '#0f1729' }}>Hợp đồng</h2>
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: '#5a6b85' }}>Trạng thái: {booking.contract.status}</span>
+                {booking.contract.signedAt && (
+                  <span className="text-xs" style={{ color: '#8694ad' }}>
+                    Ký lúc: {new Date(booking.contract.signedAt).toLocaleDateString('vi-VN')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: payment + actions */}
+        <div className="space-y-5">
+          {/* Payment */}
+          <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Thanh toán</h2>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span style={{ color: '#5a6b85' }}>Đơn giá</span>
+                <span style={{ color: '#0f1729' }}>
+                  {booking.listing
+                    ? `${Number(booking.listing.price).toLocaleString('vi-VN')} × ${nights} ngày`
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
+                <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                <span style={{ color: '#2a7bd9' }}>{price.toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
+              </div>
+              {booking.payment && (
+                <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
+                  Phương thức: {booking.payment.method} · Trạng thái: {booking.payment.status}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Hành động</h2>
+            {booking.listing && (
+              <Link
+                href={`/messages?to=${booking.listing.providerId}`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition-all hover:shadow-sm"
+                style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
+              >
+                💬 Liên hệ Provider
+              </Link>
+            )}
+            {canCancel && (
+              <button
+                id="cancel-booking-btn"
+                onClick={() => {
+                  if (confirm('Bạn có chắc muốn huỷ đơn này không?')) {
+                    cancelBooking(booking.id);
+                  }
+                }}
+                disabled={cancelling}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition-all hover:bg-red-50 disabled:opacity-50"
+                style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+              >
+                {cancelling ? 'Đang huỷ…' : '✕ Huỷ đơn'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function BookingDetailPage() {
+  return (
+    <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {/* Breadcrumb */}
+        <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
+          <Link href="/bookings" className="hover:underline" style={{ color: '#2a7bd9' }}>Đặt thuê của tôi</Link>
+          <span>/</span>
+          <span style={{ color: '#0f1729' }}>Chi tiết đơn</span>
+        </nav>
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-[#e2e8f3]" />}>
+          <BookingDetailContent />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
