@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import { searchApi, listingApi } from '@/lib/api/client';
 import { useSearchStore } from '@/store/search.store';
 import { ListingCard } from '@/components/listing-card';
@@ -28,6 +29,23 @@ export default function SearchPage() {
   const { filters, setFilters, resetFilters } = useSearchStore();
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
   const [showFilters, setShowFilters] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Sync URL params → store once on mount (for links from landing page categories/products)
+  useEffect(() => {
+    const urlCategory = searchParams.get('category') as ListingCategory | null;
+    const urlKeyword = searchParams.get('keyword');
+    if (urlCategory || urlKeyword) {
+      setFilters({
+        ...(urlCategory ? { category: urlCategory } : {}),
+        ...(urlKeyword ? { keyword: urlKeyword } : {}),
+        page: 1,
+      });
+      if (urlKeyword) setLocalKeyword(urlKeyword);
+    }
+  // Only on mount — intentionally not including setFilters in deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Try real search API; fall back to listing list
   const { data: searchData, isLoading, error } = useQuery({
