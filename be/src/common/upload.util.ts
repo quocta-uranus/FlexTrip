@@ -1,5 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'crypto';
+import { WebSocket as NodeWebSocket } from 'ws';
+
+// Node.js <22 không có native WebSocket — polyfill trước khi Supabase client khởi tạo
+if (!(globalThis as any).WebSocket) {
+  (globalThis as any).WebSocket = NodeWebSocket;
+}
 
 // Supabase client cho server-side (dùng secret key để upload)
 const supabaseAdmin = createClient(

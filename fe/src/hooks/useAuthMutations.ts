@@ -75,7 +75,7 @@ export function useVerify2faLogin() {
       const user = await userApi.me(tokens.accessToken);
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
-      router.push('/profile');
+      router.push('/');
     },
   });
 }

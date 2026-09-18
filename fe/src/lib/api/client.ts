@@ -177,6 +177,18 @@ export interface UserProfile {
   bio?: string | null;
   emergencyContact?: string | null;
   languages?: string[];
+  providerProfile?: {
+    shopName: string;
+    ratingAvg: number;
+    reviewsCount: number;
+    responseHours: string;
+    category: string;
+  } | null;
+  adminProfile?: {
+    employeeId: string;
+    department: string;
+    level: string;
+  } | null;
 }
 
 export interface UpdateMePayload {
@@ -384,4 +396,129 @@ export const paymentMethodApi = {
     api.post('/payment-methods', data) as Promise<any>,
   setDefault: (id: string) => api.post(`/payment-methods/${id}/default`, {}) as Promise<any>,
   delete: (id: string) => api.delete(`/payment-methods/${id}`) as Promise<{ ok: boolean }>,
+};
+
+// ─── Listings ────────────────────────────────────────────────────────────────
+
+import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/types/listing';
+import type { Booking, CreateBookingPayload } from '@/types/booking';
+import type { Conversation, Message } from '@/types/message';
+
+export const listingApi = {
+  list: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<Listing[]>;
+  },
+
+  get: (id: string) => api.get(`/listings/${id}`) as Promise<Listing>,
+
+  create: (data: {
+    title: string;
+    description: string;
+    price: number;
+    currency?: string;
+    location: string;
+    category: ListingCategory;
+    amenities?: string[];
+    imageUrls?: string[];
+    latitude?: number;
+    longitude?: number;
+  }) => api.post('/listings', data) as Promise<Listing>,
+
+  update: (id: string, data: Partial<{
+    title: string;
+    description: string;
+    price: number;
+    location: string;
+    category: ListingCategory;
+    amenities: string[];
+    imageUrls: string[];
+    status: string;
+  }>) => api.patch(`/listings/${id}`, data) as Promise<Listing>,
+
+  delete: (id: string) => api.delete(`/listings/${id}`) as Promise<{ ok: boolean }>,
+
+  myListings: (params?: { page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/listings/me${qs ? `?${qs}` : ''}`) as Promise<Listing[]>;
+  },
+};
+
+// ─── Search ──────────────────────────────────────────────────────────────────
+
+export const searchApi = {
+  search: (filters: SearchFilters) => {
+    const q = new URLSearchParams();
+    if (filters.keyword) q.set('q', filters.keyword);
+    if (filters.category) q.set('category', filters.category);
+    if (filters.location) q.set('location', filters.location);
+    if (filters.dateFrom) q.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) q.set('dateTo', filters.dateTo);
+    if (filters.priceMin != null) q.set('priceMin', String(filters.priceMin));
+    if (filters.priceMax != null) q.set('priceMax', String(filters.priceMax));
+    if (filters.sortBy) q.set('sortBy', filters.sortBy);
+    if (filters.page) q.set('page', String(filters.page));
+    if (filters.limit) q.set('limit', String(filters.limit));
+    return api.get(`/search?${q.toString()}`) as Promise<SearchResult>;
+  },
+};
+
+// ─── Bookings ────────────────────────────────────────────────────────────────
+
+export const bookingApi = {
+  create: (data: CreateBookingPayload) =>
+    api.post('/bookings', data) as Promise<Booking>,
+
+  myBookings: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/bookings/me${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+  },
+
+  get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
+
+  cancel: (id: string) => api.post(`/bookings/${id}/cancel`, {}) as Promise<Booking>,
+
+  confirm: (id: string) => api.post(`/bookings/${id}/confirm`, {}) as Promise<Booking>,
+
+  complete: (id: string) => api.post(`/bookings/${id}/complete`, {}) as Promise<Booking>,
+
+  // Provider: bookings for provider's listings
+  providerBookings: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/bookings/provider${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+  },
+};
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+export const messageApi = {
+  getConversations: () =>
+    api.get('/messages/conversations') as Promise<Conversation[]>,
+
+  getMessages: (conversationId: string) =>
+    api.get(`/messages/conversations/${conversationId}`) as Promise<Message[]>,
+
+  sendMessage: (conversationId: string, content: string) =>
+    api.post(`/messages/conversations/${conversationId}`, { content }) as Promise<Message>,
+
+  startConversation: (targetUserId: string, content: string) =>
+    api.post('/messages/conversations', { targetUserId, content }) as Promise<Conversation>,
+
+  markRead: (conversationId: string) =>
+    api.post(`/messages/conversations/${conversationId}/read`, {}) as Promise<{ ok: boolean }>,
 };
