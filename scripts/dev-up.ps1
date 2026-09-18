@@ -33,7 +33,16 @@ if ($LASTEXITCODE -ne 0) {
 Push-Location $repoRoot
 try {
   Write-Host "Starting PostgreSQL on port $databasePort and Redis on port 6379..."
-  docker compose up -d --force-recreate
+  $composeArgs = @('compose')
+  if ($databasePort -ne '5432') {
+    $composeArgs += @(
+      '-f', (Join-Path $repoRoot 'docker-compose.yml'),
+      '-f', (Join-Path $repoRoot 'docker-compose.local.yml')
+    )
+  }
+  $composeArgs += @('up', '-d', '--force-recreate')
+
+  & docker @composeArgs
   if ($LASTEXITCODE -ne 0) {
     throw "Docker Compose could not start. Check whether ports $databasePort or 6379 are already in use."
   }
