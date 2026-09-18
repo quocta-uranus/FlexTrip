@@ -49,7 +49,7 @@ export function useLogin() {
       qc.setQueryData(['me'], user);
 
       const params = new URLSearchParams(window.location.search);
-      router.push(params.get('redirect') ?? '/profile');
+      router.push(params.get('redirect') ?? '/');
     },
   });
 }
@@ -66,7 +66,7 @@ export function useVerify2faLogin() {
       const user = await userApi.me();
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
-      router.push('/profile');
+      router.push('/');
     },
   });
 }
