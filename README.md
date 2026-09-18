@@ -271,3 +271,57 @@ npx prisma migrate reset
 - **Prisma migration** — mỗi khi sửa `schema.prisma`, chạy `npx prisma migrate dev --name <ten>` rồi commit cả file migration vào git. Khi pull code của người khác, dùng `npx prisma migrate deploy`.
 - **`.env` không commit** — file `.env` và `.env.local` đã có trong `.gitignore`. Dùng `env.example` làm template khi onboard member mới.
 - **Swagger** — BE expose docs tại `http://localhost:3001/api/docs`. FE dev nên xem đây trước khi gọi API.
+
+---
+
+## Cập nhật cho máy bị xung đột PostgreSQL cổng 5432
+
+Nếu PostgreSQL cài trực tiếp trên Windows đang sử dụng cổng 5432 và không thể
+dừng service đó, giữ nguyên `docker-compose.yml` của nhóm và đổi riêng
+`DATABASE_URL` trong `be/.env` sang cổng 5433:
+
+```env
+DATABASE_URL="postgresql://flextrip:flextrip@localhost:5433/flextrip_db?schema=public"
+```
+
+Sau đó chạy tại thư mục gốc:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
+```
+
+Script đọc cổng từ `be/.env`. Với cổng 5433, script tự kết hợp
+`docker-compose.yml` và `docker-compose.local.yml`, chờ PostgreSQL cùng Redis
+healthy, chạy `prisma migrate deploy` và tạo lại Prisma Client. Cấu hình mặc
+định 5432 của nhóm không bị thay đổi.
+
+`POSTGRES_PASSWORD` chỉ khởi tạo mật khẩu khi volume được tạo lần đầu. Nếu
+volume cũ dùng mật khẩu khác, đồng bộ role mà không xóa dữ liệu:
+
+```powershell
+docker exec flextrip_postgres psql -U flextrip -d flextrip_db -c "ALTER ROLE flextrip WITH LOGIN PASSWORD 'flextrip';"
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
+```
+
+Sau khi pull migration của thành viên khác, dùng `prisma migrate deploy`; chỉ
+dùng `prisma migrate dev --name <ten>` khi chính bạn thay đổi schema và cần tạo
+migration mới.
+
+Không chạy các lệnh sau nếu cần giữ dữ liệu local:
+
+```text
+docker compose down -v
+npx prisma migrate reset
+DROP
+DELETE
+TRUNCATE
+```
+
+Script không chạy các lệnh xóa trên và vẫn sử dụng volume `postgres_data` hiện
+có. File backup `*.dump` được Git bỏ qua để tránh commit dữ liệu local.
+
+### Tự động chuẩn bị database trước khi chạy backend
+
+Trên Windows, macOS và Linux, khi chạy `npm run start:dev` trong thư mục `be`, npm tự chạy `scripts/dev-up.mjs` trước khi NestJS khởi động. Script này bật PostgreSQL và Redis bằng Docker, chờ hai dịch vụ healthy, rồi chạy `prisma migrate deploy` và `prisma generate`.
+
+Docker Desktop phải được mở và Engine phải ở trạng thái running. Nếu chưa chạy, lệnh sẽ dừng với thông báo rõ ràng trước khi NestJS khởi động; mở Docker Desktop rồi chạy lại `npm run start:dev`.
