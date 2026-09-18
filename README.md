@@ -319,3 +319,9 @@ TRUNCATE
 
 Script không chạy các lệnh xóa trên và vẫn sử dụng volume `postgres_data` hiện
 có. File backup `*.dump` được Git bỏ qua để tránh commit dữ liệu local.
+
+### Tự động chuẩn bị database trước khi chạy backend
+
+Trên Windows, macOS và Linux, khi chạy `npm run start:dev` trong thư mục `be`, npm tự chạy `scripts/dev-up.mjs` trước khi NestJS khởi động. Script này bật PostgreSQL và Redis bằng Docker, chờ hai dịch vụ healthy, rồi chạy `prisma migrate deploy` và `prisma generate`.
+
+Docker Desktop phải được mở và Engine phải ở trạng thái running. Nếu chưa chạy, lệnh sẽ dừng với thông báo rõ ràng trước khi NestJS khởi động; mở Docker Desktop rồi chạy lại `npm run start:dev`.
