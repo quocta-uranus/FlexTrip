@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { searchApi, listingApi } from '@/lib/api/client';
@@ -25,13 +25,11 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Đánh giá cao' },
 ];
 
-export default function SearchPage() {
-  const { filters, setFilters, resetFilters } = useSearchStore();
-  const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
-  const [showFilters, setShowFilters] = useState(false);
+// Isolated component so useSearchParams is inside its own Suspense boundary
+function UrlParamSync() {
   const searchParams = useSearchParams();
+  const { setFilters } = useSearchStore();
 
-  // Sync URL params → store once on mount (for links from landing page categories/products)
   useEffect(() => {
     const urlCategory = searchParams.get('category') as ListingCategory | null;
     const urlKeyword = searchParams.get('keyword');
@@ -41,11 +39,17 @@ export default function SearchPage() {
         ...(urlKeyword ? { keyword: urlKeyword } : {}),
         page: 1,
       });
-      if (urlKeyword) setLocalKeyword(urlKeyword);
     }
-  // Only on mount — intentionally not including setFilters in deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  return null;
+}
+
+function SearchPageInner() {
+  const { filters, setFilters, resetFilters } = useSearchStore();
+  const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Try real search API; fall back to listing list
   const { data: searchData, isLoading, error } = useQuery({
@@ -376,5 +380,16 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <UrlParamSync />
+      </Suspense>
+      <SearchPageInner />
+    </>
   );
 }
