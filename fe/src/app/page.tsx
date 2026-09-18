@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LandingHeader } from '@/components/layout/landing-header';
 import { HeroSearch } from '@/components/landing/hero-search';
 import {
   Tent,
@@ -197,7 +198,7 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Navbar is rendered globally via layout.tsx */}
+      <LandingHeader />
 
       {/* 1. Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0E2233] via-[#1a3a5c] to-[#2A7BD9]">

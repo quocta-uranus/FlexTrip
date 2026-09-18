@@ -19,8 +19,9 @@ export function Navbar() {
   const { mutate: logout } = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Hide on auth pages
-  if (pathname.startsWith('/login') || pathname.startsWith('/register') ||
+  // Hide on auth pages and landing page (LandingHeader handles those)
+  if (pathname === '/' ||
+      pathname.startsWith('/login') || pathname.startsWith('/register') ||
       pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password') ||
       pathname.startsWith('/2fa-challenge')) {
     return null;
