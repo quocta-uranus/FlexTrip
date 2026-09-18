@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
+import { Navbar } from "@/components/navbar";
 import "./globals.css";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative min-h-full flex flex-col">
           <Providers>
             <AuthBootstrap />
+            <Navbar />
             {children}
           </Providers>
         </div>

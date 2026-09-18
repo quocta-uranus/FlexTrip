@@ -113,7 +113,7 @@ export default function AuditLogPage() {
             const actionVerb = log.action.split("_")[0];
             return (
               <div key={log.id} className="relative border-l-2 pl-6" style={{ borderColor: "rgba(146,238,232,0.5)" }}>
-                <span className="absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full bg-white ring-2" style={{ ringColor: "#92eee8" }}>
+                <span className="absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full bg-white ring-2 ring-[#92eee8]">
                   <span className="h-2 w-2 rounded-full" style={{ background: mod.text }} />
                 </span>
                 <div className="rounded-2xl border bg-white p-5 transition-all hover:shadow-lg" style={{ borderColor: "#e2e8f3" }}>
