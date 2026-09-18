@@ -42,15 +42,22 @@ cd FlexTrip
 ## Bước 2 — Khởi động Database & Redis
 
 ```bash
-# Khởi động PostgreSQL + Redis qua Docker
-docker compose up -d --force-recreate
-
-# Kiểm tra healthy chưa (chờ STATUS = healthy)
-docker compose ps
+# Windows PowerShell, chạy ở thư mục gốc
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
 ```
 
-> **Lưu ý:** Nếu máy đang chạy Docker project khác dùng port 5432/6379, cần dừng chúng trước:
-> `docker stop <tên_container_cũ>`
+Script sẽ khởi động PostgreSQL và Redis, chờ cả hai service `healthy`, áp các
+migration đã có và tạo lại Prisma Client.
+
+Nếu máy đang dùng cổng PostgreSQL 5432 cho dịch vụ khác, đổi riêng
+`DATABASE_URL` trong `be/.env` sang cổng 5433:
+
+```env
+DATABASE_URL="postgresql://flextrip:flextrip@localhost:5433/flextrip_db?schema=public"
+```
+
+Script tự đọc cổng này và ánh xạ container tương ứng. Mặc định của nhóm vẫn là
+5432.
 
 ---
 
@@ -72,10 +79,7 @@ cp env.example .env
 #   JWT_REFRESH_SECRET=...
 # Các giá trị còn lại (DATABASE_URL, REDIS_HOST...) giữ nguyên mặc định là được.
 
-# 3. Chạy database migration (lần đầu)
-npx prisma migrate dev --name init
-
-# 4. Start server
+# 3. Start server (dev-up.ps1 đã deploy migration và generate Prisma Client)
 npm run start:dev
 ```
 
@@ -110,12 +114,11 @@ App lên tại: `http://localhost:3000`
 ## Tóm tắt nhanh — lần đầu chạy
 
 ```
-Terminal 0:  docker compose up -d --force-recreate
+Terminal 0:  powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
 
 Terminal 1:  nvm use 20 && cd be
              npm install --legacy-peer-deps
              cp env.example .env   ← điền JWT secrets
-             npx prisma migrate dev --name init
              npm run start:dev
 
 Terminal 2:  nvm use 20 && cd fe
@@ -167,6 +170,7 @@ Nguyên nhân: cache `.next` cũ (từ lần install sai Node version) còn gi�
 | `docker compose down`          | Tắt containers               |
 | `docker compose down -v`       | Tắt và xóa toàn bộ data     |
 | `docker compose logs -f`       | Xem logs realtime            |
+| `powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1` | Start hạ tầng, chờ healthy, deploy migration và generate Prisma Client |
 
 ---
 
@@ -234,16 +238,11 @@ git checkout -b fix/AUTH-02
 
 Khi pull code về mà member có thêm bảng / cột mới trong Prisma:
 
-```bash
+```powershell
 git pull origin develop
 
-cd be
-
-# Áp các migration mới vào DB local (KHÔNG tạo migration mới)
-npx prisma migrate deploy
-
-# Regenerate Prisma Client để TypeScript nhận kiểu mới
-npx prisma generate
+# Chạy tại thư mục gốc. Script áp migration và generate Prisma Client.
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
 ```
 
 > **Phân biệt 2 lệnh migration:**
@@ -261,6 +260,23 @@ npx prisma migrate reset
 ```
 
 > Cảnh báo: lệnh này xóa hết data local. Chỉ dùng khi dev.
+
+### Xử lý `P1000: Authentication failed` mà vẫn giữ dữ liệu
+
+`POSTGRES_PASSWORD` chỉ được dùng khi volume PostgreSQL được tạo lần đầu.
+Thay đổi `docker-compose.yml` hoặc chạy `--force-recreate` không đổi mật khẩu
+đã lưu trong volume.
+
+Đồng bộ lại role mà không xóa dữ liệu:
+
+```powershell
+docker exec flextrip_postgres psql -U flextrip -d flextrip_db -c "ALTER ROLE flextrip WITH LOGIN PASSWORD 'flextrip';"
+powershell -ExecutionPolicy Bypass -File .\scripts\dev-up.ps1
+```
+
+Nếu PostgreSQL cài trực tiếp trên Windows đang giữ cổng 5432 và không thể dừng
+service đó, dùng cổng 5433 trong `be/.env` như hướng dẫn ở Bước 2. Không chạy
+`docker compose down -v` khi cần giữ dữ liệu.
 
 ---
 
