@@ -479,9 +479,6 @@ export function AvatarField({
     }
   }
 
-  /** Public helper: cho phép cha ép set avatar từ URL mà KHÔNG hiện URL ra UI. */
-  AvatarField.setFromUrl = handleRemoteUrl;
-
   return (
     <div className={`relative ${sz} shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-brand-gradient shadow-lg shadow-[#2a7bd9]/30`}>
       {display ? (
