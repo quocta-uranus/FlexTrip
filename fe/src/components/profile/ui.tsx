@@ -1,4 +1,141 @@
-import type { ReactNode } from "react";
+'use client';
+
+import { useEffect, useState, type ReactNode } from "react";
+
+/**
+ * StickyEditBar - Thanh nổi ở dưới cùng khi chỉnh sửa
+ * Hiện nút Lưu và Hủy với animation mượt
+ */
+export function StickyEditBar({
+  visible,
+  saved = false,
+  onSave,
+  onCancel,
+  saving = false,
+}: {
+  visible: boolean;
+  saved?: boolean;
+  onSave?: () => void;
+  onCancel?: () => void;
+  saving?: boolean;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Đợi mounted để tránh hydration mismatch
+  if (!mounted) return null;
+
+  return (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-50 w-full"
+      style={{
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? "auto" : "none",
+        transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
+      }}
+    >
+      {/* Main bar */}
+      <div
+        className="mx-auto max-w-4xl rounded-t-2xl border-b border-x bg-white/95 backdrop-blur-xl px-6 py-4"
+        style={{
+          borderColor: "rgba(42,123,217,0.3)",
+          boxShadow: "0 -8px 32px -12px rgba(42,123,217,0.2)",
+        }}
+      >
+        {/* Content */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Status */}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{
+                background: saved
+                  ? "linear-gradient(135deg, #10b981, #059669)"
+                  : "linear-gradient(135deg, rgba(42,123,217,0.1), rgba(146,238,232,0.2))",
+              }}
+            >
+              {saved ? (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className={`h-5 w-5 ${saving ? "" : "animate-pulse"}`} fill="none" viewBox="0 0 24 24" stroke="#2a7bd9" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <div className="text-sm font-bold" style={{ color: saved ? "#059669" : "#0f1729" }}>
+                {saved ? "Đã lưu hồ sơ!" : saving ? "Đang lưu..." : "Đang chỉnh sửa hồ sơ"}
+              </div>
+              <div className="text-xs" style={{ color: "#8694ad" }}>
+                {saved ? "Thay đổi của bạn đã được lưu" : saving ? "Vui lòng đợi trong giây lát" : "Nhớ lưu thay đổi trước khi rời đi"}
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onCancel}
+              disabled={saving}
+              className="rounded-xl border py-2.5 px-5 text-sm font-semibold transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Hủy
+              </span>
+            </button>
+
+            <button
+              onClick={onSave}
+              disabled={saving}
+              className="rounded-xl py-2.5 px-6 text-sm font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{
+                background: saving || saved
+                  ? "linear-gradient(135deg, #10b981, #059669)"
+                  : "linear-gradient(135deg, #2a7bd9, #1e5aa8)",
+              }}
+            >
+              <span className="flex items-center gap-2">
+                {saving ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Đang lưu...
+                  </>
+                ) : saved ? (
+                  <>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Đã lưu
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                    Lưu thay đổi
+                  </>
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Sub-components tái sử dụng cho 3 trang profile (Traveler / Provider / Admin).
@@ -225,15 +362,34 @@ export function AvatarField({
   name,
   value,
   onChange,
+  onUpload,
+  uploading,
   disabled,
   size = "md",
 }: {
   name: string;
   value: string;
   onChange?: (v: string) => void;
+  onUpload?: (file: File) => Promise<string>;
+  uploading?: boolean;
   disabled?: boolean;
   size?: "md" | "lg";
 }) {
+  const [preview, setPreview] = useState<string>(value);
+  const display = preview || value;
+
+  // Đồng bộ preview khi value đổi từ bên ngoài (vd: save xong reset)
+  useEffect(() => {
+    setPreview(value);
+  }, [value]);
+
+  // Cleanup object URL để tránh memory leak
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const initials =
     name
       .split(" ")
@@ -244,37 +400,135 @@ export function AvatarField({
 
   const sz = size === "lg" ? "h-32 w-32 sm:h-36 sm:w-36 text-4xl" : "h-28 w-28 sm:h-32 sm:w-32 text-3xl sm:text-4xl";
 
+  async function resizeImage(file: File, maxPx = 800): Promise<Blob> {
+    const bitmap = await createImageBitmap(file);
+    const ratio  = Math.min(maxPx / bitmap.width, maxPx / bitmap.height, 1);
+    const w = Math.round(bitmap.width  * ratio);
+    const h = Math.round(bitmap.height * ratio);
+    const canvas = document.createElement("canvas");
+    canvas.width  = w;
+    canvas.height = h;
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+    return new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("canvas toBlob failed"))), "image/jpeg", 0.82)
+    );
+  }
+
+  async function handleFile(file: File) {
+    // 0. Resize ảnh trước để tránh "request entity too large"
+    const resized = await resizeImage(file);
+
+    // 1. Hiện preview tức thì bằng object URL (rất nhẹ, không encode base64)
+    const localUrl = URL.createObjectURL(resized);
+    setPreview(localUrl);
+
+    // 2. Upload lên BE → nhận URL thật
+    if (onUpload) {
+      try {
+        // Tạo File fake từ Blob đã resize để tương thích với onUpload signature
+        const resizedFile = new File([resized], file.name, { type: "image/jpeg" });
+        const remoteUrl = await onUpload(resizedFile);
+        // 3. Thay preview bằng URL server + báo ra ngoài
+        if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+        setPreview(remoteUrl);
+        onChange?.(remoteUrl);
+      } catch (err) {
+        // Upload fail → revert về value cũ
+        URL.revokeObjectURL(localUrl);
+        setPreview(value);
+        console.error("[AvatarField] upload failed:", err);
+        throw err;
+      }
+    } else {
+      // Fallback: không có upload handler → gọi onChange luôn (giữ tương thích cũ)
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        onChange?.(ev.target?.result as string);
+      };
+      reader.readAsDataURL(resized);
+    }
+  }
+
+  /**
+   * Fetch URL ảnh công khai → chuyển thành File rồi đẩy vào luồng upload hiện có.
+   * URL không bao giờ lộ ra UI: nó chỉ là nguồn dữ liệu, BE vẫn host ảnh nội bộ.
+   */
+  async function handleRemoteUrl(url: string) {
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) {
+        throw new Error("URL không phải ảnh hợp lệ");
+      }
+      // Đoán tên file từ URL hoặc dùng mặc định
+      const guessedName = (() => {
+        try {
+          const u = new URL(url);
+          const last = u.pathname.split("/").filter(Boolean).pop() || "avatar.jpg";
+          return /\.[a-z0-9]{2,4}$/i.test(last) ? last : `${last}.jpg`;
+        } catch {
+          return "avatar.jpg";
+        }
+      })();
+      const file = new File([blob], guessedName, { type: blob.type });
+      await handleFile(file);
+    } catch (err) {
+      console.error("[AvatarField] fetch remote avatar failed:", err);
+      throw err;
+    }
+  }
+
   return (
     <div className={`relative ${sz} shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-brand-gradient shadow-lg shadow-[#2a7bd9]/30`}>
-      {value ? (
+      {display ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={value} alt={name} className="h-full w-full object-cover" />
+        <img src={display} alt={name} className="h-full w-full object-cover" />
       ) : (
         <div className="flex h-full w-full items-center justify-center font-bold text-white">
           {initials}
         </div>
       )}
       {!disabled && onChange && (
-        <label className="absolute inset-x-0 bottom-0 flex cursor-pointer items-center justify-center gap-1 bg-black/60 py-1.5 text-[11px] font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
-          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Đổi
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => onChange(ev.target?.result as string);
-                reader.readAsDataURL(file);
-              }
-            }}
-          />
-        </label>
+        <div className="absolute inset-x-0 bottom-0 flex">
+          {/* Nút upload file */}
+          <label
+            className={`flex flex-1 cursor-pointer items-center justify-center gap-1 py-1.5 text-[11px] font-semibold text-white backdrop-blur transition-colors ${
+              uploading ? "bg-black/70 cursor-wait" : "bg-black/60 hover:bg-black/70"
+            }`}
+          >
+            {uploading ? (
+              <>
+                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                  <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Đang upload…
+              </>
+            ) : (
+              <>
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Đổi
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleFile(file).catch(() => {});
+                  e.target.value = ""; // cho phép chọn lại cùng file
+                }
+              }}
+            />
+          </label>
+        </div>
       )}
     </div>
   );
@@ -318,7 +572,7 @@ export function BadgeRow({
   badges: { name: string; level: "locked" | "current" | "done"; desc: string }[];
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid min-w-0 gap-3 sm:grid-cols-3">
       {badges.map((b) => {
         const tone =
           b.level === "done"
@@ -329,38 +583,38 @@ export function BadgeRow({
         return (
           <div
             key={b.name}
-            className="rounded-xl border-2 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+            className="flex min-w-0 flex-col gap-2 rounded-xl border-2 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
             style={{ borderColor: tone.border, background: tone.bg }}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <div
-                className="flex h-7 w-7 items-center justify-center rounded-full"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                 style={{ background: "white", color: tone.fg }}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div className="text-sm font-bold" style={{ color: tone.fg }}>
+              <div className="min-w-0 flex-1 truncate text-sm font-bold" style={{ color: tone.fg }}>
                 {b.name}
               </div>
             </div>
-            <div className="mt-2 text-xs" style={{ color: tone.fg }}>
+            <div className="min-w-0 text-xs leading-relaxed" style={{ color: tone.fg }}>
               {b.desc}
             </div>
             {b.level === "current" && (
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: tone.fg }}>
+              <div className="rounded-full bg-blue-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: tone.fg }}>
                 Đang theo đuổi
               </div>
             )}
             {b.level === "done" && (
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: tone.fg }}>
-                ✓ Đã đạt
+              <div className="rounded-full bg-emerald-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: "#059669" }}>
+                Đã đạt
               </div>
             )}
             {b.level === "locked" && (
-              <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND.textSubtle }}>
-                🔒 Chưa mở khóa
+              <div className="rounded-full bg-gray-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: BRAND.textSubtle }}>
+                Chưa mở khóa
               </div>
             )}
           </div>
@@ -788,10 +1042,49 @@ export function RoleBadge({ role }: { role: ProfileRole }) {
 export function StickyCta({
   primary,
   secondary,
+  // Props cho chế độ chỉnh sửa
+  editing = false,
+  savedAt,
+  onSave,
+  onCancel,
+  saving = false,
 }: {
   primary: { label: string; onClick?: () => void };
   secondary?: { label: string; onClick?: () => void };
+  // Props cho chế độ chỉnh sửa (tùy chọn)
+  editing?: boolean;
+  savedAt?: string | null;
+  onSave?: () => void;
+  onCancel?: () => void;
+  saving?: boolean;
 }) {
+  // Xác định trạng thái "đã lưu" (trong vòng 3 giây sau khi save)
+  const [justSaved, setJustSaved] = useState(false);
+  const saved = savedAt !== null && savedAt !== undefined;
+
+  // Reset trạng thái "just saved" sau 3 giây
+  useEffect(() => {
+    if (savedAt) {
+      setJustSaved(true);
+      const timer = setTimeout(() => setJustSaved(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [savedAt]);
+
+  // Khi đang chỉnh sửa: dùng StickyEditBar với animation mượt
+  if (editing) {
+    return (
+      <StickyEditBar
+        visible={editing}
+        saved={justSaved}
+        onSave={onSave}
+        onCancel={onCancel}
+        saving={saving}
+      />
+    );
+  }
+
+  // Chế độ bình thường: hiện CTA thông thường
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden"

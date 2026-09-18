@@ -119,6 +119,8 @@ export function Navbar() {
                     {[
                       { href: '/profile', label: 'Hồ sơ', icon: '👤' },
                       { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
+                      { href: '/profile/history', label: 'Lịch sử thuê', icon: '🕓' },
+                      { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
                       { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
                       { href: '/messages', label: 'Tin nhắn', icon: '💬' },
                     ].map((item) => (
