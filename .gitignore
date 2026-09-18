@@ -11,3 +11,7 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Local dependencies and credentials
+/node_modules/
+*.tok
