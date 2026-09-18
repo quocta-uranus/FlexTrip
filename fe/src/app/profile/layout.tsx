@@ -1,4 +1,4 @@
-import { ProfileSidebar } from '@/components/profile/profile-sidebar';
+// import { ProfileSidebar } from '@/components/profile/profile-sidebar';
 
 export default function ProfileLayout({
   children,
@@ -7,7 +7,7 @@ export default function ProfileLayout({
 }) {
   return (
     <div className="flex min-h-screen bg-background">
-      <ProfileSidebar />
+      {/* <ProfileSidebar /> */}
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );
