@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { searchApi, listingApi } from '@/lib/api/client';
+import { listingApi } from '@/lib/api/client';
 import { useSearchStore } from '@/store/search.store';
 import { ListingCard } from '@/components/listing-card';
 import type { SearchFilters, ListingCategory } from '@/types/listing';
@@ -51,29 +51,17 @@ function SearchPageInner() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Try real search API; fall back to listing list
   const { data: searchData, isLoading, error } = useQuery({
     queryKey: ['search', filters],
-    queryFn: async () => {
-      try {
-        return await searchApi.search(filters);
-      } catch {
-        // BE search not yet available — fall back to listing list
-        const items = await listingApi.list({ status: 'ACTIVE', page: filters.page, limit: filters.limit });
-        return {
-          items: filters.keyword
-            ? items.filter((l) =>
-                l.title.toLowerCase().includes((filters.keyword ?? '').toLowerCase()) ||
-                l.location.toLowerCase().includes((filters.keyword ?? '').toLowerCase())
-              )
-            : items,
-          total: items.length,
-          page: filters.page ?? 1,
-          limit: filters.limit ?? 12,
-          totalPages: 1,
-        };
-      }
-    },
+    queryFn: () =>
+      listingApi.list({
+        status: 'ACTIVE',
+        page: filters.page ?? 1,
+        limit: filters.limit ?? 12,
+        category: filters.category || undefined,
+        keyword: filters.keyword || undefined,
+        location: filters.location || undefined,
+      }),
     placeholderData: (prev) => prev,
   });
 
@@ -88,6 +76,7 @@ function SearchPageInner() {
 
   const items = searchData?.items ?? [];
   const total = searchData?.total ?? 0;
+  const totalPages = searchData?.totalPages ?? 1;
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
@@ -353,7 +342,7 @@ function SearchPageInner() {
             )}
 
             {/* Pagination */}
-            {(searchData?.totalPages ?? 0) > 1 && (
+            {totalPages > 1 && (
               <div className="mt-8 flex justify-center gap-2">
                 <button
                   disabled={(filters.page ?? 1) <= 1}
@@ -364,10 +353,10 @@ function SearchPageInner() {
                   ← Trước
                 </button>
                 <span className="flex items-center gap-1 px-4 text-sm" style={{ color: '#5a6b85' }}>
-                  Trang <strong style={{ color: '#0f1729' }}>{filters.page ?? 1}</strong> / {searchData?.totalPages}
+                  Trang <strong style={{ color: '#0f1729' }}>{filters.page ?? 1}</strong> / {totalPages}
                 </span>
                 <button
-                  disabled={(filters.page ?? 1) >= (searchData?.totalPages ?? 1)}
+                  disabled={(filters.page ?? 1) >= totalPages}
                   onClick={() => setFilters({ page: (filters.page ?? 1) + 1 })}
                   className="rounded-lg border px-4 py-2 text-sm font-medium transition-all disabled:opacity-40"
                   style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}

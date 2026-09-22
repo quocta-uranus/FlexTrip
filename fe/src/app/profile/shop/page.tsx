@@ -342,6 +342,27 @@ export default function ShopProfilePage() {
 
       <section className="mx-auto mt-4 max-w-6xl px-6">
         <Reveal>
+          <div className="flex flex-wrap gap-3 mb-2">
+            <Link
+              href="/dashboard/listings"
+              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-md"
+              style={{ borderColor: '#2a7bd9', color: '#2a7bd9', background: 'rgba(42,123,217,0.06)' }}
+            >
+              <span>📦</span> Quản lý sản phẩm
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-md"
+              style={{ borderColor: '#DCEFFB', color: '#5a6b85', background: '#fff' }}
+            >
+              <span>🏕️</span> Provider Dashboard
+            </Link>
+          </div>
+        </Reveal>
+      </section>
+
+      <section className="mx-auto mt-4 max-w-6xl px-6">
+        <Reveal>
           <SectionTitle
             eyebrow={
               <span className="inline-flex items-center gap-1.5">

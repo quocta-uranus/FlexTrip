@@ -8,6 +8,8 @@ import { KycModule } from './modules/kyc/kyc.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { ProvidersModule } from './modules/providers/providers.module';
+import { ProviderApplicationsModule } from './modules/provider-applications/provider-applications.module';
+import { ListingsModule } from './modules/listings/listings.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ProvidersModule } from './modules/providers/providers.module';
     UsersModule,
     ProfileModule,
     ProvidersModule,
+    ProviderApplicationsModule,
+    ListingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

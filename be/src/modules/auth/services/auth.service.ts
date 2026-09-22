@@ -530,6 +530,31 @@ export class AuthService {
     return { code: 'PASSWORD_RESET_SUCCESS' };
   }
 
+  async setupPassword(token: string, password: string): Promise<{ code: string }> {
+    // Strip any non-hex characters that email clients may append
+    const cleanToken = token.replace(/[^a-f0-9]/gi, '');
+    const tokenHash = this.hashToken(cleanToken);
+    const record = await this.prisma.providerSetupToken.findUnique({
+      where: { tokenHash },
+      include: { user: { include: AUTH_USER_INCLUDE } },
+    });
+    if (!record || record.usedAt || record.expiresAt <= new Date()) {
+      throw new BadRequestException({ code: 'INVALID_SETUP_TOKEN' });
+    }
+    const hashed = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: record.userId },
+        data: { password: hashed },
+      }),
+      this.prisma.providerSetupToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+    return { code: 'PASSWORD_SET' };
+  }
+
   private assertCanAuthenticate(user: AuthUser): void {
     if (user.status !== UserStatus.ACTIVE)
       throw new ForbiddenException({ code: 'ACCOUNT_NOT_ACTIVE' });

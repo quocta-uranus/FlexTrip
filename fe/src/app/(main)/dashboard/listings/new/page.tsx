@@ -9,6 +9,7 @@ import { listingSchema, type ListingInput } from '@/lib/validators/listing.schem
 import { useCreateListing } from '@/hooks/useListings';
 import type { ListingCategory } from '@/types/listing';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { ImageUploader } from '@/components/listing/image-uploader';
 
 const CATEGORIES: Array<{ value: ListingCategory; label: string; icon: string }> = [
   { value: 'CAMPING_TREKKING', label: 'Cắm trại & Trekking', icon: '⛺' },
@@ -42,7 +43,7 @@ export default function CreateListingPage() {
   const router = useRouter();
   const { mutate: createListing, isPending, error } = useCreateListing();
   const [amenities, setAmenities] = useState<string[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   const {
     register,
@@ -65,23 +66,6 @@ export default function CreateListingPage() {
     const next = amenities.includes(a) ? amenities.filter((x) => x !== a) : [...amenities, a];
     setAmenities(next);
     setValue('amenities', next);
-  }
-
-  function handleImageUrlChange(idx: number, val: string) {
-    const next = [...imageUrls];
-    next[idx] = val;
-    setImageUrls(next);
-    setValue('imageUrls', next.filter(Boolean));
-  }
-
-  function addImageField() {
-    setImageUrls([...imageUrls, '']);
-  }
-
-  function removeImageField(idx: number) {
-    const next = imageUrls.filter((_, i) => i !== idx);
-    setImageUrls(next.length ? next : ['']);
-    setValue('imageUrls', next.filter(Boolean));
   }
 
   function onSubmit(data: unknown) {
@@ -223,51 +207,13 @@ export default function CreateListingPage() {
           </div>
 
           {/* Images */}
-          <div className="rounded-2xl border bg-white p-6 space-y-4" style={{ borderColor: '#DCEFFB' }}>
+          <div className="rounded-2xl border bg-white p-6 space-y-3" style={{ borderColor: '#DCEFFB' }}>
             <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Hình ảnh sản phẩm</h2>
-            <p className="text-xs" style={{ color: '#8694ad' }}>Nhập URL ảnh (từ Cloudinary, Imgur, Google Photos…)</p>
-            {errors.imageUrls && <p className="text-xs text-red-500">{errors.imageUrls.message}</p>}
-
-            <div className="space-y-2">
-              {imageUrls.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <input
-                    id={`image-url-${idx}`}
-                    type="url"
-                    value={url}
-                    onChange={(e) => handleImageUrlChange(idx, e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    className={`${inputCls} flex-1`}
-                    style={inputStyle}
-                  />
-                  {url && (
-                    <img src={url} alt="" className="h-10 w-10 rounded-lg object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                  )}
-                  {imageUrls.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeImageField(idx)}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border text-xs transition-colors hover:bg-red-50"
-                      style={{ borderColor: '#fca5a5', color: '#dc2626' }}
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={addImageField}
-              className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors hover:bg-[#f1f5fa]"
-              style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Thêm ảnh
-            </button>
+            {errors.imageUrls && <p className="text-xs" style={{ color: '#dc2626' }}>{errors.imageUrls.message}</p>}
+            <ImageUploader
+              urls={imageUrls.filter(Boolean)}
+              onChange={(urls) => { setImageUrls(urls); setValue('imageUrls', urls); }}
+            />
           </div>
 
           {/* Error */}
