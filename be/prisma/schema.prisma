@@ -159,8 +159,9 @@ model User {
   travelPreferences TravelPreference[]
   paymentMethods    PaymentMethod[]
   wallet            Wallet?
-  providerProfile   ProviderProfile?
-  adminProfile      AdminProfile?
+  providerProfile    ProviderProfile?
+  adminProfile       AdminProfile?
+  providerSetupToken ProviderSetupToken?
 
   // business domain
   listings        Listing[]
@@ -515,6 +516,39 @@ model ProviderProfile {
 }
 
 // ─── Admin Profile ───────────────────────────────────────────────────────────
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProviderApplication {
+  id          String            @id @default(cuid())
+  name        String
+  phone       String
+  email       String
+  city        String
+  categories  String[]
+  description String?
+  status      ApplicationStatus @default(PENDING)
+  adminNote   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
+model ProviderSetupToken {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
 model AdminProfile {
   id         String          @id @default(cuid())

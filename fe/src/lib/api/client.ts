@@ -321,6 +321,9 @@ export const authApi = {
   disable2fa: (code: string) =>
     api.post('/auth/2fa/disable', { code }) as Promise<{ ok: boolean }>,
 
+  setupPassword: (token: string, password: string) =>
+    api.post('/auth/setup-password', { token, password }) as Promise<{ code: string }>,
+
   sessions: () =>
     api.get('/auth/sessions') as Promise<Session[]>,
 
@@ -404,14 +407,25 @@ import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/ty
 import type { Booking, CreateBookingPayload } from '@/types/booking';
 import type { Conversation, Message } from '@/types/message';
 
+export interface ListingPage {
+  items: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const listingApi = {
-  list: (params?: { status?: string; page?: number; limit?: number }) => {
+  list: (params?: { status?: string; page?: number; limit?: number; category?: string; keyword?: string; location?: string }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.category) q.set('category', params.category);
+    if (params?.keyword) q.set('keyword', params.keyword);
+    if (params?.location) q.set('location', params.location);
     const qs = q.toString();
-    return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<Listing[]>;
+    return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<ListingPage>;
   },
 
   get: (id: string) => api.get(`/listings/${id}`) as Promise<Listing>,
@@ -449,6 +463,50 @@ export const listingApi = {
     const qs = q.toString();
     return api.get(`/listings/me${qs ? `?${qs}` : ''}`) as Promise<Listing[]>;
   },
+
+  publish: (id: string) => api.patch(`/listings/${id}/publish`, {}) as Promise<Listing>,
+  pause: (id: string) => api.patch(`/listings/${id}/pause`, {}) as Promise<Listing>,
+  resume: (id: string) => api.patch(`/listings/${id}/resume`, {}) as Promise<Listing>,
+
+  uploadImage: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ url: string }>('/listings/upload-image', fd);
+  },
+
+  deleteImage: (url: string) =>
+    api.delete(`/listings/delete-image?url=${encodeURIComponent(url)}`) as Promise<{ ok: boolean }>,
+
+  bulkUpload: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ created: number; ids: string[] }>('/listings/bulk-upload', fd);
+  },
+
+  // AI endpoints
+  aiSuggest: (title: string, description?: string) =>
+    api.post('/listings/ai/suggest-category', { title, description }) as Promise<{
+      category: string; tags: string[]; reason: string;
+    }>,
+
+  aiGenerateDescription: (data: {
+    title: string; category: string; location: string; amenities?: string[]; price?: number;
+  }) => api.post('/listings/ai/generate-description', data) as Promise<{ description: string }>,
+
+  aiOptimize: (data: { description: string; title: string; category: string }) =>
+    api.post('/listings/ai/optimize-description', data) as Promise<{
+      optimized: string; improvements: string[];
+    }>,
+
+  aiQualityScore: (data: {
+    title: string; description: string; category: string;
+    imageUrls: string[]; amenities?: string[]; price?: number;
+  }) => api.post('/listings/ai/quality-score', data) as Promise<{
+    score: number;
+    breakdown: { title: number; description: number; images: number; amenities: number; price: number };
+    suggestions: string[];
+    grade: string;
+  }>,
 };
 
 // ─── Search ──────────────────────────────────────────────────────────────────
@@ -505,6 +563,44 @@ export const bookingApi = {
 };
 
 // ─── Messages ────────────────────────────────────────────────────────────────
+
+// ─── Provider Applications ───────────────────────────────────────────────────
+
+export interface ProviderApplication {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  city: string;
+  categories: string[];
+  description?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const providerApplicationApi = {
+  submit: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    city: string;
+    categories: string[];
+    description?: string;
+  }) => api.post('/provider-applications', data) as Promise<ProviderApplication>,
+
+  list: (status?: 'PENDING' | 'APPROVED' | 'REJECTED') => {
+    const qs = status ? `?status=${status}` : '';
+    return api.get(`/provider-applications${qs}`) as Promise<ProviderApplication[]>;
+  },
+
+  approve: (id: string) =>
+    api.patch(`/provider-applications/${id}/approve`, {}) as Promise<{ message: string }>,
+
+  reject: (id: string, adminNote?: string) =>
+    api.patch(`/provider-applications/${id}/reject`, { adminNote }) as Promise<ProviderApplication>,
+};
 
 export const messageApi = {
   getConversations: () =>

@@ -26,6 +26,7 @@ import {
   ResetPasswordDto,
   TwoFactorCodeDto,
   TwoFactorLoginDto,
+  SetupPasswordDto,
 } from './dto';
 import {
   RegisterRateLimitGuard,
@@ -163,6 +164,15 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   resetPassword(@Body() dto: ResetPasswordDto): Promise<{ code: string }> {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Post('setup-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'AUTH-01: Provider sets their own password via magic-link token' })
+  @ApiResponse({ status: 200, description: 'Password set; user can now log in' })
+  @ApiResponse({ status: 400, description: 'Token invalid or expired' })
+  setupPassword(@Body() dto: SetupPasswordDto): Promise<{ code: string }> {
+    return this.authService.setupPassword(dto.token, dto.password);
   }
 
   @Post('2fa/setup')

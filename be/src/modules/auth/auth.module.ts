@@ -44,6 +44,6 @@ import { AccessTokenGuard } from './guards/access-token.guard';
     ResetPasswordRateLimitGuard,
     AccessTokenGuard,
   ],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, ResendService, JwtModule],
 })
 export class AuthModule {}

@@ -6,11 +6,10 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useLogout } from '@/hooks/useAuthMutations';
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/bookings', label: 'Đặt thuê', icon: '📋' },
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
-  { href: '/dashboard', label: 'Dashboard', icon: '🏕️' },
 ];
 
 export function Navbar() {
@@ -18,6 +17,11 @@ export function Navbar() {
   const { user, isAuthenticated } = useAuthStore();
   const { mutate: logout } = useLogout();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const isProvider = user?.roles?.includes('PROVIDER') ?? false;
+  const NAV_LINKS = isProvider
+    ? [...BASE_NAV_LINKS, { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' }]
+    : BASE_NAV_LINKS;
 
   // Hide on auth pages and landing page (LandingHeader handles those)
   if (pathname === '/' ||
@@ -119,10 +123,12 @@ export function Navbar() {
                     {[
                       { href: '/profile', label: 'Hồ sơ', icon: '👤' },
                       { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
-                      { href: '/profile/history', label: 'Lịch sử thuê', icon: '🕓' },
-                      { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
-                      { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
                       { href: '/messages', label: 'Tin nhắn', icon: '💬' },
+                      { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
+                      ...(isProvider ? [
+                        { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: '📦' },
+                        { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
+                      ] : []),
                     ].map((item) => (
                       <Link
                         key={item.href}

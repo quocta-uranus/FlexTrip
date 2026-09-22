@@ -26,44 +26,24 @@ const supabaseAdmin = createClient(
 export async function uploadToSupabase(
   buffer: Buffer,
   filename: string,
-  folder = 'avatars',
+  bucket = 'avatars',
 ): Promise<string> {
-  // Tạo unique filename
   const ext = filename.split('.').pop() || 'jpg';
   const uniqueName = `${Date.now()}-${createHash('sha1').update(buffer).digest('hex').slice(0, 8)}.${ext}`;
-  
-  const filePath = `${folder}/${uniqueName}`;
-  
-  // Check if Supabase is accessible, fallback to data URL if not
-  try {
-    const { data, error } = await supabaseAdmin.storage
-      .from('avatars')
-      .upload(filePath, buffer, {
-        contentType: getMimeType(ext),
-        upsert: false,
-      });
 
-    if (error) {
-      console.warn('Supabase upload failed, using data URL fallback:', error.message);
-      // Fallback: return base64 data URL (for small images)
-      const base64 = buffer.toString('base64');
-      const mimeType = getMimeType(ext);
-      return `data:${mimeType};base64,${base64}`;
-    }
+  const { error } = await supabaseAdmin.storage
+    .from(bucket)
+    .upload(uniqueName, buffer, {
+      contentType: getMimeType(ext),
+      upsert: false,
+    });
 
-    // Lấy public URL
-    const { data: urlData } = supabaseAdmin.storage
-      .from('avatars')
-      .getPublicUrl(filePath);
-
-    return urlData.publicUrl;
-  } catch (fetchError) {
-    console.warn('Supabase not accessible, using data URL fallback');
-    // Fallback: return base64 data URL
-    const base64 = buffer.toString('base64');
-    const mimeType = getMimeType(ext);
-    return `data:${mimeType};base64,${base64}`;
+  if (error) {
+    throw new Error(`Supabase upload to bucket "${bucket}" failed: ${error.message}`);
   }
+
+  const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(uniqueName);
+  return urlData.publicUrl;
 }
 
 /**
@@ -72,21 +52,15 @@ export async function uploadToSupabase(
 export async function deleteFromSupabase(publicUrl: string): Promise<void> {
   try {
     const url = new URL(publicUrl);
-    // URL format: https://xxx.supabase.co/storage/v1/object/public/avatars/filename
-    const pathParts = url.pathname.split('/');
-    const filenameIndex = pathParts.indexOf('avatars');
-    if (filenameIndex === -1) return;
-    
-    const filePath = pathParts.slice(filenameIndex).join('/');
-    
-    const { error } = await supabaseAdmin.storage
-      .from('avatars')
-      .remove([filePath]);
-    
-    if (error) {
-      console.warn('Failed to delete from Supabase:', error.message);
-    }
-  } catch (e) {
+    // URL format: .../storage/v1/object/public/<bucket>/<filename>
+    const parts = url.pathname.split('/');
+    const publicIdx = parts.indexOf('public');
+    if (publicIdx === -1 || publicIdx + 2 >= parts.length) return;
+    const bucket = parts[publicIdx + 1];
+    const filename = parts.slice(publicIdx + 2).join('/');
+    const { error } = await supabaseAdmin.storage.from(bucket).remove([filename]);
+    if (error) console.warn('Failed to delete from Supabase:', error.message);
+  } catch {
     // ignore
   }
 }
@@ -97,9 +71,9 @@ export async function deleteFromSupabase(publicUrl: string): Promise<void> {
 export async function uploadImage(
   buffer: Buffer,
   filename: string,
-  folder = 'avatars',
+  bucket = 'avatars',
 ): Promise<string> {
-  return uploadToSupabase(buffer, filename, folder);
+  return uploadToSupabase(buffer, filename, bucket);
 }
 
 function getMimeType(ext: string): string {

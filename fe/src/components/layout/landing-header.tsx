@@ -59,7 +59,7 @@ export function LandingHeader() {
           <Link href="#how-it-works" className="hover:text-[#2A7BD9] transition-colors">
             Cách hoạt động
           </Link>
-          <Link href="#become-provider" className="hover:text-[#2A7BD9] transition-colors">
+          <Link href="/register-provider" className="hover:text-[#2A7BD9] transition-colors">
             Trở thành Provider
           </Link>
           <Link href="#" className="hover:text-[#2A7BD9] transition-colors">

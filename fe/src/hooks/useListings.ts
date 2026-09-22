@@ -61,3 +61,35 @@ export function useDeleteListing() {
     },
   });
 }
+
+export function usePublishListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => listingApi.publish(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['my-listings'] }); },
+  });
+}
+
+export function usePauseListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => listingApi.pause(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['my-listings'] }); },
+  });
+}
+
+export function useResumeListing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => listingApi.resume(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['my-listings'] }); },
+  });
+}
+
+export function useBulkUpload() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => listingApi.bulkUpload(file),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['my-listings'] }); },
+  });
+}
