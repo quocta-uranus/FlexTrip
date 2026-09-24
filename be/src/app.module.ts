@@ -10,6 +10,7 @@ import { ProfileModule } from './modules/profile/profile.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { ProviderApplicationsModule } from './modules/provider-applications/provider-applications.module';
 import { ListingsModule } from './modules/listings/listings.module';
+import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ListingsModule } from './modules/listings/listings.module';
     ProvidersModule,
     ProviderApplicationsModule,
     ListingsModule,
+    AiChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

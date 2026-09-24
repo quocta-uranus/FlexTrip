@@ -3,6 +3,7 @@ import { Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { Navbar } from "@/components/navbar";
+import { AiChatLauncher } from "@/components/ai-chat-launcher";
 import "./globals.css";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <AuthBootstrap />
             <Navbar />
             {children}
+            <AiChatLauncher />
           </Providers>
         </div>
       </body>
