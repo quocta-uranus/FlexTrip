@@ -85,6 +85,7 @@ export function Navbar() {
 
         {/* Right: user / auth */}
         <div className="flex items-center gap-2 shrink-0">
+
           {isAuthenticated && user ? (
             <div className="relative">
               <button
