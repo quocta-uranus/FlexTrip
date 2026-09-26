@@ -3,6 +3,7 @@ import { Inter, Manrope, Plus_Jakarta_Sans, DM_Sans, DM_Serif_Display } from "ne
 import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { Navbar } from "@/components/navbar";
+import { AiChatLauncher } from "@/components/ai-chat-launcher";
 import "./globals.css";
 
 const inter = Inter({
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <AuthBootstrap />
             <Navbar />
             {children}
+            <AiChatLauncher />
           </Providers>
         </div>
       </body>
