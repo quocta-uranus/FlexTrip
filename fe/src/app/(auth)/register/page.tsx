@@ -1,127 +1,113 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@/lib/validators/auth.schema';
 import { useRegister, useVerifyOtp, useResendOtp } from '@/hooks/useAuthMutations';
 
 export default function RegisterPage() {
-  const { mutate: register, isPending, error, data: registerResult } = useRegister();
-  const { mutate: verifyOtp, isPending: verifying, error: otpError, isSuccess: otpSuccess } = useVerifyOtp();
-  const { mutate: resendOtp, isPending: resending, isSuccess: resent } = useResendOtp();
+  const [email, setEmail] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const {
-    register: field,
+    register: registerField,
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
-  // OTP input state — 6 individual cells
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [cooldown, setCooldown] = useState(0);
+  const { mutate: register, data: registerResult, isPending, error } = useRegister();
+  const { mutate: verifyOtp, isPending: verifying, error: otpError } = useVerifyOtp();
+  const { mutate: resendOtp, isPending: resending } = useResendOtp();
 
-  // Cooldown timer after resend
-  useEffect(() => {
-    if (!resent) return;
-    setCooldown(60);
-  }, [resent]);
+  // Keep track of email for OTP step
+  const field = (name: keyof RegisterInput) => {
+    const f = registerField(name);
+    if (name === 'email') {
+      return {
+        ...f,
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+          setEmail(e.target.value);
+          return f.onChange(e);
+        },
+      };
+    }
+    return f;
+  };
+
+  // Cooldown countdown
   useEffect(() => {
     if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
+    const t = setInterval(() => setCooldown((c) => c - 1), 1000);
+    return () => clearInterval(t);
   }, [cooldown]);
 
-  const otpCode = otp.join('');
-  const email = registerResult?.email ?? '';
+  // Focus first OTP cell on step change
+  useEffect(() => {
+    if (registerResult) {
+      inputRefs.current[0]?.focus();
+      setCooldown(60);
+    }
+  }, [registerResult]);
 
   function handleOtpChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, '').slice(-1);
+    if (!/^\d*$/.test(value)) return;
     const next = [...otp];
-    next[index] = digit;
+    next[index] = value.slice(-1);
     setOtp(next);
-    if (digit && index < 5) inputRefs.current[index + 1]?.focus();
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
   }
 
-  function handleOtpKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   }
 
   function handleOtpPaste(e: React.ClipboardEvent) {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pasted) return;
-    e.preventDefault();
-    const next = [...otp];
-    pasted.split('').forEach((ch, i) => { if (i < 6) next[i] = ch; });
-    setOtp(next);
-    const lastFilled = Math.min(pasted.length, 5);
-    inputRefs.current[lastFilled]?.focus();
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (text.length === 6) {
+      setOtp(text.split(''));
+      inputRefs.current[5]?.focus();
+    }
   }
 
-  // ── OTP verify success state ─────────────────────────────────────
-  if (otpSuccess) {
-    return (
-      <div className="text-center">
-        <div
-          className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-          style={{ background: 'rgba(146,238,232,0.2)' }}
-        >
-          <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="#2a7bd9" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold" style={{ color: '#0f1729' }}>Email đã xác thực!</h2>
-        <p className="mt-2 text-sm" style={{ color: '#5a6b85' }}>
-          Tài khoản của bạn đã được kích hoạt. Đăng nhập để bắt đầu.
-        </p>
-        <Link
-          href="/login"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold text-white"
-          style={{ background: '#2a7bd9' }}
-        >
-          Đến trang đăng nhập
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </Link>
-      </div>
-    );
-  }
+  const otpCode = otp.join('');
 
   // ── OTP input state (after register) ────────────────────────────
   if (registerResult) {
     return (
       <>
         <div className="mb-7">
-          <div
-            className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-            style={{ color: '#2a7bd9' }}
-          >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-950/60 text-[#0070F3] dark:text-[#38BDF8] border border-sky-200/50 dark:border-sky-800/40">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
             AUTH-01
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Nhập mã xác thực</h1>
-          <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Nhập mã xác thực
+          </h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Mã OTP 6 chữ số đã được gửi tới{' '}
-            <span className="font-semibold" style={{ color: '#0f1729' }}>{email}</span>
+            <span className="font-semibold text-slate-900 dark:text-white">{email}</span>
           </p>
         </div>
 
         {otpError && (
           <div
-            className="mb-5 rounded-lg border px-4 py-3 text-sm"
-            style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}
+            className="mb-5 rounded-xl border px-4 py-3 text-sm font-medium"
+            style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
           >
             {otpError.message}
           </div>
         )}
 
         {/* OTP 6-cell input */}
-        <div className="mb-6 flex justify-center gap-3" onPaste={handleOtpPaste}>
+        <div className="mb-6 flex justify-center gap-2.5 sm:gap-3" onPaste={handleOtpPaste}>
           {otp.map((digit, i) => (
             <input
               key={i}
@@ -132,12 +118,7 @@ export default function RegisterPage() {
               value={digit}
               onChange={(e) => handleOtpChange(i, e.target.value)}
               onKeyDown={(e) => handleOtpKeyDown(i, e)}
-              className="h-14 w-12 rounded-xl border text-center text-xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30"
-              style={{
-                borderColor: digit ? '#2a7bd9' : '#e2e8f3',
-                color: '#0f1729',
-                background: digit ? 'rgba(42,123,217,0.04)' : '#fff',
-              }}
+              className="h-14 w-12 rounded-xl border text-center text-xl font-bold outline-none transition-all border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#16223B] text-slate-900 dark:text-white focus:border-[#0070F3] dark:focus:border-[#38BDF8] focus:bg-white dark:focus:bg-[#1A2946] focus:ring-4 focus:ring-[#0070F3]/15 dark:focus:ring-[#38BDF8]/20"
             />
           ))}
         </div>
@@ -145,32 +126,30 @@ export default function RegisterPage() {
         <button
           onClick={() => verifyOtp({ email, code: otpCode })}
           disabled={otpCode.length < 6 || verifying}
-          className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-          style={{ background: '#2a7bd9', boxShadow: '0 8px 20px -8px rgba(42,123,217,0.5)' }}
+          className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all bg-gradient-to-r from-[#1877F2] to-[#00A3FF] hover:brightness-110 shadow-lg shadow-[#00A3FF]/25 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {verifying ? 'Đang xác thực…' : 'Xác nhận'}
         </button>
 
         <div className="mt-5 text-center">
           {cooldown > 0 ? (
-            <span className="text-sm" style={{ color: '#8694ad' }}>
-              Gửi lại sau <strong style={{ color: '#5a6b85' }}>{cooldown}s</strong>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              Gửi lại sau <strong className="text-slate-700 dark:text-slate-200">{cooldown}s</strong>
             </span>
           ) : (
             <button
               onClick={() => { resendOtp(email); setCooldown(60); }}
               disabled={resending}
-              className="text-sm font-semibold"
-              style={{ color: '#2a7bd9' }}
+              className="text-sm font-semibold text-[#0070F3] dark:text-[#38BDF8] hover:underline"
             >
               {resending ? 'Đang gửi…' : 'Gửi lại mã'}
             </button>
           )}
         </div>
 
-        <p className="mt-4 text-center text-xs" style={{ color: '#8694ad' }}>
+        <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
           Sai email?{' '}
-          <Link href="/register" className="font-medium" style={{ color: '#2a7bd9' }}>
+          <Link href="/register" className="font-semibold text-[#0070F3] dark:text-[#38BDF8] hover:underline">
             Đăng ký lại
           </Link>
         </p>
@@ -182,17 +161,16 @@ export default function RegisterPage() {
   return (
     <>
       <div className="mb-7">
-        <div
-          className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: '#2a7bd9' }}
-        >
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-950/60 text-[#0070F3] dark:text-[#38BDF8] border border-sky-200/50 dark:border-sky-800/40">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
           AUTH-01
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Tạo tài khoản</h1>
-        <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Tạo tài khoản
+        </h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Đã có tài khoản?{' '}
-          <Link href="/login" className="font-semibold" style={{ color: '#2a7bd9' }}>
+          <Link href="/login" className="font-semibold text-[#0070F3] dark:text-[#38BDF8] hover:underline">
             Đăng nhập
           </Link>
         </p>
@@ -200,8 +178,8 @@ export default function RegisterPage() {
 
       {error && (
         <div
-          className="mb-5 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}
+          className="mb-5 rounded-xl border px-4 py-3 text-sm font-medium"
+          style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
         >
           {error.message}
         </div>
@@ -256,18 +234,21 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={isPending}
-          className="mt-2 w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
-          style={{ background: '#2a7bd9', boxShadow: '0 8px 20px -8px rgba(42,123,217,0.5)' }}
+          className="mt-2 w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all bg-gradient-to-r from-[#1877F2] to-[#00A3FF] hover:brightness-110 shadow-lg shadow-[#00A3FF]/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
         >
           {isPending ? 'Đang tạo tài khoản…' : 'Tạo tài khoản'}
         </button>
       </form>
 
-      <p className="mt-5 text-center text-xs" style={{ color: '#8694ad' }}>
+      <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400">
         Bằng cách đăng ký, bạn đồng ý với{' '}
-        <span className="font-medium" style={{ color: '#2a7bd9' }}>Điều khoản dịch vụ</span>
-        {' '}và{' '}
-        <span className="font-medium" style={{ color: '#2a7bd9' }}>Chính sách bảo mật</span>.
+        <span className="font-semibold text-[#0070F3] dark:text-[#38BDF8] cursor-pointer hover:underline">
+          Điều khoản dịch vụ
+        </span>{' '}
+        và{' '}
+        <span className="font-semibold text-[#0070F3] dark:text-[#38BDF8] cursor-pointer hover:underline">
+          Chính sách bảo mật
+        </span>.
       </p>
     </>
   );
@@ -281,11 +262,11 @@ import type { ReactNode } from 'react';
 function AuthField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>
+      <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </label>
       {children}
-      {error && <p className="mt-1 text-xs" style={{ color: '#dc2626' }}>{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500 font-medium">{error}</p>}
     </div>
   );
 }
@@ -294,8 +275,7 @@ const AuthInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElem
   ({ className, ...props }, ref) => (
     <input
       ref={ref}
-      className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30 ${className ?? ''}`}
-      style={{ borderColor: '#e2e8f3', color: '#0f1729' }}
+      className={`w-full rounded-xl border bg-slate-50/80 dark:bg-[#16223B] px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none transition-all border-slate-200 dark:border-white/10 focus:border-[#0070F3] dark:focus:border-[#38BDF8] focus:bg-white dark:focus:bg-[#1A2946] focus:ring-4 focus:ring-[#0070F3]/15 dark:focus:ring-[#38BDF8]/20 ${className ?? ''}`}
       {...props}
     />
   ),

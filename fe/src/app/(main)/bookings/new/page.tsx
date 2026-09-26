@@ -53,7 +53,7 @@ function BookingNewForm() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <span className="mb-4 text-5xl">🗓️</span>
-        <p className="text-sm" style={{ color: '#8694ad' }}>Vui lòng chọn sản phẩm trước.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Vui lòng chọn sản phẩm trước.</p>
         <Link href="/search" className="mt-4 rounded-full px-5 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
           Tìm sản phẩm
         </Link>
@@ -65,25 +65,25 @@ function BookingNewForm() {
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
+        <nav className="mb-6 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Link href="/search" className="hover:underline" style={{ color: '#2a7bd9' }}>Tìm kiếm</Link>
           <span>/</span>
           {listing && <Link href={`/listings/${listing.id}`} className="hover:underline" style={{ color: '#2a7bd9' }}>{listing.title}</Link>}
           {listing && <span>/</span>}
-          <span style={{ color: '#0f1729' }}>Đặt thuê</span>
+          <span className="text-slate-900 dark:text-slate-100">Đặt thuê</span>
         </nav>
 
-        <h1 className="mb-8 text-2xl font-bold" style={{ color: '#0f1729' }}>Xác nhận đặt thuê</h1>
+        <h1 className="mb-8 text-2xl font-bold text-slate-900 dark:text-slate-100">Xác nhận đặt thuê</h1>
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left: form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Dates summary */}
-            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-4 text-lg font-semibold" style={{ color: '#0f1729' }}>Thông tin đặt thuê</h2>
+            <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Thông tin đặt thuê</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày bắt đầu</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ngày bắt đầu</label>
                   <input
                     id="checkout-start-date"
                     type="date"
@@ -94,7 +94,7 @@ function BookingNewForm() {
                   {errors.startDate && <p className="mt-1 text-xs text-red-500">{errors.startDate.message}</p>}
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày kết thúc</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ngày kết thúc</label>
                   <input
                     id="checkout-end-date"
                     type="date"
@@ -108,8 +108,8 @@ function BookingNewForm() {
             </div>
 
             {/* Notes */}
-            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-4 text-lg font-semibold" style={{ color: '#0f1729' }}>Ghi chú (tùy chọn)</h2>
+            <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-100">Ghi chú (tùy chọn)</h2>
               <textarea
                 id="checkout-notes"
                 {...register('notes')}
@@ -135,7 +135,7 @@ function BookingNewForm() {
               {loadingListing ? (
                 <div className="h-40 animate-pulse rounded-2xl bg-[#e2e8f3]" />
               ) : listing ? (
-                <div className="overflow-hidden rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+                <div className="overflow-hidden rounded-2xl border bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
                   <div className="h-32 overflow-hidden bg-[#f1f5fa]">
                     {listing.imageUrls?.[0] ? (
                       <img src={listing.imageUrls[0]} alt={listing.title} className="h-full w-full object-cover" />
@@ -147,26 +147,26 @@ function BookingNewForm() {
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
                       {CATEGORY_LABELS[listing.category] ?? listing.category}
                     </span>
-                    <p className="mt-1 text-sm font-semibold line-clamp-2" style={{ color: '#0f1729' }}>{listing.title}</p>
-                    <p className="mt-1 text-xs" style={{ color: '#8694ad' }}>{listing.location}</p>
+                    <p className="mt-1 text-sm font-semibold line-clamp-2 text-slate-900 dark:text-slate-100">{listing.title}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{listing.location}</p>
                   </div>
                 </div>
               ) : null}
 
               {/* Price breakdown */}
-              <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-                <h3 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Chi tiết giá</h3>
+              <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+                <h3 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">Chi tiết giá</h3>
                 <div className="space-y-2.5 text-sm">
                   <div className="flex justify-between">
-                    <span style={{ color: '#5a6b85' }}>Giá/ngày</span>
-                    <span style={{ color: '#0f1729' }}>{price.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
+                    <span className="text-slate-600 dark:text-slate-300">Giá/ngày</span>
+                    <span className="text-slate-900 dark:text-slate-100">{price.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: '#5a6b85' }}>Số ngày</span>
-                    <span style={{ color: '#0f1729' }}>{nights} ngày</span>
+                    <span className="text-slate-600 dark:text-slate-300">Số ngày</span>
+                    <span className="text-slate-900 dark:text-slate-100">{nights} ngày</span>
                   </div>
                   <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
-                    <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                    <span className="text-slate-900 dark:text-slate-100">Tổng cộng</span>
                     <span style={{ color: '#2a7bd9' }}>{total.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
                   </div>
                 </div>
@@ -181,7 +181,7 @@ function BookingNewForm() {
                   {isPending ? 'Đang xử lý…' : 'Xác nhận đặt thuê'}
                 </button>
 
-                <p className="mt-2 text-center text-xs" style={{ color: '#8694ad' }}>
+                <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
                   Provider sẽ xác nhận trong vòng 24 giờ
                 </p>
               </div>

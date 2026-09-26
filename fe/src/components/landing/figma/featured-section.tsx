@@ -1,33 +1,33 @@
-import Link from "next/link";
-import { MapPin, Star, ArrowRight, Heart } from "lucide-react";
+import Link from"next/link";
+import { MapPin, Star, ArrowRight, Heart } from"lucide-react";
 
 const listings = [
   {
-    title: "Bộ lều Naturehike 2 người",
-    location: "Đà Lạt, Lâm Đồng",
-    price: "180.000đ",
-    rating: "4.9",
-    reviews: "36",
-    image: "/assets/camping.jpg",
-    tag: "Được yêu thích",
+    title:"Bộ lều Naturehike 2 người",
+    location:"Đà Lạt, Lâm Đồng",
+    price:"180.000đ",
+    rating:"4.9",
+    reviews:"36",
+    image:"/assets/camping.jpg",
+    tag:"Được yêu thích",
   },
   {
-    title: "Combo Fujifilm & ống kính",
-    location: "Quận 1, TP. Hồ Chí Minh",
-    price: "320.000đ",
-    rating: "4.8",
-    reviews: "24",
-    image: "/assets/camera.jpg",
-    tag: "Phản hồi nhanh",
+    title:"Combo Fujifilm & ống kính",
+    location:"Quận 1, TP. Hồ Chí Minh",
+    price:"320.000đ",
+    rating:"4.8",
+    reviews:"24",
+    image:"/assets/camera.jpg",
+    tag:"Phản hồi nhanh",
   },
   {
-    title: "Balo trekking Deuter 50L",
-    location: "Sa Pa, Lào Cai",
-    price: "120.000đ",
-    rating: "5.0",
-    reviews: "18",
-    image: "/assets/backpack.jpg",
-    tag: "Provider xác minh",
+    title:"Balo trekking Deuter 50L",
+    location:"Sa Pa, Lào Cai",
+    price:"120.000đ",
+    rating:"5.0",
+    reviews:"18",
+    image:"/assets/backpack.jpg",
+    tag:"Provider xác minh",
   },
 ];
 
@@ -66,7 +66,7 @@ export function FeaturedSection() {
                 </span>
                 <button
                   aria-label={`Lưu ${item.title}`}
-                  className="absolute top-3.5 right-3.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 shadow-sm transition-colors hover:text-red-500 dark:hover:text-red-400"
+                  className="absolute top-3.5 right-3.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 dark:bg-slate-900/90 shadow-sm transition-colors hover:text-red-500 dark:hover:text-red-400 text-slate-700 dark:text-slate-300"
                   type="button"
                 >
                   <Heart className="h-4 w-4" />

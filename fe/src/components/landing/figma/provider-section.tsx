@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import Link from"next/link";
+import { ArrowRight } from"lucide-react";
 
 export function ProviderSection() {
   return (
@@ -13,14 +13,14 @@ export function ProviderSection() {
       <div
         className="absolute inset-0 z-[1] transition-opacity duration-300 dark:opacity-0"
         style={{
-          background: "linear-gradient(90deg, rgba(0, 55, 88, 0.95) 0%, rgba(9, 125, 174, 0.82) 48%, rgba(42, 123, 217, 0.2) 100%)",
+          background:"linear-gradient(90deg, rgba(0, 55, 88, 0.95) 0%, rgba(9, 125, 174, 0.82) 48%, rgba(42, 123, 217, 0.2) 100%)",
         }}
       />
       {/* Dark Overlay */}
       <div
         className="absolute inset-0 z-[1] opacity-0 dark:opacity-100 transition-opacity duration-300"
         style={{
-          background: "linear-gradient(90deg, rgba(7, 11, 18, 0.98) 0%, rgba(14, 22, 38, 0.92) 50%, rgba(7, 11, 18, 0.7) 100%)",
+          background:"linear-gradient(90deg, rgba(7, 11, 18, 0.98) 0%, rgba(14, 22, 38, 0.92) 50%, rgba(7, 11, 18, 0.7) 100%)",
         }}
       />
 
@@ -42,7 +42,7 @@ export function ProviderSection() {
           <Link
             href="/register-provider"
             className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-sm text-white shadow-lg hover:shadow-2xl transition-all hover:-translate-y-0.5"
-            style={{ background: "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
+            style={{ background:"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
           >
             <span>Trở thành Provider</span>
             <ArrowRight className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight } from"lucide-react";
 
 export function StorySection() {
   return (
@@ -12,7 +12,7 @@ export function StorySection() {
           />
           <div
             className="absolute bottom-6 right-6 sm:-right-4 sm:-bottom-4 z-10 p-6 sm:p-8 text-white max-w-xs shadow-xl rounded-xl"
-            style={{ background: "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
+            style={{ background:"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
           >
             <strong className="text-xl sm:text-2xl font-bold block leading-tight tracking-tight">Đi nhẹ hơn.</strong>
             <span className="text-xs text-white/90 mt-1 block">Trải nghiệm nhiều hơn.</span>
@@ -28,16 +28,13 @@ export function StorySection() {
             Thiết bị chỉ là phương tiện.<br />
             <em className="not-italic text-[#00b4ea] dark:text-[#38bdf8]">Hành trình mới là điều ở lại.</em>
           </h2>
-          <p className="mt-6 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg">
+          <p className="mt-6 text-sm sm:text-base leading-relaxed max-w-lg text-slate-600 dark:text-slate-400">
             FlexTrip giúp bạn tiếp cận thiết bị phù hợp cho từng chuyến đi mà không phải
             mua mới, cất giữ hay vận chuyển những món đồ cồng kềnh đi quá xa.
           </p>
 
-          <ul className="mt-8 space-y-4 text-sm text-slate-800 dark:text-slate-200 font-medium">
-            {[
-              "Tìm thiết bị gần nơi chuyến đi bắt đầu",
-              "So sánh mức giá và thông tin Provider",
-              "Thuê linh hoạt theo lịch trình của bạn",
+          <ul className="mt-8 space-y-4 text-sm font-medium text-slate-800 dark:text-slate-200">
+            {["Tìm thiết bị gần nơi chuyến đi bắt đầu","So sánh mức giá và thông tin Provider","Thuê linh hoạt theo lịch trình của bạn",
             ].map((item) => (
               <li key={item} className="flex items-center gap-3">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#c8edff] text-slate-900 dark:bg-sky-950/80 dark:border dark:border-sky-500/30 dark:text-[#38bdf8] shrink-0">
@@ -52,7 +49,7 @@ export function StorySection() {
             <a
               href="#how-it-works"
               className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-sm text-white shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
+              style={{ background:"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
             >
               <span>Tìm hiểu cách hoạt động</span>
               <ArrowRight className="h-4 w-4" />

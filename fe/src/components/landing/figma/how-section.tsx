@@ -1,24 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { useState } from"react";
+import { ChevronRight } from"lucide-react";
 
 const travelerSteps = [
-  ["01", "Tìm thiết bị", "Chọn địa điểm, danh mục và khoảng ngày phù hợp với hành trình."],
-  ["02", "Gửi yêu cầu thuê", "So sánh hình ảnh, mức giá và đánh giá trước khi gửi yêu cầu."],
-  ["03", "Nhận đồ & lên đường", "Thống nhất bàn giao, trải nghiệm chuyến đi và để lại đánh giá."],
+  ["01","Tìm thiết bị","Chọn địa điểm, danh mục và khoảng ngày phù hợp với hành trình."],
+  ["02","Gửi yêu cầu thuê","So sánh hình ảnh, mức giá và đánh giá trước khi gửi yêu cầu."],
+  ["03","Nhận đồ & lên đường","Thống nhất bàn giao, trải nghiệm chuyến đi và để lại đánh giá."],
 ];
 
 const providerSteps = [
-  ["01", "Đăng thiết bị", "Thêm hình ảnh thật, mô tả, mức giá và lịch sẵn sàng của bạn."],
-  ["02", "Duyệt yêu cầu", "Trao đổi với Traveler và chủ động quản lý từng yêu cầu thuê."],
-  ["03", "Tạo thêm thu nhập", "Biến thiết bị đang nhàn rỗi thành giá trị cho cộng đồng."],
+  ["01","Đăng thiết bị","Thêm hình ảnh thật, mô tả, mức giá và lịch sẵn sàng của bạn."],
+  ["02","Duyệt yêu cầu","Trao đổi với Traveler và chủ động quản lý từng yêu cầu thuê."],
+  ["03","Tạo thêm thu nhập","Biến thiết bị đang nhàn rỗi thành giá trị cho cộng đồng."],
 ];
 
 export function HowSection() {
-  const [audience, setAudience] = useState<"traveler" | "provider">("traveler");
+  const [audience, setAudience] = useState<"traveler" |"provider">("traveler");
 
-  const activeSteps = audience === "traveler" ? travelerSteps : providerSteps;
+  const activeSteps = audience ==="traveler" ? travelerSteps : providerSteps;
 
   return (
     <section
@@ -39,12 +39,12 @@ export function HowSection() {
           <div className="mt-10 inline-flex p-1.5 rounded-full bg-white/10 dark:bg-slate-900/60 backdrop-blur-md border border-white/15 dark:border-white/10">
             <button
               className={`px-6 py-3 rounded-full text-xs font-bold transition-all ${
-                audience === "traveler"
-                  ? "text-white shadow-md"
-                  : "text-white/60 dark:text-slate-400 hover:text-white"
+                audience ==="traveler"
+                  ?"text-white shadow-md"
+                  :"text-white/60 dark:text-slate-400 hover:text-white"
               }`}
               style={{
-                background: audience === "traveler" ? "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" : "transparent",
+                background: audience ==="traveler" ?"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" :"transparent",
               }}
               onClick={() => setAudience("traveler")}
               type="button"
@@ -53,12 +53,12 @@ export function HowSection() {
             </button>
             <button
               className={`px-6 py-3 rounded-full text-xs font-bold transition-all ${
-                audience === "provider"
-                  ? "text-white shadow-md"
-                  : "text-white/60 dark:text-slate-400 hover:text-white"
+                audience ==="provider"
+                  ?"text-white shadow-md"
+                  :"text-white/60 dark:text-slate-400 hover:text-white"
               }`}
               style={{
-                background: audience === "provider" ? "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" : "transparent",
+                background: audience ==="provider" ?"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" :"transparent",
               }}
               onClick={() => setAudience("provider")}
               type="button"

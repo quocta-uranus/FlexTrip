@@ -53,7 +53,7 @@ export function UserMenu() {
         </Link>
         <Link
           href="/register"
-          className="rounded-full border bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-50"
+          className="rounded-full border bg-white px-4 py-2 text-sm font-semibold transition-colors hover:bg-slate-50 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
           style={{ borderColor: '#e2e8f3', color: '#0f1729' }}
         >
           Đăng ký
@@ -77,7 +77,7 @@ export function UserMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5 pr-3 transition-shadow hover:shadow-md"
+        className="flex items-center gap-2 rounded-full border bg-white px-2 py-1.5 pr-3 transition-shadow hover:shadow-md dark:bg-[#121A2C] dark:text-white dark:border-white/10"
         style={{ borderColor: '#e2e8f3' }}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -103,7 +103,7 @@ export function UserMenu() {
 
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border bg-white shadow-2xl dark:bg-[#121A2C] dark:text-white dark:border-white/10"
           style={{ borderColor: '#e2e8f3' }}
           role="menu"
         >

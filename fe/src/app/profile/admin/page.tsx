@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState } from"react";
+import Link from"next/link";
 import {
   Card,
   SectionTitle,
@@ -15,7 +15,7 @@ import {
   Field,
   Input,
   StickyCta,
-} from "@/components/profile/ui";
+} from"@/components/profile/ui";
 import {
   Reveal,
   MagneticAvatar,
@@ -27,8 +27,8 @@ import {
   EditingBanner,
   StickyEditBar,
   useConfetti,
-} from "@/components/profile/wow";
-import { useEditingProfile } from "@/hooks/useEditingProfile";
+} from"@/components/profile/wow";
+import { useEditingProfile } from"@/hooks/useEditingProfile";
 
 /**
  * /profile/admin — Admin profile.
@@ -39,8 +39,8 @@ interface AdminProfile {
   email: string;
   phone: string;
   employeeId: string;
-  department: "Operations" | "Trust & Safety" | "Finance" | "Support" | "Engineering";
-  level: "L1" | "L2" | "L3";
+  department:"Operations" |"Trust & Safety" |"Finance" |"Support" |"Engineering";
+  level:"L1" |"L2" |"L3";
   avatar: string;
   bio: string;
   openTickets: number;
@@ -55,39 +55,27 @@ interface AdminProfile {
 }
 
 const initial: AdminProfile = {
-  fullName: "Trần Quốc Bảo",
-  email: "bao.admin@flextrip.vn",
-  phone: "+84 909 000 999",
-  employeeId: "EMP-AD-0042",
-  department: "Trust & Safety",
-  level: "L2",
-  avatar: "",
-  bio: "Admin phụ trách KYC, fraud flag và hỗ trợ các tranh chấp cấp Provider–Traveler.",
+  fullName:"Trần Quốc Bảo",
+  email:"bao.admin@flextrip.vn",
+  phone:"+84 909 000 999",
+  employeeId:"EMP-AD-0042",
+  department:"Trust & Safety",
+  level:"L2",
+  avatar:"",
+  bio:"Admin phụ trách KYC, fraud flag và hỗ trợ các tranh chấp cấp Provider–Traveler.",
   openTickets: 14,
   resolvedToday: 9,
   activeUsers: 1284,
   pendingFlags: 6,
   configChanges: 2,
-  scopes: [
-    "👥 User management (read/write)",
-    "🛡 Trust & Safety (KYC, fraud)",
-    "💬 Support ticket (assign, reply)",
-    "⚙️ System config (read)",
-    "📊 Report export (read)",
+  scopes: ["👥 User management (read/write)","🛡 Trust & Safety (KYC, fraud)","💬 Support ticket (assign, reply)","⚙️ System config (read)","📊 Report export (read)",
   ],
   notifTicket: true,
   notifFlag: true,
   notifConfig: false,
 };
 
-const ALL_SCOPES = [
-  "👥 User management (read/write)",
-  "🛡 Trust & Safety (KYC, fraud)",
-  "💬 Support ticket (assign, reply)",
-  "⚙️ System config (read/write)",
-  "📊 Report export (read)",
-  "💰 Finance / Payout approval",
-  "🚫 Account sanction (suspend, blacklist)",
+const ALL_SCOPES = ["👥 User management (read/write)","🛡 Trust & Safety (KYC, fraud)","💬 Support ticket (assign, reply)","⚙️ System config (read/write)","📊 Report export (read)","💰 Finance / Payout approval","🚫 Account sanction (suspend, blacklist)",
 ];
 
 export default function AdminProfilePage() {
@@ -115,11 +103,11 @@ export default function AdminProfilePage() {
   }
 
   const recentActions = [
-    { date: "10:42 hôm nay", title: "Approve KYC — Nguyễn Văn X", subtitle: "Trust & Safety · review CCCD + selfie", badge: "KYC" },
-    { date: "09:15 hôm nay", title: "Đóng ticket #SUP-1934", subtitle: "Refund 50% do lỗi listing", badge: "Ticket" },
-    { date: "08:50 hôm nay", title: "Cập nhật SYSTEM_CONFIG: BOOK-07 cancel window", subtitle: "5 → 7 ngày trước check-in", badge: "Config" },
-    { date: "Hôm qua 17:20", title: "Suspend listing #LST-882 (fake flag)", subtitle: "Đã thông báo provider", badge: "Trust" },
-    { date: "Hôm qua 14:05", title: "Bulk assign 12 ticket cho Support L1", subtitle: "Round-robin theo shift", badge: "Ticket" },
+    { date:"10:42 hôm nay", title:"Approve KYC — Nguyễn Văn X", subtitle:"Trust & Safety · review CCCD + selfie", badge:"KYC" },
+    { date:"09:15 hôm nay", title:"Đóng ticket #SUP-1934", subtitle:"Refund 50% do lỗi listing", badge:"Ticket" },
+    { date:"08:50 hôm nay", title:"Cập nhật SYSTEM_CONFIG: BOOK-07 cancel window", subtitle:"5 → 7 ngày trước check-in", badge:"Config" },
+    { date:"Hôm qua 17:20", title:"Suspend listing #LST-882 (fake flag)", subtitle:"Đã thông báo provider", badge:"Trust" },
+    { date:"Hôm qua 14:05", title:"Bulk assign 12 ticket cho Support L1", subtitle:"Round-robin theo shift", badge:"Ticket" },
   ];
 
   return (
@@ -152,7 +140,7 @@ export default function AdminProfilePage() {
             <button
               onClick={() => setEditing(true)}
               className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-              style={{ background: "#0f1729", boxShadow: "0 8px 20px -8px rgba(15,23,41,0.6)" }}
+              style={{ background:"#0f1729", boxShadow:"0 8px 20px -8px rgba(15,23,41,0.6)" }}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -164,7 +152,7 @@ export default function AdminProfilePage() {
               <button
                 onClick={handleSave}
                 className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: "#0f1729", boxShadow: "0 8px 20px -8px rgba(15,23,41,0.6)" }}
+                style={{ background:"#0f1729", boxShadow:"0 8px 20px -8px rgba(15,23,41,0.6)" }}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -173,8 +161,8 @@ export default function AdminProfilePage() {
               </button>
               <button
                 onClick={cancel}
-                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               >
                 Hủy
               </button>
@@ -189,7 +177,7 @@ export default function AdminProfilePage() {
         <div className="mx-auto mt-4 max-w-6xl px-6">
           <div
             className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm"
-            style={{ borderColor: "rgba(146,238,232,0.4)", background: "rgba(146,238,232,0.15)", color: "#1e5aa8" }}
+            style={{ borderColor:"rgba(146,238,232,0.4)", background:"rgba(146,238,232,0.15)", color:"#1e5aa8" }}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -204,9 +192,9 @@ export default function AdminProfilePage() {
           <KpiCards
             items={[
               {
-                label: "Ticket đang mở",
+                label:"Ticket đang mở",
                 value: p.openTickets,
-                hint: "SLA 24h",
+                hint:"SLA 24h",
                 valueNode: <Counter value={p.openTickets} />,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -215,9 +203,9 @@ export default function AdminProfilePage() {
                 ),
               },
               {
-                label: "Resolved hôm nay",
+                label:"Resolved hôm nay",
                 value: p.resolvedToday,
-                hint: "+2 so với hôm qua",
+                hint:"+2 so với hôm qua",
                 valueNode: <Counter value={p.resolvedToday} />,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -226,9 +214,9 @@ export default function AdminProfilePage() {
                 ),
               },
               {
-                label: "Active users",
+                label:"Active users",
                 value: p.activeUsers,
-                hint: "last 7d",
+                hint:"last 7d",
                 valueNode: <Counter value={p.activeUsers} />,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -237,9 +225,9 @@ export default function AdminProfilePage() {
                 ),
               },
               {
-                label: "Flag chờ duyệt",
+                label:"Flag chờ duyệt",
                 value: p.pendingFlags,
-                hint: "fraud + fake listing",
+                hint:"fraud + fake listing",
                 valueNode: <Counter value={p.pendingFlags} />,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -282,8 +270,8 @@ export default function AdminProfilePage() {
                 value={p.department}
                 onChange={(e) => update("department", e.target.value as AdminProfile["department"])}
                 disabled={!editing}
-                className="w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               >
                 <option>Operations</option>
                 <option>Trust & Safety</option>
@@ -297,8 +285,8 @@ export default function AdminProfilePage() {
                 value={p.level}
                 onChange={(e) => update("level", e.target.value as AdminProfile["level"])}
                 disabled={!editing}
-                className="w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               >
                 <option>L1</option>
                 <option>L2</option>
@@ -311,15 +299,15 @@ export default function AdminProfilePage() {
                 disabled={!editing}
                 onChange={(e) => update("bio", e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               />
             </Field>
           </div>
         </Card>
 
         <Card title="Phạm vi quyền" subtitle="RBAC scope" accent>
-          <p className="mb-3 text-xs" style={{ color: "#5a6b85" }}>
+          <p className="mb-3 text-xs text-slate-600 dark:text-slate-300">
             Scope hiện tại do Super-admin cấp. Bạn không thể tự thay đổi — chỉ xem.
           </p>
           <div className="space-y-2">
@@ -328,9 +316,9 @@ export default function AdminProfilePage() {
                 key={sc}
                 className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
                 style={{
-                  borderColor: "#92eee8",
-                  background: "rgba(146,238,232,0.12)",
-                  color: "#1e5aa8",
+                  borderColor:"#92eee8",
+                  background:"rgba(146,238,232,0.12)",
+                  color:"#1e5aa8",
                 }}
               >
                 <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -341,8 +329,8 @@ export default function AdminProfilePage() {
             ))}
           </div>
           {editing && (
-            <div className="mt-4 border-t pt-3" style={{ borderColor: "#e2e8f3" }}>
-              <div className="mb-2 text-xs font-semibold" style={{ color: "#5a6b85" }}>
+            <div className="mt-4 border-t pt-3" style={{ borderColor:"#e2e8f3" }}>
+              <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                 Yêu cầu thêm:
               </div>
               <div className="space-y-1.5">
@@ -352,9 +340,9 @@ export default function AdminProfilePage() {
                     type="button"
                     onClick={() => toggleScope(s)}
                     className="flex w-full items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-left text-sm hover:bg-[var(--surface-muted)]"
-                    style={{ borderColor: "#92eee8" }}
+                    style={{ borderColor:"#92eee8" }}
                   >
-                    <span style={{ color: "#2a7bd9" }}>+</span>
+                    <span style={{ color:"#2a7bd9" }}>+</span>
                     {s}
                   </button>
                 ))}
@@ -368,11 +356,11 @@ export default function AdminProfilePage() {
         </Card>
 
         <Card title="Audit log" subtitle="Toàn bộ hành động của bạn">
-          <div className="rounded-xl border p-4" style={{ borderColor: "#e2e8f3", background: "#f1f5fa" }}>
+          <div className="rounded-xl border p-4" style={{ borderColor:"#e2e8f3", background:"#f1f5fa" }}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold tabular-nums">{p.configChanges}</div>
-                <div className="text-xs" style={{ color: "#5a6b85" }}>
+                <div className="text-xs text-slate-600 dark:text-slate-300">
                   thay đổi SYSTEM_CONFIG trong tuần này
                 </div>
               </div>
@@ -380,7 +368,7 @@ export default function AdminProfilePage() {
             <button
               type="button"
               className="mt-3 inline-flex items-center gap-1 text-sm font-semibold"
-              style={{ color: "#2a7bd9" }}
+              style={{ color:"#2a7bd9" }}
             >
               Mở audit log đầy đủ →
             </button>
@@ -438,27 +426,27 @@ export default function AdminProfilePage() {
       </section>
 
       <section className="mx-auto mt-12 max-w-6xl px-6">
-        <div className="rounded-2xl border bg-white p-6" style={{ borderColor: "#e2e8f3" }}>
+        <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor:"#e2e8f3" }}>
           <h3 className="mb-1 text-lg font-semibold">Công cụ nhanh</h3>
-          <p className="mb-5 text-sm" style={{ color: "#5a6b85" }}>Truy cập module quản trị thường dùng</p>
+          <p className="mb-5 text-sm text-slate-600 dark:text-slate-300">Truy cập module quản trị thường dùng</p>
           <div className="grid gap-3 sm:grid-cols-4">
             {[
-              { code: "ADMIN-09", title: "Action log" },
-              { code: "SUPPORT-01", title: "Ticket queue" },
-              { code: "TRUST-01", title: "Fraud review" },
-              { code: "REPORT-01", title: "Export report" },
+              { code:"ADMIN-09", title:"Action log" },
+              { code:"SUPPORT-01", title:"Ticket queue" },
+              { code:"TRUST-01", title:"Fraud review" },
+              { code:"REPORT-01", title:"Export report" },
             ].map((q) => (
               <Link
                 key={q.code}
                 href="/profile"
                 className="group flex items-center justify-between rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                style={{ borderColor: "#e2e8f3", background: "#f1f5fa" }}
+                style={{ borderColor:"#e2e8f3", background:"#f1f5fa" }}
               >
                 <div>
-                  <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}>{q.code}</span>
+                  <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background:"rgba(42,123,217,0.1)", color:"#2a7bd9" }}>{q.code}</span>
                   <div className="mt-2 text-sm font-semibold">{q.title}</div>
                 </div>
-                <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <svg className="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -467,7 +455,7 @@ export default function AdminProfilePage() {
         </div>
       </section>
 
-      <StickyCta primary={{ label: "📋 Mở ticket queue" }} secondary={{ label: "🚩 Xem fraud flag" }} />
+      <StickyCta primary={{ label:"📋 Mở ticket queue" }} secondary={{ label:"🚩 Xem fraud flag" }} />
       <StickyEditBar visible={editing} savedAt={savedAt} onSave={handleSave} onCancel={cancel} brand="#0f1729" />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
     </div>

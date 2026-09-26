@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { walletApi, paymentMethodApi } from "@/lib/api/client";
+import { useQuery, useMutation, useQueryClient } from"@tanstack/react-query";
+import { walletApi, paymentMethodApi } from"@/lib/api/client";
 
 // Wallet balance
 export function useWalletBalance() {
   return useQuery({
-    queryKey: ["wallet", "balance"],
+    queryKey: ["wallet","balance"],
     queryFn: walletApi.getBalance,
   });
 }
@@ -12,7 +12,7 @@ export function useWalletBalance() {
 // Wallet transactions
 export function useWalletTransactions(limit = 20) {
   return useQuery({
-    queryKey: ["wallet", "transactions", limit],
+    queryKey: ["wallet","transactions", limit],
     queryFn: () => walletApi.getTransactions(limit),
   });
 }

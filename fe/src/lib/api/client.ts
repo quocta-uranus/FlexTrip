@@ -228,7 +228,7 @@ export const userApi = {
     api.post('/profile/password', { oldPassword, newPassword }) as Promise<{ ok: boolean }>,
 
   /**
-   * Upload file avatar lên BE (multipart/form-data, field "file").
+   * Upload file avatar lên BE (multipart/form-data, field"file").
    * BE lưu vào /uploads và trả về { avatarUrl, avatarPublicUrl }.
    * FE trả URL tuyệt đối cho <img src> (không dùng base64).
    */

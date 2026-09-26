@@ -44,28 +44,28 @@ html.dark {
 .dark h2,
 .dark h3,
 .dark .section-heading h2 {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 .dark em {
-  color: #38bdf8 !important;
+  color: #38bdf8;
 }
 
 .dark .eyebrow {
-  color: #38bdf8 !important;
+  color: #38bdf8;
 }
 
 .dark .section-heading > p {
-  color: #94a3b8 !important;
+  color: #94a3b8;
 }
 
 .dark .search-field small {
-  color: #38bdf8 !important;
+  color: #38bdf8;
 }
 
 .dark .search-field input,
 .dark .search-field select {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
 html {
@@ -79,9 +79,35 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
+
+::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+.dark ::placeholder,
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f1729;
+}
+
+.dark select option {
+  background-color: #121a2c;
+  color: #f8fafc;
+}
+
 
 button,
 a {

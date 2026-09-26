@@ -90,10 +90,8 @@ function SearchPageInner() {
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
               <svg
-                className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2"
-                style={{ color: '#8694ad' }}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
-              >
+               className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
@@ -155,11 +153,11 @@ function SearchPageInner() {
           {showFilters && (
             <aside className="hidden w-64 shrink-0 lg:block">
               <div
-                className="sticky top-48 rounded-2xl border bg-white p-5"
+                className="sticky top-48 rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                 style={{ borderColor: '#DCEFFB' }}
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold" style={{ color: '#0f1729' }}>Bộ lọc</h2>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Bộ lọc</h2>
                   <button
                     onClick={() => { resetFilters(); setLocalKeyword(''); }}
                     className="text-xs font-medium"
@@ -171,7 +169,7 @@ function SearchPageInner() {
 
                 {/* Location */}
                 <div className="mb-5">
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#5a6b85' }}>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300">
                     Địa điểm
                   </label>
                   <input
@@ -187,7 +185,7 @@ function SearchPageInner() {
 
                 {/* Price range */}
                 <div className="mb-5">
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#5a6b85' }}>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300">
                     Khoảng giá (VND/ngày)
                   </label>
                   <div className="flex items-center gap-2">
@@ -201,7 +199,7 @@ function SearchPageInner() {
                       className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/30"
                       style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
                     />
-                    <span style={{ color: '#8694ad' }}>–</span>
+                    <span className="text-slate-500 dark:text-slate-400">–</span>
                     <input
                       id="filter-price-max-input"
                       type="number"
@@ -217,7 +215,7 @@ function SearchPageInner() {
 
                 {/* Dates */}
                 <div className="mb-5">
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#5a6b85' }}>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300">
                     Ngày thuê
                   </label>
                   <div className="space-y-2">
@@ -242,7 +240,7 @@ function SearchPageInner() {
 
                 {/* Sort */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#5a6b85' }}>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300">
                     Sắp xếp
                   </label>
                   <select
@@ -253,7 +251,7 @@ function SearchPageInner() {
                     style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
                   >
                     {SORT_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
+                      <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" key={o.value} value={o.value}>{o.label}</option>
                     ))}
                   </select>
                 </div>
@@ -269,12 +267,12 @@ function SearchPageInner() {
                 {isLoading ? (
                   <div className="h-5 w-40 animate-pulse rounded bg-[#e2e8f3]" />
                 ) : (
-                  <p className="text-sm" style={{ color: '#5a6b85' }}>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
                     {total > 0 ? (
                       <>
-                        <span className="font-semibold" style={{ color: '#0f1729' }}>{total}</span> kết quả
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{total}</span> kết quả
                         {filters.keyword && (
-                          <> cho "<span className="font-semibold" style={{ color: '#2a7bd9' }}>{filters.keyword}</span>"</>
+                          <> cho"<span className="font-semibold" style={{ color: '#2a7bd9' }}>{filters.keyword}</span>"</>
                         )}
                       </>
                     ) : 'Không tìm thấy kết quả'}
@@ -291,7 +289,7 @@ function SearchPageInner() {
                 style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
               >
                 {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </div>
@@ -300,7 +298,7 @@ function SearchPageInner() {
             {isLoading && (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="animate-pulse rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+                  <div key={i} className="animate-pulse rounded-2xl border bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
                     <div className="h-48 rounded-t-2xl bg-[#e2e8f3]" />
                     <div className="p-4 space-y-3">
                       <div className="h-4 w-3/4 rounded bg-[#e2e8f3]" />
@@ -314,12 +312,12 @@ function SearchPageInner() {
 
             {/* Empty state */}
             {!isLoading && items.length === 0 && (
-              <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-20" style={{ borderColor: '#DCEFFB' }}>
+              <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-20 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
                 <span className="mb-4 text-6xl">🔍</span>
-                <h3 className="mb-2 text-lg font-semibold" style={{ color: '#0f1729' }}>
+                <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
                   Không tìm thấy kết quả
                 </h3>
-                <p className="mb-6 text-sm text-center max-w-xs" style={{ color: '#8694ad' }}>
+                <p className="mb-6 text-sm text-center max-w-xs text-slate-500 dark:text-slate-400">
                   Thử từ khóa khác hoặc xóa bộ lọc để xem thêm sản phẩm.
                 </p>
                 <button
@@ -352,8 +350,8 @@ function SearchPageInner() {
                 >
                   ← Trước
                 </button>
-                <span className="flex items-center gap-1 px-4 text-sm" style={{ color: '#5a6b85' }}>
-                  Trang <strong style={{ color: '#0f1729' }}>{filters.page ?? 1}</strong> / {totalPages}
+                <span className="flex items-center gap-1 px-4 text-sm text-slate-600 dark:text-slate-300">
+                  Trang <strong className="text-slate-900 dark:text-slate-100">{filters.page ?? 1}</strong> / {totalPages}
                 </span>
                 <button
                   disabled={(filters.page ?? 1) >= totalPages}

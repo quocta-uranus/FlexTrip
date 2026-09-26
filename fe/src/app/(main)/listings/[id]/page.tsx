@@ -15,8 +15,8 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       ))}
-      <span className="ml-1 text-sm font-semibold" style={{ color: '#0f1729' }}>{rating.toFixed(1)}</span>
-      {count != null && <span className="text-sm" style={{ color: '#8694ad' }}>({count} đánh giá)</span>}
+      <span className="ml-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{rating.toFixed(1)}</span>
+      {count != null && <span className="text-sm text-slate-500 dark:text-slate-400">({count} đánh giá)</span>}
     </span>
   );
 }
@@ -64,8 +64,8 @@ export default function ListingDetailPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center" style={{ background: '#f6fbfe' }}>
         <span className="mb-4 text-6xl">😕</span>
-        <h1 className="mb-2 text-xl font-bold" style={{ color: '#0f1729' }}>Không tìm thấy sản phẩm</h1>
-        <p className="mb-6 text-sm" style={{ color: '#8694ad' }}>Sản phẩm không tồn tại hoặc đã bị gỡ.</p>
+        <h1 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Không tìm thấy sản phẩm</h1>
+        <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Sản phẩm không tồn tại hoặc đã bị gỡ.</p>
         <Link href="/search" className="rounded-full px-5 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
           Quay lại tìm kiếm
         </Link>
@@ -81,12 +81,12 @@ export default function ListingDetailPage() {
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
+        <nav className="mb-6 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Link href="/search" className="hover:underline" style={{ color: '#2a7bd9' }}>Tìm kiếm</Link>
           <span>/</span>
           <span>{CATEGORY_LABELS[listing.category] ?? listing.category}</span>
           <span>/</span>
-          <span className="truncate max-w-xs" style={{ color: '#0f1729' }}>{listing.title}</span>
+          <span className="truncate max-w-xs text-slate-900 dark:text-slate-100">{listing.title}</span>
         </nav>
 
         {/* Gallery */}
@@ -159,11 +159,11 @@ export default function ListingDetailPage() {
                   </span>
                 )}
               </div>
-              <h1 className="mb-3 text-3xl font-bold leading-tight" style={{ color: '#0f1729' }}>
+              <h1 className="mb-3 text-3xl font-bold leading-tight text-slate-900 dark:text-slate-100">
                 {listing.title}
               </h1>
               <div className="flex flex-wrap items-center gap-4">
-                <span className="flex items-center gap-1.5 text-sm" style={{ color: '#8694ad' }}>
+                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -176,8 +176,8 @@ export default function ListingDetailPage() {
 
             {/* Description */}
             <div>
-              <h2 className="mb-3 text-xl font-semibold" style={{ color: '#0f1729' }}>Mô tả</h2>
-              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#5a6b85' }}>
+              <h2 className="mb-3 text-xl font-semibold text-slate-900 dark:text-slate-100">Mô tả</h2>
+              <p className="text-sm leading-relaxed whitespace-pre-line text-slate-600 dark:text-slate-300">
                 {listing.description}
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function ListingDetailPage() {
             {/* Amenities */}
             {listing.amenities?.length > 0 && (
               <div>
-                <h2 className="mb-3 text-xl font-semibold" style={{ color: '#0f1729' }}>Tiện ích & Thiết bị kèm theo</h2>
+                <h2 className="mb-3 text-xl font-semibold text-slate-900 dark:text-slate-100">Tiện ích & Thiết bị kèm theo</h2>
                 <div className="flex flex-wrap gap-2">
                   {listing.amenities.map((a) => (
                     <span
@@ -203,7 +203,7 @@ export default function ListingDetailPage() {
             {/* Provider */}
             {listing.provider && (
               <div className="rounded-2xl border p-5" style={{ borderColor: '#DCEFFB' }}>
-                <h2 className="mb-4 text-xl font-semibold" style={{ color: '#0f1729' }}>Thông tin Provider</h2>
+                <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100">Thông tin Provider</h2>
                 <div className="flex items-start gap-4">
                   {listing.provider.avatarUrl ? (
                     <img src={listing.provider.avatarUrl} alt={listing.provider.name} className="h-14 w-14 rounded-full object-cover" />
@@ -214,11 +214,11 @@ export default function ListingDetailPage() {
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold" style={{ color: '#0f1729' }}>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">
                       {listing.provider.providerProfile?.shopName ?? listing.provider.name}
                     </p>
                     {listing.provider.providerProfile && (
-                      <div className="mt-1.5 flex flex-wrap gap-3 text-xs" style={{ color: '#8694ad' }}>
+                      <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
                         <span>⭐ {Number(listing.provider.providerProfile.ratingAvg).toFixed(1)} ({listing.provider.providerProfile.reviewsCount} đánh giá)</span>
                         <span>⏱ Phản hồi trong {listing.provider.providerProfile.responseHours}</span>
                       </div>
@@ -238,7 +238,7 @@ export default function ListingDetailPage() {
             {/* Reviews */}
             {reviews.length > 0 && (
               <div>
-                <h2 className="mb-4 text-xl font-semibold" style={{ color: '#0f1729' }}>
+                <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100">
                   Đánh giá ({reviews.length})
                 </h2>
                 <div className="space-y-4">
@@ -254,12 +254,12 @@ export default function ListingDetailPage() {
                               {r.author.name.charAt(0)}
                             </div>
                           )}
-                          <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>{r.author.name}</span>
+                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{r.author.name}</span>
                         </div>
                         <StarRating rating={r.rating} />
                       </div>
-                      {r.comment && <p className="text-sm leading-relaxed" style={{ color: '#5a6b85' }}>{r.comment}</p>}
-                      <p className="mt-2 text-xs" style={{ color: '#8694ad' }}>
+                      {r.comment && <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{r.comment}</p>}
+                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                         {new Date(r.createdAt).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
@@ -271,17 +271,17 @@ export default function ListingDetailPage() {
 
           {/* Booking sidebar */}
           <div>
-            <div className="sticky top-48 rounded-2xl border bg-white p-6 shadow-lg" style={{ borderColor: '#DCEFFB', boxShadow: '0 20px 60px -15px rgba(42,123,217,0.15)' }}>
+            <div className="sticky top-48 rounded-2xl border bg-white p-6 shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB', boxShadow: '0 20px 60px -15px rgba(42,123,217,0.15)' }}>
               <div className="mb-5">
                 <span className="text-3xl font-bold" style={{ color: '#2a7bd9' }}>
                   {price.toLocaleString('vi-VN')}
                 </span>
-                <span className="text-sm" style={{ color: '#8694ad' }}> {listing.currency ?? 'VND'}/ngày</span>
+                <span className="text-sm text-slate-500 dark:text-slate-400"> {listing.currency ?? 'VND'}/ngày</span>
               </div>
 
               <div className="mb-5 space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày bắt đầu</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ngày bắt đầu</label>
                   <input
                     id="booking-start-date"
                     type="date"
@@ -293,7 +293,7 @@ export default function ListingDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày kết thúc</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Ngày kết thúc</label>
                   <input
                     id="booking-end-date"
                     type="date"
@@ -309,11 +309,11 @@ export default function ListingDetailPage() {
               {nights > 0 && (
                 <div className="mb-5 rounded-xl p-3 space-y-2" style={{ background: '#f6fbfe' }}>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: '#5a6b85' }}>{price.toLocaleString('vi-VN')} × {nights} ngày</span>
-                    <span style={{ color: '#0f1729' }}>{(price * nights).toLocaleString('vi-VN')}</span>
+                    <span className="text-slate-600 dark:text-slate-300">{price.toLocaleString('vi-VN')} × {nights} ngày</span>
+                    <span className="text-slate-900 dark:text-slate-100">{(price * nights).toLocaleString('vi-VN')}</span>
                   </div>
                   <div className="flex justify-between border-t pt-2 text-sm font-bold" style={{ borderColor: '#DCEFFB' }}>
-                    <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                    <span className="text-slate-900 dark:text-slate-100">Tổng cộng</span>
                     <span style={{ color: '#2a7bd9' }}>{total.toLocaleString('vi-VN')} {listing.currency ?? 'VND'}</span>
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export default function ListingDetailPage() {
                 {listing.status !== 'ACTIVE' ? 'Không khả dụng' : !startDate || !endDate ? 'Chọn ngày thuê' : 'Đặt thuê ngay'}
               </button>
 
-              <p className="mt-3 text-center text-xs" style={{ color: '#8694ad' }}>
+              <p className="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">
                 Bạn chưa bị tính tiền cho đến khi xác nhận
               </p>
             </div>

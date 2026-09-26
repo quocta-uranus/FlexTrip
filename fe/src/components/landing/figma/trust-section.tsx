@@ -1,4 +1,4 @@
-import { ShieldCheck, Star, CalendarDays } from "lucide-react";
+import { ShieldCheck, Star, CalendarDays } from"lucide-react";
 
 export function TrustSection() {
   return (
@@ -14,7 +14,7 @@ export function TrustSection() {
             Biết rõ bạn thuê gì.<br />
             <span className="text-[#00A3FF] dark:text-[#38BDF8]">Và thuê từ ai.</span>
           </h2>
-          <p className="mt-5 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg">
+          <p className="mt-5 text-sm sm:text-base leading-relaxed max-w-lg text-slate-600 dark:text-slate-400">
             Mỗi quyết định thuê bắt đầu từ thông tin rõ ràng. FlexTrip tạo không gian
             để Traveler và Provider hiểu nhau trước khi cùng xác nhận.
           </p>
@@ -83,7 +83,7 @@ export function TrustSection() {
               </div>
               <div>
                 <strong className="text-xs font-bold text-slate-900 dark:text-white block">An Nhiên</strong>
-                <small className="text-[11px] text-slate-500 dark:text-slate-400 block">Traveler · Đà Lạt</small>
+                <small className="text-[11px] block text-slate-500 dark:text-slate-400">Traveler · Đà Lạt</small>
               </div>
             </div>
           </div>

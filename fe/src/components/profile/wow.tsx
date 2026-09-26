@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from"react";
 import {
   useMouseTilt,
   useMagnetic,
@@ -13,7 +13,7 @@ import {
   useHoverX,
   type Sparkle,
   type ConfettiPiece,
-} from "@/hooks/useWowMotion";
+} from"@/hooks/useWowMotion";
 
 export {
   useConfetti,
@@ -23,7 +23,7 @@ export {
   useCountUp,
   useReveal,
   useSparkle,
-} from "@/hooks/useWowMotion";
+} from"@/hooks/useWowMotion";
 
 /* ─────────────────────────────────────────────────────────────────────
  *  Reveal on scroll — fade + translateY, stagger 80–140ms
@@ -32,7 +32,7 @@ export function Reveal({
   children,
   delay = 0,
   y = 16,
-  className = "",
+  className ="",
 }: {
   children: ReactNode;
   delay?: number;
@@ -46,9 +46,9 @@ export function Reveal({
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : `translateY(${y}px)`,
+        transform: visible ?"translateY(0)" : `translateY(${y}px)`,
         transition: `opacity 600ms cubic-bezier(.2,.8,.2,1) ${delay}ms, transform 600ms cubic-bezier(.2,.8,.2,1) ${delay}ms`,
-        willChange: "opacity, transform",
+        willChange:"opacity, transform",
       }}
     >
       {children}
@@ -61,7 +61,7 @@ export function Reveal({
  * ───────────────────────────────────────────────────────────────────── */
 export function AnimatedGradientText({
   children,
-  className = "",
+  className ="",
 }: {
   children: ReactNode;
   className?: string;
@@ -70,9 +70,9 @@ export function AnimatedGradientText({
     <span
       className={`bg-gradient-to-r from-[#2a7bd9] via-[#92eee8] to-[#5fd6cd] bg-clip-text text-transparent ${className}`}
       style={{
-        backgroundSize: "200% 200%",
-        animation: "wow-gradient 6s ease-in-out infinite",
-        WebkitBackgroundClip: "text",
+        backgroundSize:"200% 200%",
+        animation:"wow-gradient 6s ease-in-out infinite",
+        WebkitBackgroundClip:"text",
       }}
     >
       {children}
@@ -84,27 +84,27 @@ export function AnimatedGradientText({
  *  Blob background — 3 blob trôi 18–28s + parallax
  * ───────────────────────────────────────────────────────────────────── */
 export function BlobBackground({
-  variant = "soft",
+  variant ="soft",
   parallax = false,
 }: {
-  variant?: "soft" | "rich";
+  variant?:"soft" |"rich";
   parallax?: boolean;
 }) {
   const y = useScrollY();
   const baseOffset = parallax ? y * 0.25 : 0;
 
   const blobs =
-    variant === "soft"
+    variant ==="soft"
       ? [
-          { c1: "#92eee8", c2: "#5fd6cd", size: 360, top: "-10%", left: "-8%", dur: 22 },
-          { c1: "#4a92e8", c2: "#2a7bd9", size: 280, top: "60%", right: "-10%", dur: 28 },
-          { c1: "#5fd6cd", c2: "#92eee8", size: 220, bottom: "-8%", left: "40%", dur: 24 },
+          { c1:"#92eee8", c2:"#5fd6cd", size: 360, top:"-10%", left:"-8%", dur: 22 },
+          { c1:"#4a92e8", c2:"#2a7bd9", size: 280, top:"60%", right:"-10%", dur: 28 },
+          { c1:"#5fd6cd", c2:"#92eee8", size: 220, bottom:"-8%", left:"40%", dur: 24 },
         ]
       : [
-          { c1: "#92eee8", c2: "#2a7bd9", size: 420, top: "-12%", left: "-10%", dur: 20 },
-          { c1: "#4a92e8", c2: "#92eee8", size: 320, top: "30%", right: "-8%", dur: 26 },
-          { c1: "#5fd6cd", c2: "#4a92e8", size: 260, bottom: "-10%", left: "30%", dur: 30 },
-          { c1: "#2a7bd9", c2: "#92eee8", size: 200, top: "55%", left: "8%", dur: 18 },
+          { c1:"#92eee8", c2:"#2a7bd9", size: 420, top:"-12%", left:"-10%", dur: 20 },
+          { c1:"#4a92e8", c2:"#92eee8", size: 320, top:"30%", right:"-8%", dur: 26 },
+          { c1:"#5fd6cd", c2:"#4a92e8", size: 260, bottom:"-10%", left:"30%", dur: 30 },
+          { c1:"#2a7bd9", c2:"#92eee8", size: 200, top:"55%", left:"8%", dur: 18 },
         ];
 
   return (
@@ -128,7 +128,7 @@ export function BlobBackground({
             opacity: 0.35,
             animation: `wow-blob ${b.dur}s ease-in-out infinite`,
             animationDelay: `${i * -4}s`,
-            willChange: "transform",
+            willChange:"transform",
             transform: `translateY(${baseOffset}px)`,
           }}
         />
@@ -150,7 +150,7 @@ export function ParallaxCover({
   return (
     <section className="relative overflow-hidden bg-brand-gradient" style={{ height }}>
       <BlobBackground variant="soft" parallax />
-      <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl dark:bg-[#121A2C] dark:text-white" />
       <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#92eee8]/50 blur-3xl" />
       <div className="relative z-10 h-full">{children}</div>
     </section>
@@ -175,20 +175,20 @@ export function MagneticAvatar({ children, strength = 0.18 }: { children: ReactN
 export function TiltCard({
   children,
   max = 8,
-  className = "",
-  as: As = "div",
+  className ="",
+  as: As ="div",
 }: {
   children: ReactNode;
   max?: number;
   className?: string;
-  as?: "div" | "a";
+  as?:"div" |"a";
 }) {
   const { ref, style, onMove, onLeave } = useMouseTilt(max);
   return (
     <As
       ref={ref as any}
       className={className}
-      style={{ ...style, transformStyle: "preserve-3d" as any }}
+      style={{ ...style, transformStyle:"preserve-3d" as any }}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
     >
@@ -203,9 +203,9 @@ export function TiltCard({
 export function Counter({
   value,
   decimals = 0,
-  prefix = "",
-  suffix = "",
-  className = "",
+  prefix ="",
+  suffix ="",
+  className ="",
   trigger = true,
 }: {
   value: number;
@@ -232,7 +232,7 @@ export function ProgressRing({
   percent,
   size = 56,
   stroke = 5,
-  className = "",
+  className ="",
 }: {
   percent: number;
   size?: number;
@@ -244,7 +244,7 @@ export function ProgressRing({
   const dash = c * (percent / 100);
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="wow-ring-spin" style={{ animationDuration: "12s" }}>
+      <svg width={size} height={size} className="wow-ring-spin" style={{ animationDuration:"12s" }}>
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#2a7bd9" />
@@ -263,10 +263,10 @@ export function ProgressRing({
           fill="none"
           strokeDasharray={`${dash} ${c - dash}`}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: "stroke-dasharray 900ms cubic-bezier(.2,.8,.2,1)" }}
+          style={{ transition:"stroke-dasharray 900ms cubic-bezier(.2,.8,.2,1)" }}
         />
       </svg>
-      <span className="absolute text-xs font-bold tabular-nums" style={{ color: "#2a7bd9" }}>
+      <span className="absolute text-xs font-bold tabular-nums" style={{ color:"#2a7bd9" }}>
         {percent}%
       </span>
     </div>
@@ -274,12 +274,12 @@ export function ProgressRing({
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- *  SparkleBadge — sparkle ngẫu nhiên cho badge "đã đạt"
+ *  SparkleBadge — sparkle ngẫu nhiên cho badge"đã đạt"
  * ───────────────────────────────────────────────────────────────────── */
-export function SparkleBadge({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function SparkleBadge({ children, className ="" }: { children: ReactNode; className?: string }) {
   const items = useSparkle(8, 1100);
   return (
-    <div className={`relative overflow-visible ${className}`} style={{ animation: "wow-glow-pulse 3s ease-in-out infinite" }}>
+    <div className={`relative overflow-visible ${className}`} style={{ animation:"wow-glow-pulse 3s ease-in-out infinite" }}>
       {items.map((s: Sparkle) => (
         <span
           key={s.id}
@@ -311,7 +311,7 @@ export function ConfettiBurst({ pieces }: { pieces: ConfettiPiece[] }) {
           key={p.id}
           className="absolute left-1/2 top-1/2 block"
           style={
-            p.shape === "rect"
+            p.shape ==="rect"
               ? {
                   width: p.size,
                   height: p.size * 0.4,
@@ -322,11 +322,11 @@ export function ConfettiBurst({ pieces }: { pieces: ConfettiPiece[] }) {
                   ["--dy" as any]: `${p.dy}px`,
                   ["--rot" as any]: `${p.rot}deg`,
                 }
-              : p.shape === "circle"
+              : p.shape ==="circle"
               ? {
                   width: p.size * 0.7,
                   height: p.size * 0.7,
-                  borderRadius: "50%",
+                  borderRadius:"50%",
                   background: `hsl(${p.hue}, 90%, 65%)`,
                   animation: `wow-confetti 1400ms cubic-bezier(.2,.8,.2,1) ${p.delay}ms forwards`,
                   transform: `translate(0,0) rotate(0deg)`,
@@ -359,7 +359,7 @@ export function ConfettiBurst({ pieces }: { pieces: ConfettiPiece[] }) {
 export function Marquee({
   items,
   duration = 28,
-  className = "",
+  className ="",
 }: {
   items: string[];
   duration?: number;
@@ -370,7 +370,7 @@ export function Marquee({
   return (
     <div
       className={`relative overflow-hidden rounded-xl border ${className}`}
-      style={{ borderColor: "rgba(146,238,232,0.4)", background: "rgba(146,238,232,0.08)" }}
+      style={{ borderColor:"rgba(146,238,232,0.4)", background:"rgba(146,238,232,0.08)" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -378,12 +378,12 @@ export function Marquee({
         className="flex w-max gap-10 py-3"
         style={{
           animation: `wow-marquee ${duration}s linear infinite`,
-          animationPlayState: paused ? "paused" : "running",
+          animationPlayState: paused ?"paused" :"running",
         }}
       >
         {list.map((s, i) => (
-          <span key={i} className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold" style={{ color: "#1e5aa8" }}>
-            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#92eee8", boxShadow: "0 0 8px #92eee8" }} />
+          <span key={i} className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold" style={{ color:"#1e5aa8" }}>
+            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background:"#92eee8", boxShadow:"0 0 8px #92eee8" }} />
             {s}
           </span>
         ))}
@@ -396,9 +396,9 @@ export function Marquee({
  *  PulseDot — chấm chấm nhỏ đập, dùng cho eyebrow / live
  * ───────────────────────────────────────────────────────────────────── */
 export function PulseDot({
-  color = "#92eee8",
+  color ="#92eee8",
   size = 6,
-  className = "",
+  className ="",
 }: {
   color?: string;
   size?: number;
@@ -408,7 +408,7 @@ export function PulseDot({
     <span className={`relative inline-flex ${className}`} style={{ width: size, height: size }}>
       <span
         className="absolute inset-0 rounded-full"
-        style={{ background: color, opacity: 0.6, animation: "wow-ping 1.8s cubic-bezier(0,0,.2,1) infinite" }}
+        style={{ background: color, opacity: 0.6, animation:"wow-ping 1.8s cubic-bezier(0,0,.2,1) infinite" }}
       />
       <span className="relative inline-block rounded-full" style={{ width: size, height: size, background: color }} />
     </span>
@@ -416,32 +416,32 @@ export function PulseDot({
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- *  LiveDot — badge đỏ đập "LIVE" / "ON-DUTY"
+ *  LiveDot — badge đỏ đập"LIVE" /"ON-DUTY"
  * ───────────────────────────────────────────────────────────────────── */
 export function LiveDot({
-  label = "LIVE",
-  className = "",
-  tone = "red",
+  label ="LIVE",
+  className ="",
+  tone ="red",
 }: {
   label?: string;
   className?: string;
-  tone?: "red" | "blue";
+  tone?:"red" |"blue";
 }) {
-  const bg = tone === "red" ? "#dc2626" : "#2a7bd9";
+  const bg = tone ==="red" ?"#dc2626" :"#2a7bd9";
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-lg ${className}`}
-      style={{ background: bg, animation: "wow-live 1.4s ease-in-out infinite" }}
+      style={{ background: bg, animation:"wow-live 1.4s ease-in-out infinite" }}
     >
       <span
         className="relative inline-flex"
         style={{ width: 6, height: 6 }}
       >
         <span
-          className="absolute inset-0 rounded-full bg-white"
-          style={{ opacity: 0.7, animation: "wow-ping 1.4s cubic-bezier(0,0,.2,1) infinite" }}
+          className="absolute inset-0 rounded-full bg-white dark:bg-[#121A2C] dark:text-white"
+          style={{ opacity: 0.7, animation:"wow-ping 1.4s cubic-bezier(0,0,.2,1) infinite" }}
         />
-        <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white" />
+        <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-white dark:bg-[#121A2C] dark:text-white" />
       </span>
       {label}
     </span>
@@ -451,7 +451,7 @@ export function LiveDot({
 /* ─────────────────────────────────────────────────────────────────────
  *  HoverShift — wrapper có translateX khi hover (verify/security items)
  * ───────────────────────────────────────────────────────────────────── */
-export function HoverShift({ children, px = 2, className = "" }: { children: ReactNode; px?: number; className?: string }) {
+export function HoverShift({ children, px = 2, className ="" }: { children: ReactNode; px?: number; className?: string }) {
   const h = useHoverX(px);
   return (
     <div className={className} style={h.style} onMouseEnter={h.onMouseEnter} onMouseLeave={h.onMouseLeave}>
@@ -461,7 +461,7 @@ export function HoverShift({ children, px = 2, className = "" }: { children: Rea
 }
 
 /* ─────────────────────────────────────────────────────────────────────
- *  EditingBanner — banner "Đang chỉnh sửa..." hiện khi editing=true
+ *  EditingBanner — banner"Đang chỉnh sửa..." hiện khi editing=true
  * ───────────────────────────────────────────────────────────────────── */
 export function EditingBanner({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -470,11 +470,11 @@ export function EditingBanner({ visible }: { visible: boolean }) {
       <div
         className="pointer-events-auto inline-flex items-center gap-2 rounded-full border px-5 py-2 text-sm font-semibold shadow-xl backdrop-blur"
         style={{
-          borderColor: "#2a7bd9",
-          background: "rgba(146,238,232,0.95)",
-          color: "#1e5aa8",
-          boxShadow: "0 14px 32px -10px rgba(42,123,217,0.45)",
-          animation: "wow-live 1.6s ease-in-out infinite",
+          borderColor:"#2a7bd9",
+          background:"rgba(146,238,232,0.95)",
+          color:"#1e5aa8",
+          boxShadow:"0 14px 32px -10px rgba(42,123,217,0.45)",
+          animation:"wow-live 1.6s ease-in-out infinite",
         }}
       >
         <span
@@ -483,9 +483,9 @@ export function EditingBanner({ visible }: { visible: boolean }) {
         >
           <span
             className="absolute inset-0 rounded-full"
-            style={{ background: "#2a7bd9", opacity: 0.6, animation: "wow-ping 1.6s cubic-bezier(0,0,.2,1) infinite" }}
+            style={{ background:"#2a7bd9", opacity: 0.6, animation:"wow-ping 1.6s cubic-bezier(0,0,.2,1) infinite" }}
           />
-          <span className="relative inline-block rounded-full" style={{ width: 8, height: 8, background: "#2a7bd9" }} />
+          <span className="relative inline-block rounded-full" style={{ width: 8, height: 8, background:"#2a7bd9" }} />
         </span>
         ✏️ Đang chỉnh sửa — các field đã sáng, có thể nhập liệu
       </div>
@@ -502,7 +502,7 @@ export function StickyEditBar({
   savedAt,
   onSave,
   onCancel,
-  brand = "#2a7bd9",
+  brand ="#2a7bd9",
   saving = false,
 }: {
   visible: boolean;
@@ -514,7 +514,7 @@ export function StickyEditBar({
 }) {
   const [justSaved, setJustSaved] = useState(false);
 
-  // Reset trạng thái "just saved" sau 3 giây
+  // Reset trạng thái"just saved" sau 3 giây
   useEffect(() => {
     if (savedAt) {
       setJustSaved(true);
@@ -527,15 +527,15 @@ export function StickyEditBar({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur transition-all duration-300"
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur transition-all duration-300 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
       style={{
-        borderColor: justSaved ? "rgba(16,185,129,0.5)" : "rgba(146,238,232,0.5)",
-        transform: visible ? "translateY(0)" : "translateY(100%)",
+        borderColor: justSaved ?"rgba(16,185,129,0.5)" :"rgba(146,238,232,0.5)",
+        transform: visible ?"translateY(0)" :"translateY(100%)",
         opacity: visible ? 1 : 0,
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
-        <div className="flex items-center gap-2 text-sm" style={{ color: justSaved ? "#059669" : "#1e5aa8" }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: justSaved ?"#059669" :"#1e5aa8" }}>
           {justSaved ? (
             <>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -557,8 +557,8 @@ export function StickyEditBar({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="rounded-full border bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-muted)] disabled:opacity-50"
-            style={{ borderColor: "#e2e8f3" }}
+            className="rounded-full border bg-white px-4 py-2 text-sm font-semibold hover:bg-[var(--surface-muted)] disabled:opacity-50 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+            style={{ borderColor:"#e2e8f3" }}
           >
             Hủy
           </button>
@@ -569,10 +569,10 @@ export function StickyEditBar({
             className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-60 transition-all"
             style={{
               background: saving || justSaved
-                ? "linear-gradient(135deg, #10b981, #059669)"
+                ?"linear-gradient(135deg, #10b981, #059669)"
                 : brand,
               boxShadow: saving || justSaved
-                ? "0 8px 20px -8px rgba(16,185,129,0.5)"
+                ?"0 8px 20px -8px rgba(16,185,129,0.5)"
                 : `0 8px 20px -8px ${brand}80`,
             }}
           >
@@ -581,7 +581,7 @@ export function StickyEditBar({
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                {justSaved ? "Đã lưu" : "Đang lưu..."}
+                {justSaved ?"Đã lưu" :"Đang lưu..."}
               </>
             ) : (
               <>

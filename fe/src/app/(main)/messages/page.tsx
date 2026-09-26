@@ -47,10 +47,10 @@ function ConversationItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <p className="truncate text-sm font-semibold" style={{ color: '#0f1729' }}>
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             {otherMember?.user.name ?? 'Unknown'}
           </p>
-          <span className="shrink-0 text-xs" style={{ color: '#8694ad' }}>{lastTime}</span>
+          <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{lastTime}</span>
         </div>
         <p className="mt-0.5 truncate text-xs" style={{ color: unread > 0 ? '#0f1729' : '#8694ad', fontWeight: unread > 0 ? '600' : '400' }}>
           {lastMsg?.content ?? 'Chưa có tin nhắn'}
@@ -99,7 +99,7 @@ function MessageThread({ conversationId, currentUserId }: { conversationId: stri
         {(!messages || messages.length === 0) && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <span className="mb-3 text-5xl">💬</span>
-            <p className="text-sm" style={{ color: '#8694ad' }}>Bắt đầu cuộc trò chuyện.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Bắt đầu cuộc trò chuyện.</p>
           </div>
         )}
 
@@ -183,11 +183,11 @@ function MessagesContent() {
   return (
     <div className="flex h-[calc(100vh-64px)]" style={{ background: '#f6fbfe' }}>
       {/* Sidebar */}
-      <div className="flex w-80 shrink-0 flex-col border-r bg-white" style={{ borderColor: '#DCEFFB' }}>
+      <div className="flex w-80 shrink-0 flex-col border-r bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
         {/* Header */}
         <div className="border-b px-4 py-4" style={{ borderColor: '#DCEFFB' }}>
-          <h1 className="text-lg font-bold" style={{ color: '#0f1729' }}>Tin nhắn</h1>
-          <p className="text-xs mt-0.5" style={{ color: '#8694ad' }}>
+          <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">Tin nhắn</h1>
+          <p className="text-xs mt-0.5 text-slate-500 dark:text-slate-400">
             {conversations?.length ?? 0} cuộc trò chuyện
           </p>
         </div>
@@ -211,7 +211,7 @@ function MessagesContent() {
           {!isLoading && (!conversations || conversations.length === 0) && (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <span className="mb-3 text-4xl">💬</span>
-              <p className="text-sm" style={{ color: '#8694ad' }}>Chưa có cuộc trò chuyện nào.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có cuộc trò chuyện nào.</p>
             </div>
           )}
 
@@ -232,7 +232,7 @@ function MessagesContent() {
         {activeId ? (
           <>
             {/* Chat header */}
-            <div className="flex items-center gap-3 border-b bg-white px-5 py-3.5" style={{ borderColor: '#DCEFFB' }}>
+            <div className="flex items-center gap-3 border-b bg-white px-5 py-3.5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
               {otherMember?.user.avatarUrl ? (
                 <img src={otherMember.user.avatarUrl} alt={otherMember.user.name} className="h-9 w-9 rounded-full object-cover" />
               ) : (
@@ -241,8 +241,8 @@ function MessagesContent() {
                 </div>
               )}
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#0f1729' }}>{otherMember?.user.name ?? 'Unknown'}</p>
-                <p className="text-[11px]" style={{ color: '#8694ad' }}>Online</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{otherMember?.user.name ?? 'Unknown'}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Online</p>
               </div>
             </div>
 
@@ -251,8 +251,8 @@ function MessagesContent() {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
             <span className="text-6xl">💬</span>
-            <p className="text-base font-semibold" style={{ color: '#0f1729' }}>Chọn một cuộc trò chuyện</p>
-            <p className="text-sm" style={{ color: '#8694ad' }}>Hoặc liên hệ Provider từ trang sản phẩm.</p>
+            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">Chọn một cuộc trò chuyện</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Hoặc liên hệ Provider từ trang sản phẩm.</p>
           </div>
         )}
       </div>

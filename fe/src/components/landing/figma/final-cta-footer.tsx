@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import Link from"next/link";
+import { ArrowRight } from"lucide-react";
 
 export function FinalCtaFooter() {
   return (
@@ -29,14 +29,14 @@ export function FinalCtaFooter() {
             <Link
               href="/search"
               className="inline-flex items-center gap-3 px-8 py-4 rounded-full font-bold text-sm text-white shadow-xl transition-all hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
+              style={{ background:"linear-gradient(135deg, #2a7bd9 0%, #00b4ea 55%, #92eee8 100%)" }}
             >
               <span>Tìm thiết bị</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/register-provider"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-sm text-white border border-white/60 dark:border-white/30 hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-sm text-white border border-white/60 dark:border-white/30 hover:bg-white/10 transition-colors dark:bg-[#121A2C] dark:text-white"
             >
               Cho thuê thiết bị
             </Link>

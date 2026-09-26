@@ -1,47 +1,47 @@
 "use client";
 
-import { useState } from "react";
-import { Reveal, LiveDot } from "@/components/profile/wow";
+import { useState } from"react";
+import { Reveal, LiveDot } from"@/components/profile/wow";
 
 const configGroups = [
   {
-    id: "fraud",
-    name: "Fraud Detection",
-    icon: "🛡️",
+    id:"fraud",
+    name:"Fraud Detection",
+    icon:"🛡️",
     configs: [
-      { id: "fraud_threshold", label: "Fraud Score Threshold", value: 75, min: 0, max: 100, unit: "%", description: "Block transactions with fraud score above this threshold" },
-      { id: "velocity_limit", label: "Velocity Limit", value: 5, min: 1, max: 20, unit: "books/day", description: "Max bookings per user per day before flagging" },
-      { id: "chargeback_window", label: "Chargeback Window", value: 30, min: 7, max: 90, unit: "days", description: "Days to investigate chargebacks after transaction" },
+      { id:"fraud_threshold", label:"Fraud Score Threshold", value: 75, min: 0, max: 100, unit:"%", description:"Block transactions with fraud score above this threshold" },
+      { id:"velocity_limit", label:"Velocity Limit", value: 5, min: 1, max: 20, unit:"books/day", description:"Max bookings per user per day before flagging" },
+      { id:"chargeback_window", label:"Chargeback Window", value: 30, min: 7, max: 90, unit:"days", description:"Days to investigate chargebacks after transaction" },
     ],
   },
   {
-    id: "moderation",
-    name: "Content Moderation",
-    icon: "🔍",
+    id:"moderation",
+    name:"Content Moderation",
+    icon:"🔍",
     configs: [
-      { id: "nsfw_threshold", label: "NSFW Detection Sensitivity", value: 60, min: 0, max: 100, unit: "%", description: "AI sensitivity for inappropriate content detection" },
-      { id: "fake_listing_score", label: "Fake Listing Score", value: 70, min: 0, max: 100, unit: "%", description: "Threshold to auto-flag suspicious listings" },
-      { id: "auto_hide_days", label: "Auto-Hide Pending Days", value: 48, min: 12, max: 168, unit: "hours", description: "Hours before auto-hiding flagged content" },
+      { id:"nsfw_threshold", label:"NSFW Detection Sensitivity", value: 60, min: 0, max: 100, unit:"%", description:"AI sensitivity for inappropriate content detection" },
+      { id:"fake_listing_score", label:"Fake Listing Score", value: 70, min: 0, max: 100, unit:"%", description:"Threshold to auto-flag suspicious listings" },
+      { id:"auto_hide_days", label:"Auto-Hide Pending Days", value: 48, min: 12, max: 168, unit:"hours", description:"Hours before auto-hiding flagged content" },
     ],
   },
   {
-    id: "policies",
-    name: "Operational Policies",
-    icon: "📋",
+    id:"policies",
+    name:"Operational Policies",
+    icon:"📋",
     configs: [
-      { id: "cancel_window", label: "Cancellation Window", value: 7, min: 1, max: 14, unit: "days", description: "Days before check-in to allow free cancellation" },
-      { id: "high_value_threshold", label: "High Value Threshold", value: 2000000, min: 500000, max: 10000000, unit: "VND", description: "Items above this value require insurance (CONTR-05)" },
-      { id: "response_time_sla", label: "Response Time SLA", value: 24, min: 1, max: 72, unit: "hours", description: "Max response time for provider to respond" },
+      { id:"cancel_window", label:"Cancellation Window", value: 7, min: 1, max: 14, unit:"days", description:"Days before check-in to allow free cancellation" },
+      { id:"high_value_threshold", label:"High Value Threshold", value: 2000000, min: 500000, max: 10000000, unit:"VND", description:"Items above this value require insurance (CONTR-05)" },
+      { id:"response_time_sla", label:"Response Time SLA", value: 24, min: 1, max: 72, unit:"hours", description:"Max response time for provider to respond" },
     ],
   },
   {
-    id: "commission",
-    name: "Commission & Fees",
-    icon: "💰",
+    id:"commission",
+    name:"Commission & Fees",
+    icon:"💰",
     configs: [
-      { id: "platform_fee", label: "Platform Commission Rate", value: 10, min: 1, max: 25, unit: "%", description: "Percentage taken from each transaction" },
-      { id: "payout_frequency", label: "Payout Frequency", value: 7, min: 1, max: 30, unit: "days", description: "Days between provider payouts" },
-      { id: "min_payout", label: "Minimum Payout", value: 100000, min: 50000, max: 500000, unit: "VND", description: "Minimum amount before payout is triggered" },
+      { id:"platform_fee", label:"Platform Commission Rate", value: 10, min: 1, max: 25, unit:"%", description:"Percentage taken from each transaction" },
+      { id:"payout_frequency", label:"Payout Frequency", value: 7, min: 1, max: 30, unit:"days", description:"Days between provider payouts" },
+      { id:"min_payout", label:"Minimum Payout", value: 100000, min: 50000, max: 500000, unit:"VND", description:"Minimum amount before payout is triggered" },
     ],
   },
 ];
@@ -74,11 +74,11 @@ export default function AIConfigPage() {
             <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">ADMIN-08</span>
             <LiveDot label="CONFIGURING" tone="blue" />
           </div>
-          <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>AI Model Configuration</h1>
-          <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Điều chỉnh ngưỡng cảnh báo gian lận, độ nhạy kiểm duyệt AI, và ngưỡng chính sách vận hành</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">AI Model Configuration</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Điều chỉnh ngưỡng cảnh báo gian lận, độ nhạy kiểm duyệt AI, và ngưỡng chính sách vận hành</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]" style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}>
+          <button className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]" style={{ borderColor:"#e2e8f3", color:"#5a6b85" }}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" /></svg>
             Reset to Defaults
           </button>
@@ -92,7 +92,7 @@ export default function AIConfigPage() {
             ) : (
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             )}
-            {saving ? "Saving..." : `Save ${changedConfigs.size > 0 ? `(${changedConfigs.size})` : ""}`}
+            {saving ?"Saving..." : `Save ${changedConfigs.size > 0 ? `(${changedConfigs.size})` :""}`}
           </button>
         </div>
       </div>
@@ -101,28 +101,28 @@ export default function AIConfigPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {configGroups.map((group, gi) => (
           <Reveal key={group.id} delay={gi * 100}>
-            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: "#e2e8f3" }}>
+            <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor:"#e2e8f3" }}>
               <div className="mb-5 flex items-center gap-3">
                 <span className="text-2xl">{group.icon}</span>
-                <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>{group.name}</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">{group.name}</h3>
               </div>
               <div className="space-y-5">
                 {group.configs.map((config) => (
-                  <div key={config.id} className="rounded-xl border p-4 transition-all" style={{ borderColor: changedConfigs.has(config.id) ? "#2a7bd9" : "#f1f5fa", background: changedConfigs.has(config.id) ? "rgba(42,123,217,0.03)" : "#f8fafc" }}>
+                  <div key={config.id} className="rounded-xl border p-4 transition-all" style={{ borderColor: changedConfigs.has(config.id) ?"#2a7bd9" :"#f1f5fa", background: changedConfigs.has(config.id) ?"rgba(42,123,217,0.03)" :"#f8fafc" }}>
                     <div className="mb-3 flex items-start justify-between">
                       <div>
-                        <label className="text-sm font-semibold" style={{ color: "#0f1729" }}>{config.label}</label>
-                        <p className="mt-1 text-xs" style={{ color: "#5a6b85" }}>{config.description}</p>
+                        <label className="text-sm font-semibold text-slate-900 dark:text-slate-100">{config.label}</label>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{config.description}</p>
                       </div>
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
                           value={configs[config.id]}
                           onChange={(e) => updateConfig(config.id, Number(e.target.value))}
-                          className="w-24 rounded-lg border bg-white px-3 py-1.5 text-right text-sm font-bold outline-none focus:ring-2"
-                          style={{ borderColor: "#e2e8f3", "--tw-ring-color": "#2a7bd9" } as any}
+                          className="w-24 rounded-lg border bg-white px-3 py-1.5 text-right text-sm font-bold outline-none focus:ring-2 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                          style={{ borderColor:"#e2e8f3","--tw-ring-color":"#2a7bd9" } as any}
                         />
-                        <span className="text-xs font-medium" style={{ color: "#5a6b85" }}>{config.unit}</span>
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{config.unit}</span>
                       </div>
                     </div>
                     <div className="relative">
@@ -133,9 +133,9 @@ export default function AIConfigPage() {
                         value={configs[config.id]}
                         onChange={(e) => updateConfig(config.id, Number(e.target.value))}
                         className="w-full cursor-pointer"
-                        style={{ accentColor: "#2a7bd9" }}
+                        style={{ accentColor:"#2a7bd9" }}
                       />
-                      <div className="mt-1 flex justify-between text-[10px]" style={{ color: "#8694ad" }}>
+                      <div className="mt-1 flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
                         <span>{config.min}</span>
                         <span>{config.max}</span>
                       </div>

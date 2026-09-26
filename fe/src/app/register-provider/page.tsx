@@ -100,7 +100,7 @@ export default function RegisterProviderPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
+    <div className="min-h-screen bg-[#f6fbfe] dark:bg-[#070B12] text-slate-900 dark:text-white transition-colors duration-300">
       <LandingHeader />
 
       {/* ── HERO ── */}
@@ -115,25 +115,25 @@ export default function RegisterProviderPage() {
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
 
             {/* Card trắng bên trái */}
-            <div className="rounded-3xl bg-white p-8 shadow-2xl sm:p-10">
+            <div className="rounded-3xl bg-white dark:bg-[#121A2C] border border-[#e2e8f3] dark:border-white/10 p-8 shadow-2xl sm:p-10 text-slate-900 dark:text-white">
               <span
                 className="mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
                 style={{ background: 'rgba(42,123,217,0.1)', color: '#2a7bd9' }}
               >
                 Dành cho Provider
               </span>
-              <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl" style={{ color: '#0f1729' }}>
+              <h1 className="mb-4 text-3xl font-bold leading-tight sm:text-4xl">
                 Cho thuê đồ trên{' '}
                 <span style={{ color: '#2a7bd9' }}>FlexTrip</span>{' '}
                 để tăng thu nhập thụ động!
               </h1>
-              <p className="mb-2 text-sm leading-relaxed" style={{ color: '#5a6b85' }}>
+              <p className="mb-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                 FlexTrip không thu phí đăng ký. Bạn chỉ chia sẻ phí dịch vụ khi có giao dịch cho thuê thành công.
               </p>
               <div className="my-5 border-t" style={{ borderColor: '#e2e8f3' }} />
-              <p className="mb-6 text-sm" style={{ color: '#5a6b85' }}>
+              <p className="mb-6 text-sm text-slate-600 dark:text-slate-300">
                 Hỗ trợ:{' '}
-                <strong style={{ color: '#0f1729' }}>support@flextrip.vn</strong>
+                <strong className="text-slate-900 dark:text-slate-100">support@flextrip.vn</strong>
                 <br />
                 Hoặc nhắn tin qua Fanpage FlexTrip
               </p>
@@ -182,10 +182,10 @@ export default function RegisterProviderPage() {
       </section>
 
       {/* ── TẠI SAO NÊN LÀ PROVIDER ── */}
-      <section className="py-20">
+      <section className="py-20 bg-slate-50/60 dark:bg-[#070B12]">
         <div className="mx-auto max-w-6xl px-6">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold" style={{ color: '#0f1729' }}>
+            <h2 className="text-3xl font-bold">
               Tại sao nên là Provider trên FlexTrip?
             </h2>
           </div>
@@ -193,7 +193,7 @@ export default function RegisterProviderPage() {
             {WHY_CARDS.map((card) => (
               <div
                 key={card.title}
-                className="flex gap-4 rounded-2xl border bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-lg"
+                className="flex gap-4 rounded-2xl border bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                 style={{ borderColor: '#DCEFFB' }}
               >
                 <div
@@ -203,8 +203,8 @@ export default function RegisterProviderPage() {
                   {card.icon}
                 </div>
                 <div>
-                  <h3 className="mb-1.5 font-bold" style={{ color: '#0f1729' }}>{card.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: '#5a6b85' }}>{card.desc}</p>
+                  <h3 className="mb-1.5 font-bold">{card.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{card.desc}</p>
                 </div>
               </div>
             ))}
@@ -213,18 +213,18 @@ export default function RegisterProviderPage() {
       </section>
 
       {/* ── THU NHẬP ƯỚC TÍNH ── */}
-      <section className="border-t border-b py-20" style={{ borderColor: '#DCEFFB', background: '#fff' }}>
+      <section className="border-t border-b py-20 border-[#DCEFFB] dark:border-white/10 bg-white dark:bg-[#070B12]">
         <div className="mx-auto max-w-4xl px-6">
           <div className="mb-3 text-center">
-            <h2 className="text-3xl font-bold" style={{ color: '#0f1729' }}>
+            <h2 className="text-3xl font-bold">
               Thu nhập ước tính theo danh mục
             </h2>
-            <p className="mt-3 text-sm" style={{ color: '#5a6b85' }}>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
               Dựa trên dữ liệu giao dịch trung bình 6 tháng gần nhất của các Provider đang hoạt động hiệu quả trên FlexTrip.
             </p>
           </div>
 
-          <div className="mt-8 overflow-hidden rounded-2xl border" style={{ borderColor: '#DCEFFB' }}>
+          <div className="mt-8 overflow-hidden rounded-2xl border border-[#DCEFFB] dark:border-white/10 bg-white dark:bg-[#121A2C]">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: 'linear-gradient(90deg, #1e5aa8, #2a7bd9)', color: '#fff' }}>
@@ -242,31 +242,31 @@ export default function RegisterProviderPage() {
                       borderTop: '1px solid #DCEFFB',
                     }}
                   >
-                    <td className="px-6 py-4 font-medium" style={{ color: '#0f1729' }}>{row.cat}</td>
+                    <td className="px-6 py-4 font-medium">{row.cat}</td>
                     <td className="px-6 py-4 text-center font-bold" style={{ color: '#2a7bd9' }}>{row.income}</td>
-                    <td className="px-6 py-4 text-center" style={{ color: '#5a6b85' }}>{row.days}</td>
+                    <td className="px-6 py-4 text-center text-slate-600 dark:text-slate-300">{row.days}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-center text-xs" style={{ color: '#8694ad' }}>
+          <p className="mt-4 text-center text-xs text-slate-500 dark:text-slate-400">
             * Thu nhập thực tế phụ thuộc vào chất lượng đồ, giá thuê, vị trí và số ngày sẵn sàng cho thuê mỗi tháng.
           </p>
         </div>
       </section>
 
       {/* ── 3 BƯỚC ĐĂNG KÝ ── */}
-      <section className="py-20">
+      <section className="py-20 bg-slate-50/60 dark:bg-[#070B12]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold" style={{ color: '#0f1729' }}>3 bước trở thành Provider</h2>
+            <h2 className="text-3xl font-bold">3 bước trở thành Provider</h2>
           </div>
           <div className="grid gap-6 sm:grid-cols-3">
             {STEPS.map((s, i) => (
               <div
                 key={s.step}
-                className="relative overflow-hidden rounded-2xl border bg-white p-6 pt-10 transition-all hover:-translate-y-1 hover:shadow-lg"
+                className="relative overflow-hidden rounded-2xl border bg-white p-6 pt-10 transition-all hover:-translate-y-1 hover:shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                 style={{ borderColor: '#DCEFFB' }}
               >
                 {/* Step badge */}
@@ -285,8 +285,8 @@ export default function RegisterProviderPage() {
                   </div>
                 )}
                 <div className="mb-3 text-4xl">{s.icon}</div>
-                <h3 className="mb-2 font-bold" style={{ color: '#0f1729' }}>{s.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#5a6b85' }}>{s.desc}</p>
+                <h3 className="mb-2 font-bold">{s.title}</h3>
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -333,7 +333,7 @@ export default function RegisterProviderPage() {
             </button>
             <Link
               href="/search"
-              className="inline-flex items-center gap-2 rounded-2xl border px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-2xl border px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/10 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
               style={{ borderColor: 'rgba(255,255,255,0.35)' }}
             >
               Xem sản phẩm trước
@@ -349,13 +349,11 @@ export default function RegisterProviderPage() {
           style={{ background: 'rgba(15,23,41,0.75)', backdropFilter: 'blur(6px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
-          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl dark:bg-[#121A2C] dark:text-white">
             {/* Close button */}
             <button
               onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors hover:bg-gray-100"
-              style={{ color: '#8694ad' }}
-            >
+             className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors hover:bg-gray-100 text-slate-500 dark:text-slate-400">
               ✕
             </button>
 
@@ -369,10 +367,10 @@ export default function RegisterProviderPage() {
                   >
                     🎉
                   </div>
-                  <h3 className="text-xl font-bold" style={{ color: '#0f1729' }}>Đăng ký thành công!</h3>
-                  <p className="max-w-xs leading-relaxed" style={{ color: '#5a6b85' }}>
+                  <h3 className="text-xl font-bold">Đăng ký thành công!</h3>
+                  <p className="max-w-xs leading-relaxed text-slate-600 dark:text-slate-300">
                     FlexTrip sẽ liên hệ với bạn trong vòng{' '}
-                    <strong style={{ color: '#0f1729' }}>1 ngày làm việc</strong>{' '}
+                    <strong className="text-slate-900 dark:text-slate-100">1 ngày làm việc</strong>{' '}
                     qua email hoặc số điện thoại đã đăng ký.
                   </p>
                   <button
@@ -387,10 +385,10 @@ export default function RegisterProviderPage() {
                 /* Form */
                 <>
                   <div className="mb-6 text-center">
-                    <h3 className="text-xl font-bold" style={{ color: '#2a7bd9' }}>
+                    <h3 className="text-xl font-bold text-[#2a7bd9] dark:text-[#38bdf8]">
                       Đăng ký trở thành Provider
                     </h3>
-                    <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       Điền đầy đủ thông tin — FlexTrip liên hệ trong 1 ngày làm việc.
                     </p>
                   </div>
@@ -399,7 +397,7 @@ export default function RegisterProviderPage() {
                     {/* Name + Phone */}
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                        <label className="mb-1.5 block text-xs font-semibold">
                           Họ và tên *
                         </label>
                         <input
@@ -407,12 +405,11 @@ export default function RegisterProviderPage() {
                           value={form.name}
                           onChange={(e) => update('name', e.target.value)}
                           placeholder="Nguyễn Văn A"
-                          className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200"
-                          style={{ borderColor: '#e2e8f3' }}
+                          className="w-full rounded-xl border bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 px-4 py-2.5 text-sm outline-none transition-all border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#2a7bd9]/30"
                         />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                        <label className="mb-1.5 block text-xs font-semibold">
                           Số điện thoại *
                         </label>
                         <input
@@ -420,15 +417,14 @@ export default function RegisterProviderPage() {
                           value={form.phone}
                           onChange={(e) => update('phone', e.target.value)}
                           placeholder="0912 345 678"
-                          className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200"
-                          style={{ borderColor: '#e2e8f3' }}
+                          className="w-full rounded-xl border bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 px-4 py-2.5 text-sm outline-none transition-all border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#2a7bd9]/30"
                         />
                       </div>
                     </div>
 
                     {/* Email */}
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                      <label className="mb-1.5 block text-xs font-semibold">
                         Email *
                       </label>
                       <input
@@ -437,33 +433,31 @@ export default function RegisterProviderPage() {
                         value={form.email}
                         onChange={(e) => update('email', e.target.value)}
                         placeholder="email@example.com"
-                        className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200"
-                        style={{ borderColor: '#e2e8f3' }}
+                        className="w-full rounded-xl border bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 px-4 py-2.5 text-sm outline-none transition-all border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#2a7bd9]/30"
                       />
                     </div>
 
                     {/* City */}
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                      <label className="mb-1.5 block text-xs font-semibold">
                         Khu vực *
                       </label>
                       <select
                         required
                         value={form.city}
                         onChange={(e) => update('city', e.target.value)}
-                        className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200"
-                        style={{ borderColor: '#e2e8f3', color: form.city ? '#0f1729' : '#8694ad' }}
+                        className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200 w-full rounded-xl border bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white px-4 py-2.5 text-sm outline-none transition-all border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#2a7bd9]/30"
                       >
-                        <option value="">Chọn tỉnh / thành phố</option>
+                        <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="">Chọn tỉnh / thành phố</option>
                         {CITIES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" key={c} value={c}>{c}</option>
                         ))}
                       </select>
                     </div>
 
                     {/* Categories */}
                     <div>
-                      <label className="mb-2 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                      <label className="mb-2 block text-xs font-semibold">
                         Loại đồ muốn cho thuê *
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -487,13 +481,13 @@ export default function RegisterProviderPage() {
                         })}
                       </div>
                       {form.categories.length === 0 && (
-                        <p className="mt-1.5 text-xs" style={{ color: '#8694ad' }}>Chọn ít nhất 1 danh mục</p>
+                        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Chọn ít nhất 1 danh mục</p>
                       )}
                     </div>
 
                     {/* Description */}
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                      <label className="mb-1.5 block text-xs font-semibold">
                         Mô tả ngắn về đồ muốn cho thuê
                       </label>
                       <textarea
@@ -501,8 +495,7 @@ export default function RegisterProviderPage() {
                         onChange={(e) => update('description', e.target.value)}
                         rows={3}
                         placeholder="VD: Tôi có 2 lều camping MSR, 1 xe đạp địa hình, muốn cho thuê vào cuối tuần tại Đà Lạt..."
-                        className="w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-200"
-                        style={{ borderColor: '#e2e8f3' }}
+                        className="w-full rounded-xl border bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 px-4 py-2.5 text-sm outline-none transition-all border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#2a7bd9]/30"
                       />
                     </div>
 
@@ -521,7 +514,7 @@ export default function RegisterProviderPage() {
                       {submitting ? 'Đang gửi...' : 'Gửi thông tin đến FlexTrip →'}
                     </button>
 
-                    <p className="text-center text-xs" style={{ color: '#8694ad' }}>
+                    <p className="text-center text-xs text-slate-500 dark:text-slate-400">
                       Bằng cách đăng ký, bạn đồng ý với{' '}
                       <Link href="#" className="underline" style={{ color: '#2a7bd9' }}>Điều khoản dịch vụ</Link>{' '}
                       của FlexTrip.

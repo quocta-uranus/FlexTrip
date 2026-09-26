@@ -39,8 +39,8 @@ function TwoFactorChallengeForm() {
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
           AUTH-04
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Xác thực 2 bước</h1>
-        <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Xác thực 2 bước</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Nhập mã 6 chữ số từ ứng dụng Authenticator của bạn.
         </p>
       </div>
@@ -61,7 +61,7 @@ function TwoFactorChallengeForm() {
         <input type="hidden" {...register('challengeToken')} />
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>
+          <label className="mb-1.5 block text-sm font-medium text-slate-900 dark:text-slate-100">
             Mã xác thực
           </label>
           <TotpInput {...register('code')} />
@@ -80,7 +80,7 @@ function TwoFactorChallengeForm() {
         </button>
       </form>
 
-      <p className="mt-5 text-center text-xs" style={{ color: '#8694ad' }}>
+      <p className="mt-5 text-center text-xs text-slate-500 dark:text-slate-400">
         Mất thiết bị? Dùng{' '}
         <span className="font-medium" style={{ color: '#2a7bd9' }}>mã khôi phục</span>
         {' '}được cấp khi bật 2FA.
@@ -104,7 +104,7 @@ const TotpInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElem
       inputMode="numeric"
       maxLength={6}
       placeholder="000000"
-      className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30"
+      className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
       style={{ borderColor: '#e2e8f3', color: '#0f1729', letterSpacing: '0.4em' }}
       {...props}
     />

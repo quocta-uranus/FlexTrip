@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useMe, useUpdateMe, usePreferences, useSessions, useRevokeSession } from "@/hooks/useSession";
-import { useSetAvatar } from "@/hooks/useSetAvatar";
-import { useQueryClient } from "@tanstack/react-query";
-import { userApi } from "@/lib/api/client";
-import type { UserProfile } from "@/lib/api/client";
-import { TwoFactorSetupModal } from "@/components/profile/TwoFactorSetupModal";
-import Link from "next/link";
+import { useEffect, useRef, useState } from"react";
+import { useRouter } from"next/navigation";
+import { useMe, useUpdateMe, usePreferences, useSessions, useRevokeSession } from"@/hooks/useSession";
+import { useSetAvatar } from"@/hooks/useSetAvatar";
+import { useQueryClient } from"@tanstack/react-query";
+import { userApi } from"@/lib/api/client";
+import type { UserProfile } from"@/lib/api/client";
+import { TwoFactorSetupModal } from"@/components/profile/TwoFactorSetupModal";
+import Link from"next/link";
 import {
   Card,
   SectionTitle,
@@ -24,7 +24,7 @@ import {
   VerifyItem,
   SecurityItem,
   StickyCta,
-} from "@/components/profile/ui";
+} from"@/components/profile/ui";
 import {
   Reveal,
   MagneticAvatar,
@@ -33,9 +33,9 @@ import {
   AnimatedGradientText,
   ConfettiBurst,
   useConfetti,
-} from "@/components/profile/wow";
-import { useEditingProfile } from "@/hooks/useEditingProfile";
-import { Toast } from "@/components/ui/toast";
+} from"@/components/profile/wow";
+import { useEditingProfile } from"@/hooks/useEditingProfile";
+import { Toast } from"@/components/ui/toast";
 
 const LANG_CODE_TO_LABEL: Record<string, string> = {
   vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
@@ -81,14 +81,14 @@ interface TravelProfile {
   email: string;
   phone: string;
   dateOfBirth: string;
-  gender: "male" | "female" | "other" | "";
+  gender:"male" |"female" |"other" |"";
   nationality: string;
   address: string;
   bio: string;
   avatar: string;
   emergencyContact: string;
   languages: string[];
-  tripType: "leisure" | "business" | "trekking" | "mixed" | "";
+  tripType:"leisure" |"business" |"trekking" |"mixed" |"";
   budgetMin: string;
   budgetMax: string;
   tripsCount: number;
@@ -100,20 +100,20 @@ interface TravelProfile {
 }
 
 const initialProfile: TravelProfile = {
-  fullName: "",
-  email: "",
-  phone: "",
-  dateOfBirth: "",
-  gender: "",
-  nationality: "",
-  address: "",
-  bio: "",
-  avatar: "",
-  emergencyContact: "",
+  fullName:"",
+  email:"",
+  phone:"",
+  dateOfBirth:"",
+  gender:"",
+  nationality:"",
+  address:"",
+  bio:"",
+  avatar:"",
+  emergencyContact:"",
   languages: [],
-  tripType: "",
-  budgetMin: "",
-  budgetMax: "",
+  tripType:"",
+  budgetMin:"",
+  budgetMax:"",
   tripsCount: 0,
   rating: 0,
   reviewsGiven: 0,
@@ -122,8 +122,8 @@ const initialProfile: TravelProfile = {
   marketingEmails: true,
 };
 
-const ALL_LANGUAGES = ["Tiếng Việt", "English", "中文", "日本語", "한국어", "Français"];
-const STORAGE_KEY = "flextrip.profile.travel";
+const ALL_LANGUAGES = ["Tiếng Việt","English","中文","日本語","한국어","Français"];
+const STORAGE_KEY ="flextrip.profile.travel";
 
 export default function TravelProfilePage() {
   const router = useRouter();
@@ -216,33 +216,33 @@ export default function TravelProfilePage() {
   }
 
   const tripTimeline = [
-    { date: "T8/2026", title: "Thuê lều ở Sơn Trà", subtitle: "Minhan Outdoor Gear · 3 ngày", badge: "Treks" },
-    { date: "T6/2026", title: "Trekking Bà Nà Hills", subtitle: "Klook FlexTrip · 1 ngày", badge: "Day-trip" },
-    { date: "T4/2026", title: "Camping Cù Lao Chàm", subtitle: "HaiAn Camping · 2 ngày", badge: "Camp" },
-    { date: "T2/2026", title: "City tour Đà Nẵng", subtitle: "FlexTrip Verified · nửa ngày", badge: "City" },
+    { date:"T8/2026", title:"Thuê lều ở Sơn Trà", subtitle:"Minhan Outdoor Gear · 3 ngày", badge:"Treks" },
+    { date:"T6/2026", title:"Trekking Bà Nà Hills", subtitle:"Klook FlexTrip · 1 ngày", badge:"Day-trip" },
+    { date:"T4/2026", title:"Camping Cù Lao Chàm", subtitle:"HaiAn Camping · 2 ngày", badge:"Camp" },
+    { date:"T2/2026", title:"City tour Đà Nẵng", subtitle:"FlexTrip Verified · nửa ngày", badge:"City" },
   ];
 
   const trips = p.tripsCount;
   const badges = [
-    { name: "Newbie Trekker", desc: "Hoàn thành 1–3 chuyến thuê", level: trips >= 1 ? ("done" as const) : ("locked" as const) },
-    { name: "Explorer", desc: "Hoàn thành 4–9 chuyến thuê", level: trips >= 4 ? ("done" as const) : trips >= 1 ? ("current" as const) : ("locked" as const) },
-    { name: "Pro Trekker", desc: "Hoàn thành 10+ chuyến thuê", level: trips >= 10 ? ("done" as const) : trips >= 4 ? ("current" as const) : ("locked" as const) },
+    { name:"Newbie Trekker", desc:"Hoàn thành 1–3 chuyến thuê", level: trips >= 1 ? ("done" as const) : ("locked" as const) },
+    { name:"Explorer", desc:"Hoàn thành 4–9 chuyến thuê", level: trips >= 4 ? ("done" as const) : trips >= 1 ? ("current" as const) : ("locked" as const) },
+    { name:"Pro Trekker", desc:"Hoàn thành 10+ chuyến thuê", level: trips >= 10 ? ("done" as const) : trips >= 4 ? ("current" as const) : ("locked" as const) },
   ];
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: "linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%)" }}>
+    <div className="min-h-screen pb-28" style={{ background:"linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%)" }}>
 
       {/* ── Hero Header ── */}
-      <div className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1e5aa8 0%, #2a7bd9 50%, #5fd6cd 100%)" }}>
-        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      <div className="relative overflow-hidden" style={{ background:"linear-gradient(135deg, #1e5aa8 0%, #2a7bd9 50%, #5fd6cd 100%)" }}>
+        <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl dark:bg-[#121A2C] dark:text-white" />
         <div className="absolute -bottom-32 -right-10 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(146,238,232,0.3) 0%, transparent 50%)" }} />
+        <div className="absolute inset-0" style={{ backgroundImage:"radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(146,238,232,0.3) 0%, transparent 50%)" }} />
 
         <div className="relative mx-auto max-w-6xl px-6 py-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
             <div className="flex justify-center sm:justify-start">
               <div className="relative">
-                <div className="absolute -inset-2 rounded-full bg-white/30 blur-sm" />
+                <div className="absolute -inset-2 rounded-full bg-white/30 blur-sm dark:bg-[#121A2C] dark:text-white" />
                 <MagneticAvatar>
                   <AvatarField
                     name={p.fullName}
@@ -259,7 +259,7 @@ export default function TravelProfilePage() {
                     size="lg"
                   />
                 </MagneticAvatar>
-                <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ background: "#2a7bd9", borderColor: "#fff", color: "#fff" }}>
+                <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ background:"#2a7bd9", borderColor:"#fff", color:"#fff" }}>
                   {completion}%
                 </div>
               </div>
@@ -268,11 +268,11 @@ export default function TravelProfilePage() {
             <div className="flex-1 text-center sm:text-left">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 <RoleBadge role="TRAVELER" />
-                <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm">
-                  ID #{me?.id?.slice(-8) ?? "FLX-20250048"}
+                <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm dark:bg-[#121A2C] dark:text-white">
+                  ID #{me?.id?.slice(-8) ??"FLX-20250048"}
                 </span>
               </div>
-              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">{p.fullName || "Chưa cập nhật tên"}</h1>
+              <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">{p.fullName ||"Chưa cập nhật tên"}</h1>
               <p className="mt-1 text-white/80">{p.email}</p>
 
               <div className="mt-4 max-w-sm mx-auto sm:mx-0">
@@ -280,10 +280,10 @@ export default function TravelProfilePage() {
                   <span>Hồ sơ hoàn thiện</span>
                   <span className="font-bold text-white">{completion}%</span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-white/30">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-white/30 dark:bg-[#121A2C] dark:text-white">
                   <div
                     className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${completion}%`, background: "linear-gradient(90deg, #92eee8, #fff)" }}
+                    style={{ width: `${completion}%`, background:"linear-gradient(90deg, #92eee8, #fff)" }}
                   />
                 </div>
               </div>
@@ -293,8 +293,8 @@ export default function TravelProfilePage() {
               {!editing ? (
                 <button
                   onClick={() => setEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-                  style={{ color: "#1e5aa8" }}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition-all hover:scale-105 hover:shadow-xl dark:bg-[#121A2C] dark:text-white"
+                  style={{ color:"#1e5aa8" }}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -306,8 +306,8 @@ export default function TravelProfilePage() {
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition-all hover:scale-105 disabled:opacity-60"
-                    style={{ color: "#1e5aa8" }}
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition-all hover:scale-105 disabled:opacity-60 dark:bg-[#121A2C] dark:text-white"
+                    style={{ color:"#1e5aa8" }}
                   >
                     {isSaving ? (
                       <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -324,7 +324,7 @@ export default function TravelProfilePage() {
                   <button
                     onClick={cancel}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full border-2 border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full border-2 border-white/50 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:opacity-50 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                   >
                     Hủy
                   </button>
@@ -338,17 +338,17 @@ export default function TravelProfilePage() {
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Chuyến thuê", value: p.tripsCount, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
-            { label: "Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-            { label: "Reviews", value: p.reviewsGiven, icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-            { label: "Ngân sách", value: formatVndRange(p.budgetMin, p.budgetMax), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+            { label:"Chuyến thuê", value: p.tripsCount, icon:"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color:"#2a7bd9", bg:"rgba(42,123,217,0.1)" },
+            { label:"Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon:"M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color:"#f59e0b", bg:"rgba(245,158,11,0.1)" },
+            { label:"Reviews", value: p.reviewsGiven, icon:"M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color:"#10b981", bg:"rgba(16,185,129,0.1)" },
+            { label:"Ngân sách", value: formatVndRange(p.budgetMin, p.budgetMax), icon:"M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color:"#8b5cf6", bg:"rgba(139,92,246,0.1)" },
           ].map((k, i) => (
-            <div key={k.label} className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${i * 100}ms` }}>
+            <div key={k.label} className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: k.color }} />
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-xs font-medium uppercase tracking-wider" style={{ color: k.color }}>{k.label}</div>
-                  <div className="mt-2 text-2xl font-bold" style={{ color: "#0f1729" }}>{k.value}</div>
+                  <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">{k.value}</div>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-sm" style={{ background: k.bg, color: k.color }}>
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -362,17 +362,17 @@ export default function TravelProfilePage() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(42,123,217,0.1)", color:"#2a7bd9" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Thông tin cá nhân</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Thông tin cơ bản về bạn</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Thông tin cá nhân</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Thông tin cơ bản về bạn</p>
                   </div>
                 </div>
               </div>
@@ -391,7 +391,7 @@ export default function TravelProfilePage() {
                     <Input type="date" value={p.dateOfBirth} onChange={(v) => update("dateOfBirth", v)} disabled={!editing} />
                   </Field>
                   <Field label="Giới tính">
-                    <Select value={p.gender} onChange={(v) => update("gender", v as TravelProfile["gender"])} disabled={!editing} options={[{ value: "", label: "Chọn giới tính" }, { value: "female", label: "Nữ" }, { value: "male", label: "Nam" }, { value: "other", label: "Khác" }]} />
+                    <Select value={p.gender} onChange={(v) => update("gender", v as TravelProfile["gender"])} disabled={!editing} options={[{ value:"", label:"Chọn giới tính" }, { value:"female", label:"Nữ" }, { value:"male", label:"Nam" }, { value:"other", label:"Khác" }]} />
                   </Field>
                   <Field label="Quốc tịch">
                     <Input value={p.nationality} onChange={(v) => update("nationality", v)} disabled={!editing} placeholder="Việt Nam" />
@@ -409,24 +409,24 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-cyan-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(16,185,129,0.1)", color:"#10b981" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Tùy chọn du lịch</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Gợi ý chuyến đi phù hợp với bạn</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Tùy chọn du lịch</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Gợi ý chuyến đi phù hợp với bạn</p>
                   </div>
                 </div>
               </div>
               <div className="p-6">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Loại chuyến">
-                    <Select value={p.tripType} onChange={(v) => update("tripType", v as TravelProfile["tripType"])} disabled={!editing} options={[{ value: "", label: "Chọn loại chuyến" }, { value: "leisure", label: "Nghỉ dưỡng" }, { value: "business", label: "Công tác" }, { value: "trekking", label: "Trekking / Outdoor" }, { value: "mixed", label: "Kết hợp" }]} />
+                    <Select value={p.tripType} onChange={(v) => update("tripType", v as TravelProfile["tripType"])} disabled={!editing} options={[{ value:"", label:"Chọn loại chuyến" }, { value:"leisure", label:"Nghỉ dưỡng" }, { value:"business", label:"Công tác" }, { value:"trekking", label:"Trekking / Outdoor" }, { value:"mixed", label:"Kết hợp" }]} />
                   </Field>
                   <Field label="Ngân sách min (VND)">
                     <Input type="number" value={p.budgetMin} onChange={(v) => update("budgetMin", v)} disabled={!editing} placeholder="500000" />
@@ -439,7 +439,7 @@ export default function TravelProfilePage() {
                       {ALL_LANGUAGES.map((lang) => {
                         const active = p.languages.includes(lang);
                         return (
-                          <button key={lang} onClick={() => editing && toggleLanguage(lang)} disabled={!editing} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${!editing ? "cursor-default" : "cursor-pointer hover:scale-105"}`} style={active ? { borderColor: "#2a7bd9", background: "#2a7bd9", color: "white" } : { borderColor: "#e2e8f3", background: "white", color: "#0f1729" }}>
+                          <button key={lang} onClick={() => editing && toggleLanguage(lang)} disabled={!editing} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${!editing ?"cursor-default" :"cursor-pointer hover:scale-105"}`} style={active ? { borderColor:"#2a7bd9", background:"#2a7bd9", color:"white" } : { borderColor:"#e2e8f3", background:"white", color:"#0f1729" }}>
                             {lang}
                           </button>
                         );
@@ -453,17 +453,17 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(139,92,246,0.1)", color: "#8b5cf6" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(139,92,246,0.1)", color:"#8b5cf6" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Hành trình gần đây</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Lịch sử các chuyến thuê của bạn</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Hành trình gần đây</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Lịch sử các chuyến thuê của bạn</p>
                   </div>
                 </div>
               </div>
@@ -472,17 +472,17 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-orange-50 to-yellow-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(249,115,22,0.1)", color: "#f97316" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(249,115,22,0.1)", color:"#f97316" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Thông báo</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Cách chúng tôi liên lạc với bạn</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Thông báo</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Cách chúng tôi liên lạc với bạn</p>
                   </div>
                 </div>
               </div>
@@ -495,17 +495,17 @@ export default function TravelProfilePage() {
           </div>
 
           <div className="space-y-6">
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(16,185,129,0.1)", color:"#10b981" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Xác minh danh tính</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Tăng độ tin cậy</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Xác minh danh tính</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Tăng độ tin cậy</p>
                   </div>
                 </div>
               </div>
@@ -517,33 +517,33 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-red-50 to-orange-50 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background:"rgba(239,68,68,0.1)", color:"#ef4444" }}>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Bảo mật</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Mật khẩu & xác thực</p>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Bảo mật</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Mật khẩu & xác thực</p>
                   </div>
                 </div>
               </div>
               <div className="p-4 space-y-3">
                 <SecurityItem icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>} title="Mật khẩu" desc="Cập nhật 3 tháng trước" action="Đổi" />
-                <SecurityItem icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>} title="2FA" desc={me?.twoFactorEnabled ? "Đang bật" : "Chưa bật"} action={me?.twoFactorEnabled ? "Quản lý" : "Bật ngay"} />
+                <SecurityItem icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>} title="2FA" desc={me?.twoFactorEnabled ?"Đang bật" :"Chưa bật"} action={me?.twoFactorEnabled ?"Quản lý" :"Bật ngay"} />
 
                 {sessions && sessions.length > 0 && (
                   <div className="mt-4 border-t border-gray-100 pt-4">
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#8694ad" }}>Phiên đang hoạt động</div>
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Phiên đang hoạt động</div>
                     <div className="space-y-2">
                       {sessions.slice(0, 2).map((s) => (
                         <div key={s.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                           <div className="min-w-0">
-                            <div className="truncate text-xs font-medium" style={{ color: "#0f1729" }}>{s.deviceName || s.userAgent || "Thiết bị"}</div>
-                            <div className="text-[10px]" style={{ color: "#8694ad" }}>{s.ipAddress || "—"}</div>
+                            <div className="truncate text-xs font-medium text-slate-900 dark:text-slate-100">{s.deviceName || s.userAgent ||"Thiết bị"}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{s.ipAddress ||"—"}</div>
                           </div>
                           {s.isCurrent ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-600">Hiện tại</span> : <button disabled={revoking} onClick={() => revokeSession(s.id)} className="text-xs font-medium text-red-500 hover:text-red-600">Thu hồi</button>}
                         </div>
@@ -554,24 +554,24 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10">
               <div className="border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4">
-                <h3 className="font-bold" style={{ color: "#0f1729" }}>Tiếp tục thiết lập</h3>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100">Tiếp tục thiết lập</h3>
               </div>
               <div className="p-4 space-y-2">
                 <Link href="/profile" className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div>
-                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color: "#2a7bd9" }}>PROF</span>
-                    <div className="mt-1 text-sm font-medium" style={{ color: "#0f1729" }}>Đổi hồ sơ khác</div>
+                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color:"#2a7bd9" }}>PROF</span>
+                    <div className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">Đổi hồ sơ khác</div>
                   </div>
-                  <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <svg className="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </Link>
                 <Link href="/profile/preferences" className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div>
-                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color: "#8b5cf6" }}>PROF-02</span>
-                    <div className="mt-1 text-sm font-medium" style={{ color: "#0f1729" }}>Tùy chọn du lịch</div>
+                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color:"#8b5cf6" }}>PROF-02</span>
+                    <div className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">Tùy chọn du lịch</div>
                   </div>
-                  <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <svg className="h-4 w-4 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </Link>
               </div>
             </div>
@@ -591,11 +591,11 @@ export default function TravelProfilePage() {
                 </div>
               </div>
               <div className="p-4 space-y-2">
-                <button type="button" disabled={!editing} onClick={() => alert("Đã gửi yêu cầu xuất dữ liệu đến email của bạn.")} className="flex w-full items-center justify-between rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60">
+                <button type="button" disabled={!editing} onClick={() => alert("Đã gửi yêu cầu xuất dữ liệu đến email của bạn.")} className="flex w-full items-center justify-between rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-60 dark:bg-[#121A2C] dark:text-white dark:border-white/10">
                   <span>Tải dữ liệu cá nhân</span>
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 </button>
-                <button type="button" disabled={!editing} onClick={() => confirm("Bạn có chắc chắn muốn xóa tài khoản?") && alert("Đã gửi yêu cầu.")} className="flex w-full items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60">
+                <button type="button" disabled={!editing} onClick={() => confirm("Bạn có chắc chắn muốn xóa tài khoản?") && alert("Đã gửi yêu cầu.")} className="flex w-full items-center justify-between rounded-lg border border-red-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 dark:bg-[#121A2C] dark:text-white dark:border-white/10">
                   <span>Xóa tài khoản</span>
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
@@ -615,8 +615,8 @@ export default function TravelProfilePage() {
         onSave={handleSave}
         onCancel={cancel}
         saving={isSaving}
-        primary={{ label: "📅 Đặt chuyến mới", onClick: () => router.push('/search') }}
-        secondary={{ label: "💬 Chat CSKH", onClick: () => alert('Chat coming soon!') }}
+        primary={{ label:"📅 Đặt chuyến mới", onClick: () => router.push('/search') }}
+        secondary={{ label:"💬 Chat CSKH", onClick: () => alert('Chat coming soon!') }}
       />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
       <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
@@ -646,7 +646,7 @@ function computeCompletion(p: TravelProfile): number {
 function formatVndRange(min: string, max: string) {
   const mn = Number(min);
   const mx = Number(max);
-  if (!mn || !mx) return "—";
+  if (!mn || !mx) return"—";
   if (mn >= 1_000_000) return `${(mn / 1_000_000).toFixed(0)}–${(mx / 1_000_000).toFixed(0)}M`;
   if (mn >= 1_000) return `${(mn / 1_000).toFixed(0)}–${(mx / 1_000).toFixed(0)}k`;
   return `${mn}–${mx}`;

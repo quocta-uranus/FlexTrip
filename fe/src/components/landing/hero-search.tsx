@@ -47,7 +47,7 @@ export function HeroSearch() {
 
   return (
     <form onSubmit={handleSearch} className="w-full max-w-4xl mx-auto">
-      <div className="flex flex-col sm:flex-row bg-white rounded-2xl shadow-2xl shadow-[#2A7BD9]/20 overflow-hidden border border-white/60">
+      <div className="flex flex-col sm:flex-row bg-white rounded-2xl shadow-2xl shadow-[#2A7BD9]/20 overflow-hidden border border-white/60 dark:bg-[#121A2C] dark:text-white dark:border-white/10">
         {/* Keyword */}
         <div className="flex items-center gap-2.5 px-4 py-4 flex-1 border-b sm:border-b-0 sm:border-r border-[#DCEFFB]">
           <Search className="h-4 w-4 text-[#2A7BD9] shrink-0" />
@@ -127,7 +127,7 @@ export function HeroSearch() {
               className="text-sm outline-none text-[#0E2233] bg-transparent"
             >
               {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
+                <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" key={c.value} value={c.value}>
                   {c.label}
                 </option>
               ))}
@@ -153,7 +153,7 @@ export function HeroSearch() {
             key={pick.label}
             type="button"
             onClick={() => applyQuickPick(pick)}
-            className="text-xs px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors border border-white/20"
+            className="text-xs px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm transition-colors border border-white/20 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
           >
             {pick.label}
           </button>

@@ -18,10 +18,10 @@ export function ProviderCtaSection() {
               style={{ background: 'rgba(22,163,74,0.12)' }}>🏕️</div>
             <div className="flex-1 text-center sm:text-left">
               <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#15803d' }}>Provider Dashboard</p>
-              <h2 className="text-xl font-bold mb-1" style={{ color: '#0f1729' }}>
+              <h2 className="text-xl font-bold mb-1 text-slate-900 dark:text-slate-100">
                 Chào mừng trở lại, {user?.name}!
               </h2>
-              <p className="text-sm" style={{ color: '#5a6b85' }}>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Quản lý tin đăng, đơn hàng và doanh thu của bạn.
               </p>
             </div>
@@ -32,7 +32,7 @@ export function ProviderCtaSection() {
                 Quản lý sản phẩm →
               </Link>
               <Link href="/profile/shop"
-                className="rounded-2xl border px-6 py-3 text-sm font-semibold transition-all hover:bg-white"
+                className="rounded-2xl border px-6 py-3 text-sm font-semibold transition-all hover:bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                 style={{ borderColor: '#bbf7d0', color: '#15803d' }}>
                 Hồ sơ Shop
               </Link>
@@ -54,10 +54,10 @@ export function ProviderCtaSection() {
                 style={{ background: 'rgba(42,123,217,0.1)', color: '#2a7bd9' }}>
                 Dành cho Provider
               </span>
-              <h2 className="mb-4 text-3xl font-bold sm:text-4xl" style={{ color: '#0f1729' }}>
+              <h2 className="mb-4 text-3xl font-bold sm:text-4xl text-slate-900 dark:text-slate-100">
                 Đồ nhàn rỗi?<br />Biến thành thu nhập.
               </h2>
-              <p className="mb-6 max-w-md leading-relaxed" style={{ color: '#5a6b85' }}>
+              <p className="mb-6 max-w-md leading-relaxed text-slate-600 dark:text-slate-300">
                 Đăng ký Provider trên FlexTrip, cho thuê thiết bị du lịch bạn không dùng đến và
                 kiếm thêm thu nhập thụ động mỗi tháng — AI gợi ý giá thuê tối ưu theo thị trường.
               </p>
@@ -68,7 +68,7 @@ export function ProviderCtaSection() {
                   'Hợp đồng điện tử & cọc Escrow bảo vệ tài sản',
                   'Nhân viên FlexTrip hỗ trợ giao nhận chuyên nghiệp',
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: '#0f1729' }}>
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-slate-900 dark:text-slate-100">
                     <svg className="mt-0.5 h-4 w-4 shrink-0" style={{ color: '#2a7bd9' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -99,10 +99,10 @@ export function ProviderCtaSection() {
                 { value: '48h', label: 'Thời gian duyệt tin', icon: '⚡' },
                 { value: '0đ', label: 'Phí đăng ký ban đầu', icon: '🎁' },
               ].map((s) => (
-                <div key={s.label} className="rounded-2xl border bg-white p-4 text-center shadow-sm" style={{ borderColor: '#DCEFFB' }}>
+                <div key={s.label} className="rounded-2xl border bg-white p-4 text-center shadow-sm dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
                   <span className="mb-2 block text-2xl">{s.icon}</span>
-                  <p className="text-xl font-bold" style={{ color: '#0f1729' }}>{s.value}</p>
-                  <p className="mt-0.5 text-xs" style={{ color: '#8694ad' }}>{s.label}</p>
+                  <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{s.label}</p>
                 </div>
               ))}
             </div>

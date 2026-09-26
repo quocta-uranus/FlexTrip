@@ -1,21 +1,21 @@
 "use client";
 
-import { FormEvent, PointerEvent as ReactPointerEvent, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { MapPin, Search, Calendar } from "lucide-react";
-import { useTheme } from "@/context/theme-context";
+import { FormEvent, PointerEvent as ReactPointerEvent, useRef, useState } from"react";
+import { useRouter } from"next/navigation";
+import { MapPin, Search, Calendar } from"lucide-react";
+import { useTheme } from"@/context/theme-context";
 
 export function HeroSection() {
   const router = useRouter();
   const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const isDark = theme ==="dark";
   const [location, setLocation] = useState("Đà Lạt");
   const [category, setCategory] = useState("CAMPING_TREKKING");
   const [dateRange, setDateRange] = useState("12/10 — 15/10");
   const heroRef = useRef<HTMLElement>(null);
 
   const handleHeroMove = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.pointerType === "touch") return;
+    if (event.pointerType ==="touch") return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width;
     const y = (event.clientY - bounds.top) / bounds.height;
@@ -39,17 +39,7 @@ export function HeroSection() {
   const resetHero = () => {
     const hero = heroRef.current;
     if (!hero) return;
-    [
-      "--image-x",
-      "--image-y",
-      "--content-x",
-      "--content-y",
-      "--hero-rx",
-      "--hero-ry",
-      "--panel-x",
-      "--panel-y",
-      "--panel-rx",
-      "--panel-ry",
+    ["--image-x","--image-y","--content-x","--content-y","--hero-rx","--hero-ry","--panel-x","--panel-y","--panel-rx","--panel-ry",
     ].forEach((property) => hero.style.removeProperty(property));
   };
 
@@ -69,18 +59,18 @@ export function HeroSection() {
       onPointerMove={handleHeroMove}
       ref={heroRef}
       style={{
-        ["--content-x" as any]: "0px",
-        ["--content-y" as any]: "0px",
-        ["--glow-x" as any]: "50%",
-        ["--glow-y" as any]: "40%",
-        ["--hero-rx" as any]: "0deg",
-        ["--hero-ry" as any]: "0deg",
-        ["--image-x" as any]: "0px",
-        ["--image-y" as any]: "0px",
-        ["--panel-rx" as any]: "0deg",
-        ["--panel-ry" as any]: "0deg",
-        ["--panel-x" as any]: "0px",
-        ["--panel-y" as any]: "0px",
+        ["--content-x" as any]:"0px",
+        ["--content-y" as any]:"0px",
+        ["--glow-x" as any]:"50%",
+        ["--glow-y" as any]:"40%",
+        ["--hero-rx" as any]:"0deg",
+        ["--hero-ry" as any]:"0deg",
+        ["--image-x" as any]:"0px",
+        ["--image-y" as any]:"0px",
+        ["--panel-rx" as any]:"0deg",
+        ["--panel-ry" as any]:"0deg",
+        ["--panel-x" as any]:"0px",
+        ["--panel-y" as any]:"0px",
       }}
     >
       {/* Background Image & Overlay */}
@@ -89,7 +79,7 @@ export function HeroSection() {
         src="/assets/hero.jpg"
         alt="Lều cắm trại giữa núi rừng Việt Nam"
         style={{
-          transform: "translate3d(var(--image-x, 0px), var(--image-y, 0px), 0) scale(1.075)",
+          transform:"translate3d(var(--image-x, 0px), var(--image-y, 0px), 0) scale(1.075)",
         }}
       />
 
@@ -97,8 +87,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 z-[1] transition-opacity duration-300 dark:opacity-0"
         style={{
-          background:
-            "linear-gradient(90deg, rgba(0, 32, 55, 0.6) 0%, rgba(9, 125, 174, 0.2) 55%, rgba(42, 123, 217, 0.05) 100%), linear-gradient(0deg, rgba(0, 32, 55, 0.45) 0%, transparent 45%)",
+          background:"linear-gradient(90deg, rgba(0, 32, 55, 0.6) 0%, rgba(9, 125, 174, 0.2) 55%, rgba(42, 123, 217, 0.05) 100%), linear-gradient(0deg, rgba(0, 32, 55, 0.45) 0%, transparent 45%)",
         }}
       />
 
@@ -106,8 +95,7 @@ export function HeroSection() {
       <div
         className="absolute inset-0 z-[1] opacity-0 dark:opacity-100 transition-opacity duration-300"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(7, 11, 18, 0.2) 0%, rgba(7, 11, 18, 0.28) 45%, rgba(7, 11, 18, 0.8) 100%), linear-gradient(90deg, rgba(7, 11, 18, 0.4) 0%, transparent 35%, transparent 65%, rgba(7, 11, 18, 0.4) 100%)",
+          background:"linear-gradient(180deg, rgba(7, 11, 18, 0.2) 0%, rgba(7, 11, 18, 0.28) 45%, rgba(7, 11, 18, 0.8) 100%), linear-gradient(90deg, rgba(7, 11, 18, 0.4) 0%, transparent 35%, transparent 65%, rgba(7, 11, 18, 0.4) 100%)",
         }}
       />
 
@@ -115,8 +103,7 @@ export function HeroSection() {
       <div
         className="pointer-events-none absolute inset-0 z-[1] transition-[background-position] duration-200"
         style={{
-          background:
-            "radial-gradient(circle 430px at var(--glow-x, 50%) var(--glow-y, 40%), rgba(56, 189, 248, 0.16), transparent 72%)",
+          background:"radial-gradient(circle 430px at var(--glow-x, 50%) var(--glow-y, 40%), rgba(56, 189, 248, 0.16), transparent 72%)",
         }}
       />
 
@@ -131,8 +118,7 @@ export function HeroSection() {
       <div
         className="hero-content absolute top-[16%] sm:top-[20%] z-[2] max-w-[800px] transition-transform duration-200 ease-out will-change-transform"
         style={{
-          transform:
-            "translate3d(calc(-50% + var(--content-x, 0px)), var(--content-y, 0px), 70px) rotateX(var(--hero-rx, 0deg)) rotateY(var(--hero-ry, 0deg))",
+          transform:"translate3d(calc(-50% + var(--content-x, 0px)), var(--content-y, 0px), 70px) rotateX(var(--hero-rx, 0deg)) rotateY(var(--hero-ry, 0deg))",
         }}
       >
         <p className="eyebrow light mb-5 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#c8edff] dark:text-[#38bdf8]">
@@ -156,24 +142,23 @@ export function HeroSection() {
         className="search-panel absolute bottom-14 sm:bottom-20 lg:bottom-24 z-[3] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_1.1fr_auto] rounded-full transition-all duration-300 ease-out border p-1.5 pl-6 sm:pl-8 items-center"
         onSubmit={handleSearch}
         style={{
-          backgroundColor: isDark ? "#121A2C" : "#FFFFFF",
-          borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#E0F2FE",
+          backgroundColor: isDark ?"#121A2C" :"#FFFFFF",
+          borderColor: isDark ?"rgba(255, 255, 255, 0.12)" :"#E0F2FE",
           boxShadow: isDark
-            ? "0 20px 60px rgba(0, 0, 0, 0.55)"
-            : "0 16px 45px rgba(2, 50, 90, 0.15), 0 4px 12px rgba(0, 0, 0, 0.04)",
-          transform:
-            "translate3d(calc(-50% + var(--panel-x, 0px)), var(--panel-y, 0px), 45px) rotateX(var(--panel-rx, 0deg)) rotateY(var(--panel-ry, 0deg))",
+            ?"0 20px 60px rgba(0, 0, 0, 0.55)"
+            :"0 16px 45px rgba(2, 50, 90, 0.15), 0 4px 12px rgba(0, 0, 0, 0.04)",
+          transform:"translate3d(calc(-50% + var(--panel-x, 0px)), var(--panel-y, 0px), 45px) rotateX(var(--panel-rx, 0deg)) rotateY(var(--panel-ry, 0deg))",
         }}
       >
-        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 pr-5 cursor-text ${isDark ? "border-white/10" : "border-[#E2F1F8]"}`}>
+        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 pr-5 cursor-text ${isDark ?"border-white/10" :"border-[#E2F1F8]"}`}>
           <MapPin className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ?"text-[#38BDF8]" :"text-[#8A9BA8]"}`}>
               Địa điểm
             </small>
             <input
               aria-label="Địa điểm"
-              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ? "text-white placeholder:text-slate-500" : "text-[#0E2233] placeholder:text-slate-400"}`}
+              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ?"text-white placeholder:text-slate-500" :"text-[#0E2233] placeholder:text-slate-400"}`}
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="VD: Đà Lạt"
@@ -181,27 +166,27 @@ export function HeroSection() {
           </span>
         </label>
 
-        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 px-3 sm:px-5 cursor-text ${isDark ? "border-white/10" : "border-[#E2F1F8]"}`}>
+        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 px-3 sm:px-5 cursor-text ${isDark ?"border-white/10" :"border-[#E2F1F8]"}`}>
           <Search className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ?"text-[#38BDF8]" :"text-[#8A9BA8]"}`}>
               Loại thiết bị
             </small>
             <select
               aria-label="Loại thiết bị"
               className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 cursor-pointer ${
                 isDark
-                  ? "text-white [&>option]:bg-[#121A2C] [&>option]:text-white"
-                  : "text-[#0E2233] [&>option]:bg-white [&>option]:text-[#0E2233]"
+                  ?"text-white [&>option]:bg-[#121A2C] [&>option]:text-white"
+                  :"text-[#0E2233] [&>option]:bg-white [&>option]:text-[#0E2233]"
               }`}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="CAMPING_TREKKING">Cắm trại</option>
-              <option value="TREKKING">Trekking & Leo núi</option>
-              <option value="STAY">Máy ảnh & GoPro</option>
-              <option value="EXPERIENCE">Thể thao dưới nước</option>
-              <option value="VEHICLE">Bếp dã ngoại</option>
+              <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="CAMPING_TREKKING">Cắm trại</option>
+              <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="TREKKING">Trekking & Leo núi</option>
+              <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="STAY">Máy ảnh & GoPro</option>
+              <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="EXPERIENCE">Thể thao dưới nước</option>
+              <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="VEHICLE">Bếp dã ngoại</option>
             </select>
           </span>
         </label>
@@ -209,12 +194,12 @@ export function HeroSection() {
         <label className="flex items-center gap-3.5 py-3 sm:py-2 px-3 sm:px-5 cursor-text">
           <Calendar className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ?"text-[#38BDF8]" :"text-[#8A9BA8]"}`}>
               Ngày thuê
             </small>
             <input
               aria-label="Ngày thuê"
-              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ? "text-white placeholder:text-slate-500" : "text-[#0E2233] placeholder:text-slate-400"}`}
+              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ?"text-white placeholder:text-slate-500" :"text-[#0E2233] placeholder:text-slate-400"}`}
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
             />
@@ -223,7 +208,7 @@ export function HeroSection() {
 
         <button
           className="flex items-center justify-center gap-2 px-8 py-3.5 font-bold text-sm text-white rounded-full transition-all duration-200 shadow-md hover:opacity-95 hover:shadow-lg my-1 mr-1"
-          style={{ background: "linear-gradient(135deg, #1877F2 0%, #00A3FF 55%, #00D8F6 100%)" }}
+          style={{ background:"linear-gradient(135deg, #1877F2 0%, #00A3FF 55%, #00D8F6 100%)" }}
           type="submit"
         >
           <Search className="h-4 w-4 stroke-[2.5]" />

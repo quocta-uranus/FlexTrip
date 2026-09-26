@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import Link from"next/link";
+import { ArrowRight } from"lucide-react";
 
 const articles = [
-  { image: "travel-kit.jpg", tag: "Checklist", title: "Checklist 12 món cho chuyến cắm trại đầu tiên", time: "7 phút đọc" },
-  { image: "backpack.jpg", tag: "Trekking", title: "Chọn balo trekking theo độ dài hành trình", time: "5 phút đọc" },
-  { image: "camera.jpg", tag: "Kinh nghiệm thuê", title: "5 điều cần kiểm tra khi nhận camera", time: "6 phút đọc" },
+  { image:"travel-kit.jpg", tag:"Checklist", title:"Checklist 12 món cho chuyến cắm trại đầu tiên", time:"7 phút đọc" },
+  { image:"backpack.jpg", tag:"Trekking", title:"Chọn balo trekking theo độ dài hành trình", time:"5 phút đọc" },
+  { image:"camera.jpg", tag:"Kinh nghiệm thuê", title:"5 điều cần kiểm tra khi nhận camera", time:"6 phút đọc" },
 ];
 
 export function JournalSection() {

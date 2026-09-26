@@ -27,8 +27,8 @@ export default function BookingsPage() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Đặt thuê của tôi</h1>
-            <p className="mt-1 text-sm" style={{ color: '#8694ad' }}>Quản lý các đơn đặt thuê của bạn</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Đặt thuê của tôi</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Quản lý các đơn đặt thuê của bạn</p>
           </div>
           <Link
             href="/search"
@@ -64,7 +64,7 @@ export default function BookingsPage() {
         {isLoading && (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="animate-pulse rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+              <div key={i} className="animate-pulse rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
                 <div className="flex gap-4">
                   <div className="h-24 w-32 shrink-0 rounded-xl bg-[#e2e8f3]" />
                   <div className="flex-1 space-y-3">
@@ -87,10 +87,10 @@ export default function BookingsPage() {
 
         {/* Empty state */}
         {!isLoading && !error && (!bookings || bookings.length === 0) && (
-          <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-20" style={{ borderColor: '#DCEFFB' }}>
+          <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-20 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
             <span className="mb-4 text-6xl">📋</span>
-            <h3 className="mb-2 text-lg font-semibold" style={{ color: '#0f1729' }}>Chưa có đơn đặt thuê</h3>
-            <p className="mb-6 max-w-xs text-center text-sm" style={{ color: '#8694ad' }}>
+            <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">Chưa có đơn đặt thuê</h3>
+            <p className="mb-6 max-w-xs text-center text-sm text-slate-500 dark:text-slate-400">
               Khám phá hàng nghìn sản phẩm cho thuê và đặt ngay hôm nay.
             </p>
             <Link
@@ -116,7 +116,7 @@ export default function BookingsPage() {
                 <Link
                   key={booking.id}
                   href={`/bookings/${booking.id}`}
-                  className="group flex items-stretch gap-4 overflow-hidden rounded-2xl border bg-white p-4 transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  className="group flex items-stretch gap-4 overflow-hidden rounded-2xl border bg-white p-4 transition-all hover:shadow-lg hover:-translate-y-0.5 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                   style={{ borderColor: '#DCEFFB' }}
                 >
                   {/* Listing image */}
@@ -142,19 +142,19 @@ export default function BookingsPage() {
                               {CATEGORY_LABELS[booking.listing.category] ?? booking.listing.category}
                             </span>
                           )}
-                          <p className="mt-0.5 font-semibold" style={{ color: '#0f1729' }}>
+                          <p className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
                             {booking.listing?.title ?? `Đơn #${booking.id.slice(-8)}`}
                           </p>
                         </div>
                         <BookingStatusBadge status={booking.status as BookingStatus} />
                       </div>
-                      <p className="text-sm" style={{ color: '#8694ad' }}>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         {booking.listing?.location}
                       </p>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-4 text-xs" style={{ color: '#5a6b85' }}>
+                      <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-300">
                         <span>
                           📅 {startDate.toLocaleDateString('vi-VN')} → {endDate.toLocaleDateString('vi-VN')}
                           <span className="ml-1 font-medium">({nights} ngày)</span>

@@ -25,7 +25,7 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="text-center">
-        <p className="text-sm" style={{ color: '#5a6b85' }}>Link không hợp lệ.</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">Link không hợp lệ.</p>
         <Link href="/forgot-password" className="mt-4 inline-block text-sm font-semibold" style={{ color: '#2a7bd9' }}>
           Yêu cầu link mới
         </Link>
@@ -43,8 +43,8 @@ function ResetPasswordForm() {
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
           AUTH-03
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Đặt lại mật khẩu</h1>
-        <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>Mật khẩu mới phải có ít nhất 8 ký tự.</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Đặt lại mật khẩu</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Mật khẩu mới phải có ít nhất 8 ký tự.</p>
       </div>
 
       {error && (
@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
 function AuthField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-slate-900 dark:text-slate-100">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs" style={{ color: '#dc2626' }}>{error}</p>}
     </div>
@@ -115,8 +115,7 @@ const AuthInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElem
   ({ className, ...props }, ref) => (
     <input
       ref={ref}
-      className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30 ${className ?? ''}`}
-      style={{ borderColor: '#e2e8f3', color: '#0f1729' }}
+      className={`w-full rounded-xl border bg-slate-50/80 dark:bg-[#16223B] px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none transition-all border-slate-200 dark:border-white/10 focus:border-[#0070F3] dark:focus:border-[#38BDF8] focus:bg-white dark:focus:bg-[#1A2946] focus:ring-4 focus:ring-[#0070F3]/15 dark:focus:ring-[#38BDF8]/20 ${className ?? ''}`}
       {...props}
     />
   ),

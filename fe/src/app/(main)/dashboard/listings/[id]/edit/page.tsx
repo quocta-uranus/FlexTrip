@@ -30,7 +30,7 @@ function Field({ label, error, required, children }: {
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>
+      <label className="mb-1.5 block text-sm font-medium text-slate-900 dark:text-slate-100">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
@@ -39,7 +39,7 @@ function Field({ label, error, required, children }: {
   );
 }
 
-const inputCls = "w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
+const inputCls ="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
 const inputStyle = { borderColor: '#DCEFFB', color: '#0f1729' };
 
 // ─── AI Suggestion Panel ──────────────────────────────────────────────────────
@@ -86,10 +86,10 @@ function AiPanel({
   }
 
   return (
-    <div className="rounded-2xl border bg-white p-6 space-y-4" style={{ borderColor: '#DCEFFB' }}>
+    <div className="rounded-2xl border bg-white p-6 space-y-4 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
       <div className="flex items-center gap-2">
         <span className="text-lg">🤖</span>
-        <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>AI Assistant</h2>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">AI Assistant</h2>
         <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: 'rgba(42,123,217,0.1)', color: '#2a7bd9' }}>Beta</span>
       </div>
 
@@ -108,7 +108,7 @@ function AiPanel({
           {loading === 'generate' ? <span className="animate-spin">⏳</span> : '✍️'}
           <div className="text-left">
             <p className="font-semibold text-xs">Tạo mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-04: AI soạn từ đầu</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">LIST-04: AI soạn từ đầu</p>
           </div>
         </button>
 
@@ -122,7 +122,7 @@ function AiPanel({
           {loading === 'optimize' ? <span className="animate-spin">⏳</span> : '✨'}
           <div className="text-left">
             <p className="font-semibold text-xs">Tối ưu mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-07: Copywriting AI</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">LIST-07: Copywriting AI</p>
           </div>
         </button>
 
@@ -136,7 +136,7 @@ function AiPanel({
           {loading === 'quality' ? <span className="animate-spin">⏳</span> : '📊'}
           <div className="text-left">
             <p className="font-semibold text-xs">Chấm điểm</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-05: Quality Score</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">LIST-05: Quality Score</p>
           </div>
         </button>
       </div>
@@ -153,16 +153,16 @@ function AiPanel({
               {qualityResult.grade}
             </div>
             <div>
-              <p className="text-2xl font-bold" style={{ color: '#0f1729' }}>{qualityResult.score}/100</p>
-              <p className="text-xs" style={{ color: '#5a6b85' }}>Điểm chất lượng tin đăng</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{qualityResult.score}/100</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Điểm chất lượng tin đăng</p>
             </div>
           </div>
           {qualityResult.suggestions?.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs font-semibold" style={{ color: '#0f1729' }}>Gợi ý cải thiện:</p>
+              <p className="mb-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100">Gợi ý cải thiện:</p>
               <ul className="space-y-1">
                 {qualityResult.suggestions.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#5a6b85' }}>
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
                     <span className="mt-0.5 shrink-0 text-[#2a7bd9]">→</span> {s}
                   </li>
                 ))}
@@ -238,19 +238,19 @@ export default function EditListingPage() {
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <nav className="mb-6 flex items-center gap-2 text-xs" style={{ color: '#8694ad' }}>
+        <nav className="mb-6 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <Link href="/dashboard" style={{ color: '#2a7bd9' }}>Dashboard</Link>
           <span>/</span>
           <Link href="/dashboard/listings" style={{ color: '#2a7bd9' }}>Sản phẩm</Link>
           <span>/</span>
-          <span style={{ color: '#0f1729' }}>Chỉnh sửa</span>
+          <span className="text-slate-900 dark:text-slate-100">Chỉnh sửa</span>
         </nav>
 
-        <h1 className="mb-8 text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
+        <h1 className="mb-8 text-2xl font-bold text-slate-900 dark:text-slate-100">Chỉnh sửa sản phẩm</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin cơ bản</h2>
+          <div className="rounded-2xl border bg-white p-6 space-y-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Thông tin cơ bản</h2>
 
             <Field label="Tiêu đề sản phẩm" error={errors.title?.message} required>
               <input {...register('title')} placeholder="VD: Lều cắm trại 4 người North Face" className={inputCls} style={inputStyle} />
@@ -278,7 +278,7 @@ export default function EditListingPage() {
               {aiImprovements.length > 0 && (
                 <div className="mt-2 rounded-lg px-3 py-2" style={{ background: 'rgba(42,123,217,0.06)' }}>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>AI đã cải thiện:</p>
-                  {aiImprovements.map((imp, i) => <p key={i} className="text-xs" style={{ color: '#5a6b85' }}>• {imp}</p>)}
+                  {aiImprovements.map((imp, i) => <p key={i} className="text-xs text-slate-600 dark:text-slate-300">• {imp}</p>)}
                 </div>
               )}
             </Field>
@@ -293,8 +293,8 @@ export default function EditListingPage() {
                 </Field>
                 <Field label="Tiền tệ">
                   <select {...register('currency')} className={inputCls} style={inputStyle}>
-                    <option value="VND">VND</option>
-                    <option value="USD">USD</option>
+                    <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="VND">VND</option>
+                    <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="USD">USD</option>
                   </select>
                 </Field>
               </div>
@@ -302,8 +302,8 @@ export default function EditListingPage() {
           </div>
 
           {/* Amenities */}
-          <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Tiện ích kèm theo</h2>
+          <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">Tiện ích kèm theo</h2>
             <div className="flex flex-wrap gap-2">
               {COMMON_AMENITIES.map((a) => {
                 const selected = amenities.includes(a);
@@ -319,8 +319,8 @@ export default function EditListingPage() {
           </div>
 
           {/* Images */}
-          <div className="rounded-2xl border bg-white p-6 space-y-3" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Hình ảnh</h2>
+          <div className="rounded-2xl border bg-white p-6 space-y-3 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Hình ảnh</h2>
             <ImageUploader
               urls={imageUrls.filter(Boolean)}
               onChange={(urls) => { setImageUrls(urls); setValue('imageUrls', urls); }}

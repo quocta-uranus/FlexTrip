@@ -1,44 +1,44 @@
 "use client";
 
-import { type ReactElement } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type ReactElement } from"react";
+import Link from"next/link";
+import { usePathname } from"next/navigation";
+import { useState } from"react";
 
 const ADMIN_NAV = [
   {
-    group: "👥 Quản lý tài khoản",
+    group:"👥 Quản lý tài khoản",
     items: [
-      { id: "01", code: "ADMIN-01", title: "Manage User Accounts", href: "/admin/01-user-accounts", icon: "users" },
+      { id:"01", code:"ADMIN-01", title:"Manage User Accounts", href:"/admin/01-user-accounts", icon:"users" },
     ],
   },
   {
-    group: "✅ Duyệt tài khoản & tin đăng",
+    group:"✅ Duyệt tài khoản & tin đăng",
     items: [
-      { id: "02", code: "ADMIN-02", title: "Provider Registration", href: "/admin/02-provider-registration", icon: "badge-check" },
-      { id: "03", code: "ADMIN-03", title: "Moderate Listings", href: "/admin/03-moderate-listings", icon: "shield" },
+      { id:"02", code:"ADMIN-02", title:"Provider Registration", href:"/admin/02-provider-registration", icon:"badge-check" },
+      { id:"03", code:"ADMIN-03", title:"Moderate Listings", href:"/admin/03-moderate-listings", icon:"shield" },
     ],
   },
   {
-    group: "💰 Disputes & Tài chính",
+    group:"💰 Disputes & Tài chính",
     items: [
-      { id: "04", code: "ADMIN-04", title: "Disputes & Refunds", href: "/admin/04-disputes-refunds", icon: "dispute" },
-      { id: "05", code: "ADMIN-05", title: "Transaction Oversight", href: "/admin/05-transactions", icon: "dollar" },
+      { id:"04", code:"ADMIN-04", title:"Disputes & Refunds", href:"/admin/04-disputes-refunds", icon:"dispute" },
+      { id:"05", code:"ADMIN-05", title:"Transaction Oversight", href:"/admin/05-transactions", icon:"dollar" },
     ],
   },
   {
-    group: "📊 Phân tích & Dự báo",
+    group:"📊 Phân tích & Dự báo",
     items: [
-      { id: "06", code: "ADMIN-06", title: "Analytics Dashboard", href: "/admin/06-analytics", icon: "chart" },
-      { id: "07", code: "ADMIN-07", title: "AI Revenue Forecast", href: "/admin/07-ai-forecast", icon: "sparkles" },
+      { id:"06", code:"ADMIN-06", title:"Analytics Dashboard", href:"/admin/06-analytics", icon:"chart" },
+      { id:"07", code:"ADMIN-07", title:"AI Revenue Forecast", href:"/admin/07-ai-forecast", icon:"sparkles" },
     ],
   },
   {
-    group: "⚙️ Cấu hình & Nhân sự",
+    group:"⚙️ Cấu hình & Nhân sự",
     items: [
-      { id: "08", code: "ADMIN-08", title: "AI Model Config", href: "/admin/08-ai-config", icon: "sliders" },
-      { id: "09", code: "ADMIN-09", title: "Audit Log", href: "/admin/09-audit-log", icon: "history" },
-      { id: "10", code: "ADMIN-10", title: "Staff Management", href: "/admin/10-staff-management", icon: "briefcase" },
+      { id:"08", code:"ADMIN-08", title:"AI Model Config", href:"/admin/08-ai-config", icon:"sliders" },
+      { id:"09", code:"ADMIN-09", title:"Audit Log", href:"/admin/09-audit-log", icon:"history" },
+      { id:"10", code:"ADMIN-10", title:"Staff Management", href:"/admin/10-staff-management", icon:"briefcase" },
     ],
   },
 ];
@@ -48,8 +48,7 @@ const ICONS: Record<string, ReactElement> = {
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
     </svg>
-  ),
-  "badge-check": (
+  ),"badge-check": (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
     </svg>
@@ -101,11 +100,11 @@ export function AdminSidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 flex h-screen w-72 flex-col border-r bg-white"
-      style={{ borderColor: "#e2e8f3" }}
+      className="fixed left-0 top-0 z-40 flex h-screen w-72 flex-col border-r bg-white dark:bg-[#121A2C] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
+      
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b px-4" style={{ borderColor: "#e2e8f3" }}>
+      <div className="flex h-16 items-center border-b px-4" >
         <Link href="/admin" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient text-white shadow-md">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -113,8 +112,8 @@ export function AdminSidebar() {
             </svg>
           </div>
           <div>
-            <div className="text-sm font-bold" style={{ color: "#0f1729" }}>FlexTrip</div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#2a7bd9" }}>Admin</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white">FlexTrip</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color:"#2a7bd9" }}>Admin</div>
           </div>
         </Link>
       </div>
@@ -123,7 +122,7 @@ export function AdminSidebar() {
       <nav className="flex-1 overflow-y-auto p-3">
         {ADMIN_NAV.map((group) => (
           <div key={group.group} className="mb-4">
-            <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: "#8694ad" }}>
+            <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {group.group}
             </div>
             <div className="space-y-1">
@@ -135,17 +134,16 @@ export function AdminSidebar() {
                     href={item.href}
                     className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
                       active
-                        ? "bg-gradient-to-r from-[#2a7bd9] to-[#1e5aa8] text-white shadow-lg shadow-[#2a7bd9]/20"
-                        : "hover:bg-[#f1f5fa]"
+                        ?"bg-gradient-to-r from-[#2a7bd9] to-[#1e5aa8] text-white shadow-lg shadow-[#2a7bd9]/20"
+                        :"hover:bg-slate-100 dark:hover:bg-slate-800/60 "
                     }`}
-                    title={`${item.code}: ${item.title}`}
-                  >
-                    <div className={active ? "text-white" : "text-[#5a6b85] group-hover:text-[#2a7bd9]"}>
+                    title={`${item.code}: ${item.title}`}>
+                    <div className={active ?"text-white" :"text-[#5a6b85] group-hover:text-[#2a7bd9]"}>
                       {ICONS[item.icon]}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold truncate">{item.title}</div>
-                      <div className={`text-[10px] ${active ? "text-white/70" : "text-[#8694ad]"}`}>{item.code}</div>
+                      <div className={`text-[10px] ${active ?"text-white/70" :"text-[#8694ad]"}`}>{item.code}</div>
                     </div>
                   </Link>
                 );

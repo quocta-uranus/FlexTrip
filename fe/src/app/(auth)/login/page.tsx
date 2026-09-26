@@ -24,44 +24,37 @@ function LoginForm() {
   return (
     <>
       <div className="mb-7">
-        <div
-          className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: '#2a7bd9' }}
-        >
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-950/60 text-[#0070F3] dark:text-[#38BDF8] border border-sky-200/50 dark:border-sky-800/40">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
           AUTH-02
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Đăng nhập</h1>
-        <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Đăng nhập
+        </h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           Chưa có tài khoản?{' '}
-          <Link href="/register" className="font-semibold" style={{ color: '#2a7bd9' }}>
+          <Link href="/register" className="font-semibold text-[#0070F3] dark:text-[#38BDF8] hover:underline">
             Đăng ký miễn phí
           </Link>
         </p>
       </div>
 
       {wasVerified && (
-        <div
-          className="mb-5 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: 'rgba(146,238,232,0.5)', background: 'rgba(146,238,232,0.15)', color: '#1e5aa8' }}
-        >
+        <div className="mb-5 rounded-xl border border-emerald-300 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
           ✓ Email đã xác thực thành công. Đăng nhập để tiếp tục.
         </div>
       )}
 
       {wasReset && (
-        <div
-          className="mb-5 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: 'rgba(146,238,232,0.5)', background: 'rgba(146,238,232,0.15)', color: '#1e5aa8' }}
-        >
-          Mật khẩu đã được đặt lại thành công. Đăng nhập với mật khẩu mới.
+        <div className="mb-5 rounded-xl border border-emerald-300 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+          ✓ Mật khẩu đã được đặt lại thành công. Đăng nhập với mật khẩu mới.
         </div>
       )}
 
       {error && (
         <div
-          className="mb-5 rounded-lg border px-4 py-3 text-sm"
-          style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}
+          className="mb-5 rounded-xl border px-4 py-3 text-sm font-medium"
+          style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
         >
           {error.message}
         </div>
@@ -89,8 +82,7 @@ function LoginForm() {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-sm font-medium"
-            style={{ color: '#2a7bd9' }}
+            className="text-xs sm:text-sm font-semibold text-[#0070F3] dark:text-[#38BDF8] hover:underline"
           >
             Quên mật khẩu?
           </Link>
@@ -99,32 +91,29 @@ function LoginForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
-          style={{ background: '#2a7bd9', boxShadow: '0 8px 20px -8px rgba(42,123,217,0.5)' }}
+          className="w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all bg-gradient-to-r from-[#1877F2] to-[#00A3FF] hover:brightness-110 shadow-lg shadow-[#00A3FF]/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
         >
           {isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </button>
       </form>
 
-      {/* Vai trò gợi ý — không cần chọn, hệ thống tự route theo tài khoản */}
-      <div className="mt-6">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="h-px flex-1" style={{ background: '#e2e8f3' }} />
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8694ad' }}>
-            Tài khoản của bạn sẽ vào đúng hồ sơ
+      {/* Vai trò gợi ý */}
+      <div className="mt-6 pt-5 border-t border-slate-200/80 dark:border-white/10">
+        <div className="mb-3 text-center">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Tài khoản tự động điều hướng theo vai trò
           </span>
-          <div className="h-px flex-1" style={{ background: '#e2e8f3' }} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <RoleHint
             emoji="🎒"
             title="Traveler"
-            desc="Thuê đồ & đặt trải nghiệm"
+            desc="Thuê đồ & trải nghiệm"
           />
           <RoleHint
-            emoji="🏪"
+            emoji="🏕️"
             title="Provider"
-            desc="Cho thuê đồ & quản lý shop"
+            desc="Cho thuê đồ & shop"
           />
         </div>
       </div>
@@ -134,13 +123,10 @@ function LoginForm() {
 
 function RoleHint({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <div
-      className="rounded-xl border bg-white px-3 py-2.5 text-center"
-      style={{ borderColor: '#e2e8f3' }}
-    >
+    <div className="rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-[#16223B]/70 px-3 py-2.5 text-center transition-all">
       <div className="text-lg leading-none">{emoji}</div>
-      <div className="mt-1 text-xs font-semibold" style={{ color: '#0f1729' }}>{title}</div>
-      <div className="mt-0.5 text-[10px]" style={{ color: '#8694ad' }}>{desc}</div>
+      <div className="mt-1 text-xs font-bold text-slate-800 dark:text-white">{title}</div>
+      <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{desc}</div>
     </div>
   );
 }
@@ -158,9 +144,11 @@ export default function LoginPage() {
 function AuthField({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>{label}</label>
+      <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+        {label}
+      </label>
       {children}
-      {error && <p className="mt-1 text-xs" style={{ color: '#dc2626' }}>{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-500 font-medium">{error}</p>}
     </div>
   );
 }
@@ -169,8 +157,7 @@ const AuthInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElem
   ({ className, ...props }, ref) => (
     <input
       ref={ref}
-      className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30 ${className ?? ''}`}
-      style={{ borderColor: '#e2e8f3', color: '#0f1729' }}
+      className={`w-full rounded-xl border bg-slate-50/80 dark:bg-[#16223B] px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 outline-none transition-all border-slate-200 dark:border-white/10 focus:border-[#0070F3] dark:focus:border-[#38BDF8] focus:bg-white dark:focus:bg-[#1A2946] focus:ring-4 focus:ring-[#0070F3]/15 dark:focus:ring-[#38BDF8]/20 ${className ?? ''}`}
       {...props}
     />
   ),

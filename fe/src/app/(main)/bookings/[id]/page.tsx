@@ -31,7 +31,7 @@ function BookingDetailContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <span className="mb-4 text-5xl">😕</span>
-        <h1 className="mb-2 text-xl font-bold" style={{ color: '#0f1729' }}>Không tìm thấy đơn</h1>
+        <h1 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Không tìm thấy đơn</h1>
         <Link href="/bookings" className="mt-4 rounded-full px-5 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
           Về danh sách đơn
         </Link>
@@ -61,16 +61,16 @@ function BookingDetailContent() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm" style={{ color: '#8694ad' }}>Đơn #{booking.id.slice(-12).toUpperCase()}</p>
-          <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>Chi tiết đặt thuê</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Đơn #{booking.id.slice(-12).toUpperCase()}</p>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">Chi tiết đặt thuê</h1>
         </div>
         <BookingStatusBadge status={booking.status as BookingStatus} />
       </div>
 
       {/* Progress tracker */}
       {!['CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
-        <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-          <h2 className="mb-5 text-sm font-semibold" style={{ color: '#0f1729' }}>Tiến trình</h2>
+        <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+          <h2 className="mb-5 text-sm font-semibold text-slate-900 dark:text-slate-100">Tiến trình</h2>
           <div className="flex items-center">
             {STATUS_STEPS.map((step, i) => {
               const done = currentStepIdx >= i;
@@ -109,7 +109,7 @@ function BookingDetailContent() {
         <div className="lg:col-span-2 space-y-5">
           {/* Listing card */}
           {booking.listing && (
-            <div className="overflow-hidden rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+            <div className="overflow-hidden rounded-2xl border bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
               <div className="flex items-stretch gap-0">
                 <div className="h-auto w-40 shrink-0 overflow-hidden bg-[#f1f5fa]">
                   {booking.listing.imageUrls?.[0] ? (
@@ -122,8 +122,8 @@ function BookingDetailContent() {
                   <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
                     {CATEGORY_LABELS[booking.listing.category] ?? booking.listing.category}
                   </span>
-                  <p className="mt-1 font-semibold" style={{ color: '#0f1729' }}>{booking.listing.title}</p>
-                  <p className="mt-1 text-sm" style={{ color: '#8694ad' }}>{booking.listing.location}</p>
+                  <p className="mt-1 font-semibold text-slate-900 dark:text-slate-100">{booking.listing.title}</p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{booking.listing.location}</p>
                   <Link
                     href={`/listings/${booking.listing.id}`}
                     className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium"
@@ -137,39 +137,39 @@ function BookingDetailContent() {
           )}
 
           {/* Dates */}
-          <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Thời gian thuê</h2>
+          <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">Thời gian thuê</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>Nhận đồ</p>
-                <p className="font-semibold" style={{ color: '#0f1729' }}>{startDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">Nhận đồ</p>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{startDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
               <div>
-                <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>Trả đồ</p>
-                <p className="font-semibold" style={{ color: '#0f1729' }}>{endDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">Trả đồ</p>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{endDate.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
             </div>
             <div className="mt-3 rounded-lg px-3 py-2.5 text-sm" style={{ background: '#f6fbfe' }}>
-              Tổng: <strong style={{ color: '#0f1729' }}>{nights} ngày</strong>
+              Tổng: <strong className="text-slate-900 dark:text-slate-100">{nights} ngày</strong>
             </div>
           </div>
 
           {/* Notes */}
           {booking.notes && (
-            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Ghi chú</h2>
-              <p className="text-sm" style={{ color: '#5a6b85' }}>{booking.notes}</p>
+            <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Ghi chú</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{booking.notes}</p>
             </div>
           )}
 
           {/* Contract */}
           {booking.contract && (
-            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-3 text-sm font-semibold" style={{ color: '#0f1729' }}>Hợp đồng</h2>
+            <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+              <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Hợp đồng</h2>
               <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: '#5a6b85' }}>Trạng thái: {booking.contract.status}</span>
+                <span className="text-sm text-slate-600 dark:text-slate-300">Trạng thái: {booking.contract.status}</span>
                 {booking.contract.signedAt && (
-                  <span className="text-xs" style={{ color: '#8694ad' }}>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
                     Ký lúc: {new Date(booking.contract.signedAt).toLocaleDateString('vi-VN')}
                   </span>
                 )}
@@ -181,19 +181,19 @@ function BookingDetailContent() {
         {/* Right: payment + actions */}
         <div className="space-y-5">
           {/* Payment */}
-          <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Thanh toán</h2>
+          <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-100">Thanh toán</h2>
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span style={{ color: '#5a6b85' }}>Đơn giá</span>
-                <span style={{ color: '#0f1729' }}>
+                <span className="text-slate-600 dark:text-slate-300">Đơn giá</span>
+                <span className="text-slate-900 dark:text-slate-100">
                   {booking.listing
                     ? `${Number(booking.listing.price).toLocaleString('vi-VN')} × ${nights} ngày`
                     : '—'}
                 </span>
               </div>
               <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
-                <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                <span className="text-slate-900 dark:text-slate-100">Tổng cộng</span>
                 <span style={{ color: '#2a7bd9' }}>{price.toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
               </div>
               {booking.payment && (
@@ -205,8 +205,8 @@ function BookingDetailContent() {
           </div>
 
           {/* Actions */}
-          <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Hành động</h2>
+          <div className="rounded-2xl border bg-white p-5 space-y-3 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Hành động</h2>
             {booking.listing && (
               <Link
                 href={`/messages?to=${booking.listing.providerId}`}
@@ -243,10 +243,10 @@ export default function BookingDetailPage() {
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
+        <nav className="mb-6 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Link href="/bookings" className="hover:underline" style={{ color: '#2a7bd9' }}>Đặt thuê của tôi</Link>
           <span>/</span>
-          <span style={{ color: '#0f1729' }}>Chi tiết đơn</span>
+          <span className="text-slate-900 dark:text-slate-100">Chi tiết đơn</span>
         </nav>
         <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-[#e2e8f3]" />}>
           <BookingDetailContent />

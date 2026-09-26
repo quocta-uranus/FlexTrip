@@ -10,13 +10,13 @@ import { CATEGORY_LABELS } from '@/types/listing';
 
 function StatCard({ label, value, icon, sub }: { label: string; value: string | number; icon: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+    <div className="rounded-2xl border bg-white p-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm" style={{ color: '#5a6b85' }}>{label}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">{label}</p>
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className="text-3xl font-bold" style={{ color: '#0f1729' }}>{value}</p>
-      {sub && <p className="mt-1 text-xs" style={{ color: '#8694ad' }}>{sub}</p>}
+      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
+      {sub && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{sub}</p>}
     </div>
   );
 }
@@ -39,13 +39,13 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <p className="text-sm" style={{ color: '#8694ad' }}>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
-            <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
               Chào, {user?.name?.split(' ').pop() ?? 'Provider'} 👋
             </h1>
-            <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               {user?.providerProfile?.shopName
                 ? `Shop: ${user.providerProfile.shopName}`
                 : 'Provider Dashboard'}
@@ -73,9 +73,9 @@ export default function DashboardPage() {
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Recent bookings */}
-          <div className="rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+          <div className="rounded-2xl border bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
             <div className="flex items-center justify-between border-b p-5" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="font-semibold" style={{ color: '#0f1729' }}>Đơn đặt thuê gần đây</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">Đơn đặt thuê gần đây</h2>
               <Link href="/dashboard/bookings" className="text-sm font-medium" style={{ color: '#2a7bd9' }}>
                 Xem tất cả →
               </Link>
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             ) : !bookings?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <span className="mb-3 text-4xl">📋</span>
-                <p className="text-sm" style={{ color: '#8694ad' }}>Chưa có đơn đặt thuê nào.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Chưa có đơn đặt thuê nào.</p>
               </div>
             ) : (
               <div className="divide-y" style={{ borderColor: '#DCEFFB' }}>
@@ -114,10 +114,10 @@ export default function DashboardPage() {
                         ) : <div className="flex h-full items-center justify-center text-xl">⛺</div>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-medium" style={{ color: '#0f1729' }}>
+                        <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                           {booking.listing?.title ?? `Đơn #${booking.id.slice(-8)}`}
                         </p>
-                        <p className="text-xs" style={{ color: '#8694ad' }}>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {new Date(booking.startDate).toLocaleDateString('vi-VN')} → {new Date(booking.endDate).toLocaleDateString('vi-VN')}
                         </p>
                       </div>
@@ -135,9 +135,9 @@ export default function DashboardPage() {
           </div>
 
           {/* My listings */}
-          <div className="rounded-2xl border bg-white" style={{ borderColor: '#DCEFFB' }}>
+          <div className="rounded-2xl border bg-white dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
             <div className="flex items-center justify-between border-b p-5" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="font-semibold" style={{ color: '#0f1729' }}>Sản phẩm của bạn</h2>
+              <h2 className="font-semibold text-slate-900 dark:text-slate-100">Sản phẩm của bạn</h2>
               <Link href="/dashboard/listings" className="text-sm font-medium" style={{ color: '#2a7bd9' }}>
                 Quản lý →
               </Link>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
             ) : !listings?.length ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <span className="mb-3 text-4xl">🏕️</span>
-                <p className="mb-4 text-sm" style={{ color: '#8694ad' }}>Chưa có sản phẩm nào.</p>
+                <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Chưa có sản phẩm nào.</p>
                 <Link
                   href="/dashboard/listings/new"
                   className="rounded-full px-4 py-2 text-sm font-semibold text-white"
@@ -183,8 +183,8 @@ export default function DashboardPage() {
                         ) : <div className="flex h-full items-center justify-center text-xl">⛺</div>}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-medium" style={{ color: '#0f1729' }}>{listing.title}</p>
-                        <p className="text-xs" style={{ color: '#8694ad' }}>
+                        <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{listing.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {CATEGORY_LABELS[listing.category] ?? listing.category} · {listing.location}
                         </p>
                       </div>
@@ -220,13 +220,13 @@ export default function DashboardPage() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-start gap-4 rounded-2xl border bg-white p-5 transition-all hover:shadow-md hover:-translate-y-0.5"
+              className="flex items-start gap-4 rounded-2xl border bg-white p-5 transition-all hover:shadow-md hover:-translate-y-0.5 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
               style={{ borderColor: '#DCEFFB' }}
             >
               <span className="text-3xl">{item.icon}</span>
               <div>
-                <p className="font-semibold" style={{ color: '#0f1729' }}>{item.label}</p>
-                <p className="mt-0.5 text-xs" style={{ color: '#8694ad' }}>{item.sub}</p>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">{item.label}</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{item.sub}</p>
               </div>
             </Link>
           ))}

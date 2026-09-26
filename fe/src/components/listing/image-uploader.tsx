@@ -84,8 +84,8 @@ export function ImageUploader({ urls, onChange }: ImageUploaderProps) {
         ) : (
           <>
             <span className="text-3xl">🖼️</span>
-            <p className="text-sm font-medium" style={{ color: '#0f1729' }}>Kéo thả hoặc click để chọn ảnh</p>
-            <p className="text-xs" style={{ color: '#8694ad' }}>JPG, PNG, WEBP — tối đa 10MB mỗi ảnh</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Kéo thả hoặc click để chọn ảnh</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">JPG, PNG, WEBP — tối đa 10MB mỗi ảnh</p>
           </>
         )}
       </div>

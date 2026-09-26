@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from"react";
 
 /**
  * Bộ hook gom cho các hiệu ứng wow-factor ở 3 trang profile.
@@ -43,8 +43,8 @@ export function useScrollY() {
 export function useMouseTilt(max = 10) {
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({
-    transform: "perspective(800px) rotateX(0deg) rotateY(0deg)",
-    transition: "transform 220ms cubic-bezier(.2,.8,.2,1)",
+    transform:"perspective(800px) rotateX(0deg) rotateY(0deg)",
+    transition:"transform 220ms cubic-bezier(.2,.8,.2,1)",
   });
 
   const onMove = useCallback(
@@ -56,27 +56,27 @@ export function useMouseTilt(max = 10) {
       const py = (e.clientY - r.top) / r.height - 0.5;
       setStyle({
         transform: `perspective(800px) rotateY(${px * 2 * max}deg) rotateX(${-py * 2 * max}deg)`,
-        transition: "transform 80ms linear",
+        transition:"transform 80ms linear",
       });
     },
     [max]
   );
   const onLeave = useCallback(() => {
     setStyle({
-      transform: "perspective(800px) rotateX(0deg) rotateY(0deg)",
-      transition: "transform 320ms cubic-bezier(.2,.8,.2,1)",
+      transform:"perspective(800px) rotateX(0deg) rotateY(0deg)",
+      transition:"transform 320ms cubic-bezier(.2,.8,.2,1)",
     });
   }, []);
 
   return { ref, style, onMove, onLeave };
 }
 
-/* ─── Magnetic — phần tử bị "hút" nhẹ về phía con trỏ ───────────────── */
+/* ─── Magnetic — phần tử bị"hút" nhẹ về phía con trỏ ───────────────── */
 export function useMagnetic(strength = 0.25) {
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({
-    transform: "translate(0,0)",
-    transition: "transform 220ms cubic-bezier(.2,.8,.2,1)",
+    transform:"translate(0,0)",
+    transition:"transform 220ms cubic-bezier(.2,.8,.2,1)",
   });
   const reduced = useReducedMotion();
 
@@ -92,15 +92,15 @@ export function useMagnetic(strength = 0.25) {
       const dy = (e.clientY - cy) * strength;
       setStyle({
         transform: `translate(${dx}px, ${dy}px)`,
-        transition: "transform 60ms linear",
+        transition:"transform 60ms linear",
       });
     },
     [reduced, strength]
   );
   const onLeave = useCallback(() => {
     setStyle({
-      transform: "translate(0,0)",
-      transition: "transform 320ms cubic-bezier(.2,.8,.2,1)",
+      transform:"translate(0,0)",
+      transition:"transform 320ms cubic-bezier(.2,.8,.2,1)",
     });
   }, []);
 
@@ -166,8 +166,8 @@ export function useReveal(delay = 0, threshold = 0.15) {
 export function useHoverX(px = 2) {
   const [hovered, setHovered] = useState(false);
   const style: React.CSSProperties = {
-    transform: hovered ? `translateX(${px}px)` : "translateX(0)",
-    transition: "transform 180ms cubic-bezier(.2,.8,.2,1)",
+    transform: hovered ? `translateX(${px}px)` :"translateX(0)",
+    transition:"transform 180ms cubic-bezier(.2,.8,.2,1)",
   };
   return {
     style,
@@ -176,7 +176,7 @@ export function useHoverX(px = 2) {
   };
 }
 
-/* ─── Sparkle ngẫu nhiên cho badge "đã đạt" ─────────────────────────── */
+/* ─── Sparkle ngẫu nhiên cho badge"đã đạt" ─────────────────────────── */
 export interface Sparkle {
   id: number;
   top: number;
@@ -220,7 +220,7 @@ export interface ConfettiPiece {
   hue: number;
   delay: number;
   size: number;
-  shape: "rect" | "circle" | "tri";
+  shape:"rect" |"circle" |"tri";
 }
 export function useConfetti(count = 36): ConfettiPiece[] {
   return useMemo<ConfettiPiece[]>(() => {
@@ -232,7 +232,7 @@ export function useConfetti(count = 36): ConfettiPiece[] {
       hue: [42, 175, 195, 210, 290, 330][i % 6],
       delay: Math.random() * 80,
       size: 6 + Math.random() * 6,
-      shape: (["rect", "circle", "tri"] as const)[i % 3],
+      shape: (["rect","circle","tri"] as const)[i % 3],
     }));
   }, [count]);
 }

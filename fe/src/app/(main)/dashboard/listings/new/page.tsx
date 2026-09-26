@@ -27,7 +27,7 @@ const COMMON_AMENITIES = [
 function Field({ label, error, required, children }: { label: string; error?: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>
+      <label className="mb-1.5 block text-sm font-medium text-slate-900 dark:text-slate-100">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
@@ -36,7 +36,7 @@ function Field({ label, error, required, children }: { label: string; error?: st
   );
 }
 
-const inputCls = "w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
+const inputCls ="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
 const inputStyle = { borderColor: '#DCEFFB', color: '#0f1729' };
 
 export default function CreateListingPage() {
@@ -80,20 +80,20 @@ export default function CreateListingPage() {
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-2 text-xs" style={{ color: '#8694ad' }}>
+        <nav className="mb-6 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <Link href="/dashboard" style={{ color: '#2a7bd9' }}>Dashboard</Link>
           <span>/</span>
           <Link href="/dashboard/listings" style={{ color: '#2a7bd9' }}>Sản phẩm</Link>
           <span>/</span>
-          <span style={{ color: '#0f1729' }}>Tạo mới</span>
+          <span className="text-slate-900 dark:text-slate-100">Tạo mới</span>
         </nav>
 
-        <h1 className="mb-8 text-2xl font-bold" style={{ color: '#0f1729' }}>Thêm sản phẩm mới</h1>
+        <h1 className="mb-8 text-2xl font-bold text-slate-900 dark:text-slate-100">Thêm sản phẩm mới</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic info */}
-          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin cơ bản</h2>
+          <div className="rounded-2xl border bg-white p-6 space-y-5 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Thông tin cơ bản</h2>
 
             <Field label="Tiêu đề sản phẩm" error={errors.title?.message} required>
               <input
@@ -169,8 +169,8 @@ export default function CreateListingPage() {
                     className={inputCls}
                     style={inputStyle}
                   >
-                    <option value="VND">VND</option>
-                    <option value="USD">USD</option>
+                    <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="VND">VND</option>
+                    <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" value="USD">USD</option>
                   </select>
                 </Field>
               </div>
@@ -178,8 +178,8 @@ export default function CreateListingPage() {
           </div>
 
           {/* Amenities */}
-          <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Tiện ích & Thiết bị kèm theo</h2>
+          <div className="rounded-2xl border bg-white p-6 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">Tiện ích & Thiết bị kèm theo</h2>
             <div className="mb-4 flex flex-wrap gap-2">
               {COMMON_AMENITIES.map((a) => {
                 const selected = amenities.includes(a);
@@ -202,13 +202,13 @@ export default function CreateListingPage() {
               })}
             </div>
             {amenities.length > 0 && (
-              <p className="text-xs" style={{ color: '#8694ad' }}>Đã chọn: {amenities.join(', ')}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Đã chọn: {amenities.join(', ')}</p>
             )}
           </div>
 
           {/* Images */}
-          <div className="rounded-2xl border bg-white p-6 space-y-3" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Hình ảnh sản phẩm</h2>
+          <div className="rounded-2xl border bg-white p-6 space-y-3 dark:bg-[#121A2C] dark:text-white dark:border-white/10" style={{ borderColor: '#DCEFFB' }}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Hình ảnh sản phẩm</h2>
             {errors.imageUrls && <p className="text-xs" style={{ color: '#dc2626' }}>{errors.imageUrls.message}</p>}
             <ImageUploader
               urls={imageUrls.filter(Boolean)}

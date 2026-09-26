@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from"react";
 
 /**
  * StickyEditBar - Thanh nổi ở dưới cùng khi chỉnh sửa
@@ -32,18 +32,18 @@ export function StickyEditBar({
     <div
       className="fixed bottom-0 left-0 right-0 z-50 w-full"
       style={{
-        transform: visible ? "translateY(0)" : "translateY(100%)",
+        transform: visible ?"translateY(0)" :"translateY(100%)",
         opacity: visible ? 1 : 0,
-        pointerEvents: visible ? "auto" : "none",
-        transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
+        pointerEvents: visible ?"auto" :"none",
+        transition:"transform 0.3s ease-out, opacity 0.3s ease-out",
       }}
     >
       {/* Main bar */}
       <div
-        className="mx-auto max-w-4xl rounded-t-2xl border-b border-x bg-white/95 backdrop-blur-xl px-6 py-4"
+        className="mx-auto max-w-4xl rounded-t-2xl border-b border-x bg-white/95 backdrop-blur-xl px-6 py-4 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
         style={{
-          borderColor: "rgba(42,123,217,0.3)",
-          boxShadow: "0 -8px 32px -12px rgba(42,123,217,0.2)",
+          borderColor:"rgba(42,123,217,0.3)",
+          boxShadow:"0 -8px 32px -12px rgba(42,123,217,0.2)",
         }}
       >
         {/* Content */}
@@ -54,8 +54,8 @@ export function StickyEditBar({
               className="flex h-10 w-10 items-center justify-center rounded-xl"
               style={{
                 background: saved
-                  ? "linear-gradient(135deg, #10b981, #059669)"
-                  : "linear-gradient(135deg, rgba(42,123,217,0.1), rgba(146,238,232,0.2))",
+                  ?"linear-gradient(135deg, #10b981, #059669)"
+                  :"linear-gradient(135deg, rgba(42,123,217,0.1), rgba(146,238,232,0.2))",
               }}
             >
               {saved ? (
@@ -63,17 +63,17 @@ export function StickyEditBar({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <svg className={`h-5 w-5 ${saving ? "" : "animate-pulse"}`} fill="none" viewBox="0 0 24 24" stroke="#2a7bd9" strokeWidth={2}>
+                <svg className={`h-5 w-5 ${saving ?"" :"animate-pulse"}`} fill="none" viewBox="0 0 24 24" stroke="#2a7bd9" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               )}
             </div>
             <div>
-              <div className="text-sm font-bold" style={{ color: saved ? "#059669" : "#0f1729" }}>
-                {saved ? "Đã lưu hồ sơ!" : saving ? "Đang lưu..." : "Đang chỉnh sửa hồ sơ"}
+              <div className="text-sm font-bold" style={{ color: saved ?"#059669" :"#0f1729" }}>
+                {saved ?"Đã lưu hồ sơ!" : saving ?"Đang lưu..." :"Đang chỉnh sửa hồ sơ"}
               </div>
-              <div className="text-xs" style={{ color: "#8694ad" }}>
-                {saved ? "Thay đổi của bạn đã được lưu" : saving ? "Vui lòng đợi trong giây lát" : "Nhớ lưu thay đổi trước khi rời đi"}
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                {saved ?"Thay đổi của bạn đã được lưu" : saving ?"Vui lòng đợi trong giây lát" :"Nhớ lưu thay đổi trước khi rời đi"}
               </div>
             </div>
           </div>
@@ -84,7 +84,7 @@ export function StickyEditBar({
               onClick={onCancel}
               disabled={saving}
               className="rounded-xl border py-2.5 px-5 text-sm font-semibold transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
+              style={{ borderColor:"#e2e8f3", color:"#5a6b85" }}
             >
               <span className="flex items-center gap-2">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -100,8 +100,8 @@ export function StickyEditBar({
               className="rounded-xl py-2.5 px-6 text-sm font-bold text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{
                 background: saving || saved
-                  ? "linear-gradient(135deg, #10b981, #059669)"
-                  : "linear-gradient(135deg, #2a7bd9, #1e5aa8)",
+                  ?"linear-gradient(135deg, #10b981, #059669)"
+                  :"linear-gradient(135deg, #2a7bd9, #1e5aa8)",
               }}
             >
               <span className="flex items-center gap-2">
@@ -146,21 +146,21 @@ export function StickyEditBar({
  */
 
 export const BRAND = {
-  primary: "#2a7bd9",
-  primaryDark: "#1e5aa8",
-  accent: "#92eee8",
-  accentDark: "#5fd6cd",
-  border: "#e2e8f3",
-  surfaceMuted: "#f1f5fa",
-  textMuted: "#5a6b85",
-  textSubtle: "#8694ad",
+  primary:"#2a7bd9",
+  primaryDark:"#1e5aa8",
+  accent:"#92eee8",
+  accentDark:"#5fd6cd",
+  border:"#e2e8f3",
+  surfaceMuted:"#f1f5fa",
+  textMuted:"#5a6b85",
+  textSubtle:"#8694ad",
 } as const;
 
 export function Card({
   title,
   subtitle,
   children,
-  className = "",
+  className ="",
   accent = false,
 }: {
   title?: string;
@@ -238,7 +238,7 @@ export function Cover({ height = 208 }: { height?: number }) {
       style={{ height }}
     >
       <div className="absolute inset-0 bg-brand-dots opacity-60" />
-      <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl dark:bg-[#121A2C] dark:text-white" />
       <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#92eee8]/50 blur-3xl" />
     </section>
   );
@@ -268,17 +268,17 @@ export function ProfileHeader({
   return (
     <section className="mx-auto max-w-6xl px-6">
       <div
-        className="relative overflow-hidden rounded-2xl border bg-white shadow-xl shadow-[#2a7bd9]/5"
+        className="relative overflow-hidden rounded-2xl border bg-white shadow-xl shadow-[#2a7bd9]/5 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
         style={{ borderColor: BRAND.border }}
       >
         {/* Cover gradient — chỉ hiện khi showCover=true */}
         {showCover && (
           <div
             className="relative overflow-hidden bg-brand-gradient"
-            style={{ height: "5rem" }}
+            style={{ height:"5rem" }}
           >
             <div className="absolute inset-0 bg-brand-dots opacity-60" />
-            <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/25 blur-2xl dark:bg-[#121A2C] dark:text-white" />
             <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[#92eee8]/50 blur-3xl" />
           </div>
         )}
@@ -288,7 +288,7 @@ export function ProfileHeader({
           {/* Avatar: cùng top với badge */}
           <div className="flex w-full shrink-0 justify-center sm:w-auto sm:justify-start">
             <div className="relative inline-block">
-              <div className="absolute -inset-1.5 rounded-[18px] bg-white pointer-events-none" aria-hidden />
+              <div className="absolute -inset-1.5 rounded-[18px] bg-white pointer-events-none dark:bg-[#121A2C] dark:text-white" aria-hidden />
               {avatar}
             </div>
           </div>
@@ -299,7 +299,7 @@ export function ProfileHeader({
               {eyebrow && (
                 <span
                   className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                  style={{ background: "rgba(42,123,217,0.1)", color: BRAND.primary }}
+                  style={{ background:"rgba(42,123,217,0.1)", color: BRAND.primary }}
                 >
                   <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: BRAND.accent }} />
                   {eyebrow}
@@ -308,7 +308,7 @@ export function ProfileHeader({
               {identityId && (
                 <span
                   className="rounded-full px-3 py-0.5 text-xs font-medium"
-                  style={{ background: "rgba(146,238,232,0.4)", color: BRAND.primaryDark }}
+                  style={{ background:"rgba(146,238,232,0.4)", color: BRAND.primaryDark }}
                 >
                   ID {identityId}
                 </span>
@@ -346,7 +346,7 @@ export function ProfileHeader({
               </div>
               <div
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                style={{ border: `2px solid ${BRAND.accent}`, color: BRAND.primary, background: "rgba(146,238,232,0.3)" }}
+                style={{ border: `2px solid ${BRAND.accent}`, color: BRAND.primary, background:"rgba(146,238,232,0.3)" }}
               >
                 {completion}%
               </div>
@@ -365,7 +365,7 @@ export function AvatarField({
   onUpload,
   uploading,
   disabled,
-  size = "md",
+  size ="md",
 }: {
   name: string;
   value: string;
@@ -373,7 +373,7 @@ export function AvatarField({
   onUpload?: (file: File) => Promise<string>;
   uploading?: boolean;
   disabled?: boolean;
-  size?: "md" | "lg";
+  size?:"md" |"lg";
 }) {
   const [preview, setPreview] = useState<string>(value);
   const display = preview || value;
@@ -392,13 +392,13 @@ export function AvatarField({
 
   const initials =
     name
-      .split(" ")
+      .split("")
       .map((p) => p[0])
       .slice(-2)
       .join("")
-      .toUpperCase() || "?";
+      .toUpperCase() ||"?";
 
-  const sz = size === "lg" ? "h-32 w-32 sm:h-36 sm:w-36 text-4xl" : "h-28 w-28 sm:h-32 sm:w-32 text-3xl sm:text-4xl";
+  const sz = size ==="lg" ?"h-32 w-32 sm:h-36 sm:w-36 text-4xl" :"h-28 w-28 sm:h-32 sm:w-32 text-3xl sm:text-4xl";
 
   async function resizeImage(file: File, maxPx = 800): Promise<Blob> {
     const bitmap = await createImageBitmap(file);
@@ -410,12 +410,12 @@ export function AvatarField({
     canvas.height = h;
     canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
     return new Promise((res, rej) =>
-      canvas.toBlob((b) => (b ? res(b) : rej(new Error("canvas toBlob failed"))), "image/jpeg", 0.82)
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("canvas toBlob failed"))),"image/jpeg", 0.82)
     );
   }
 
   async function handleFile(file: File) {
-    // 0. Resize ảnh trước để tránh "request entity too large"
+    // 0. Resize ảnh trước để tránh"request entity too large"
     const resized = await resizeImage(file);
 
     // 1. Hiện preview tức thì bằng object URL (rất nhẹ, không encode base64)
@@ -426,7 +426,7 @@ export function AvatarField({
     if (onUpload) {
       try {
         // Tạo File fake từ Blob đã resize để tương thích với onUpload signature
-        const resizedFile = new File([resized], file.name, { type: "image/jpeg" });
+        const resizedFile = new File([resized], file.name, { type:"image/jpeg" });
         const remoteUrl = await onUpload(resizedFile);
         // 3. Thay preview bằng URL server + báo ra ngoài
         if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
@@ -455,7 +455,7 @@ export function AvatarField({
    */
   async function handleRemoteUrl(url: string) {
     try {
-      const res = await fetch(url, { mode: "cors" });
+      const res = await fetch(url, { mode:"cors" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       if (!blob.type.startsWith("image/")) {
@@ -465,10 +465,10 @@ export function AvatarField({
       const guessedName = (() => {
         try {
           const u = new URL(url);
-          const last = u.pathname.split("/").filter(Boolean).pop() || "avatar.jpg";
+          const last = u.pathname.split("/").filter(Boolean).pop() ||"avatar.jpg";
           return /\.[a-z0-9]{2,4}$/i.test(last) ? last : `${last}.jpg`;
         } catch {
-          return "avatar.jpg";
+          return"avatar.jpg";
         }
       })();
       const file = new File([blob], guessedName, { type: blob.type });
@@ -494,7 +494,7 @@ export function AvatarField({
           {/* Nút upload file */}
           <label
             className={`flex flex-1 cursor-pointer items-center justify-center gap-1 py-1.5 text-[11px] font-semibold text-white backdrop-blur transition-colors ${
-              uploading ? "bg-black/70 cursor-wait" : "bg-black/60 hover:bg-black/70"
+              uploading ?"bg-black/70 cursor-wait" :"bg-black/60 hover:bg-black/70"
             }`}
           >
             {uploading ? (
@@ -523,7 +523,7 @@ export function AvatarField({
                 const file = e.target.files?.[0];
                 if (file) {
                   handleFile(file).catch(() => {});
-                  e.target.value = ""; // cho phép chọn lại cùng file
+                  e.target.value =""; // cho phép chọn lại cùng file
                 }
               }}
             />
@@ -540,13 +540,13 @@ export function KpiCards({ items }: { items: { label: string; value: string | nu
       {items.map((k) => (
         <div
           key={k.label}
-          className="group rounded-2xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+          className="group rounded-2xl border bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-[#121A2C] dark:text-white dark:border-white/10"
           style={{ borderColor: BRAND.border }}
         >
           <div className="flex items-center justify-between">
             <div
               className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-              style={{ background: "rgba(146,238,232,0.35)", color: BRAND.primaryDark }}
+              style={{ background:"rgba(146,238,232,0.35)", color: BRAND.primaryDark }}
             >
               {k.icon}
             </div>
@@ -569,16 +569,16 @@ export function KpiCards({ items }: { items: { label: string; value: string | nu
 export function BadgeRow({
   badges,
 }: {
-  badges: { name: string; level: "locked" | "current" | "done"; desc: string }[];
+  badges: { name: string; level:"locked" |"current" |"done"; desc: string }[];
 }) {
   return (
     <div className="grid min-w-0 gap-3 sm:grid-cols-3">
       {badges.map((b) => {
         const tone =
-          b.level === "done"
-            ? { bg: "linear-gradient(135deg,#92eee8,#5fd6cd)", fg: "#0f1729", border: "#5fd6cd" }
-            : b.level === "current"
-            ? { bg: "rgba(42,123,217,0.1)", fg: BRAND.primary, border: BRAND.primary }
+          b.level ==="done"
+            ? { bg:"linear-gradient(135deg,#92eee8,#5fd6cd)", fg:"#0f1729", border:"#5fd6cd" }
+            : b.level ==="current"
+            ? { bg:"rgba(42,123,217,0.1)", fg: BRAND.primary, border: BRAND.primary }
             : { bg: BRAND.surfaceMuted, fg: BRAND.textSubtle, border: BRAND.border };
         return (
           <div
@@ -589,7 +589,7 @@ export function BadgeRow({
             <div className="flex min-w-0 items-center gap-2">
               <div
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                style={{ background: "white", color: tone.fg }}
+                style={{ background:"white", color: tone.fg }}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -602,17 +602,17 @@ export function BadgeRow({
             <div className="min-w-0 text-xs leading-relaxed" style={{ color: tone.fg }}>
               {b.desc}
             </div>
-            {b.level === "current" && (
+            {b.level ==="current" && (
               <div className="rounded-full bg-blue-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: tone.fg }}>
                 Đang theo đuổi
               </div>
             )}
-            {b.level === "done" && (
-              <div className="rounded-full bg-emerald-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: "#059669" }}>
+            {b.level ==="done" && (
+              <div className="rounded-full bg-emerald-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color:"#059669" }}>
                 Đã đạt
               </div>
             )}
-            {b.level === "locked" && (
+            {b.level ==="locked" && (
               <div className="rounded-full bg-gray-100 px-2 py-0.5 text-center text-[10px] font-bold uppercase tracking-wide" style={{ color: BRAND.textSubtle }}>
                 Chưa mở khóa
               </div>
@@ -630,7 +630,7 @@ export function Timeline({
   items: { date: string; title: string; subtitle: string; badge?: string }[];
 }) {
   return (
-    <ol className="relative space-y-4 border-l-2 pl-5" style={{ borderColor: "rgba(146,238,232,0.5)" }}>
+    <ol className="relative space-y-4 border-l-2 pl-5" style={{ borderColor:"rgba(146,238,232,0.5)" }}>
       {items.map((it, i) => (
         <li key={i} className="relative">
           <span
@@ -644,7 +644,7 @@ export function Timeline({
             {it.badge && (
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                style={{ background: "rgba(42,123,217,0.1)", color: BRAND.primary }}
+                style={{ background:"rgba(42,123,217,0.1)", color: BRAND.primary }}
               >
                 {it.badge}
               </span>
@@ -680,7 +680,7 @@ export function Gallery({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={img.src}
-              alt={img.caption ?? ""}
+              alt={img.caption ??""}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {img.caption && (
@@ -727,7 +727,7 @@ export function MapPreview({
   const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
   return (
     <div
-      className="overflow-hidden rounded-2xl border bg-white shadow-sm"
+      className="overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-[#121A2C] dark:text-white dark:border-white/10"
       style={{ borderColor: BRAND.border }}
     >
       <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: BRAND.border }}>
@@ -769,7 +769,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className={`flex flex-col gap-1.5 ${full ? "sm:col-span-2" : ""}`}>
+    <label className={`flex flex-col gap-1.5 ${full ?"sm:col-span-2" :""}`}>
       <span className="text-xs font-medium" style={{ color: BRAND.textMuted }}>
         {label}
         {required && <span className="ml-0.5 text-red-500">*</span>}
@@ -784,7 +784,7 @@ export function Input({
   onChange,
   disabled,
   placeholder,
-  type = "text",
+  type ="text",
   icon,
 }: {
   value: string;
@@ -811,15 +811,15 @@ export function Input({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className={`w-full rounded-lg border bg-white py-2.5 text-sm outline-none transition-all focus:ring-2 ${
-          icon ? "pl-9 pr-4" : "px-4"
+          icon ?"pl-9 pr-4" :"px-4"
         } ${
           disabled
-            ? "cursor-default bg-[var(--surface-muted)] text-text-muted"
-            : "border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] hover:shadow-sm focus:border-[#2a7bd9]"
+            ?"cursor-default bg-[var(--surface-muted)] text-text-muted"
+            :"border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] hover:shadow-sm focus:border-[#2a7bd9]"
         }`}
-        style={{ borderColor: disabled ? BRAND.border : "rgba(42,123,217,0.4)" }}
+        style={{ borderColor: disabled ? BRAND.border :"rgba(42,123,217,0.4)" }}
         onFocus={(e) => (e.currentTarget.style.borderColor = BRAND.primary)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = disabled ? BRAND.border : "rgba(42,123,217,0.4)")}
+        onBlur={(e) => (e.currentTarget.style.borderColor = disabled ? BRAND.border :"rgba(42,123,217,0.4)")}
       />
     </div>
   );
@@ -843,13 +843,13 @@ export function Select({
       onChange={(e) => onChange(e.target.value)}
       className={`w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 ${
         disabled
-          ? "cursor-default bg-[var(--surface-muted)] text-text-muted"
-          : "border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] focus:border-[#2a7bd9]"
+          ?"cursor-default bg-[var(--surface-muted)] text-text-muted"
+          :"border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] focus:border-[#2a7bd9]"
       }`}
-      style={{ borderColor: disabled ? BRAND.border : "rgba(42,123,217,0.4)" }}
+      style={{ borderColor: disabled ? BRAND.border :"rgba(42,123,217,0.4)" }}
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value}>
+        <option className="bg-white dark:bg-[#1A263E] text-slate-900 dark:text-white" key={o.value} value={o.value}>
           {o.label}
         </option>
       ))}
@@ -885,14 +885,14 @@ export function ToggleRow({
         type="button"
         onClick={() => !disabled && onChange(!value)}
         className={`relative h-6 w-11 shrink-0 rounded-full transition-all ${
-          disabled ? "cursor-default opacity-70" : "cursor-pointer hover:scale-105 active:scale-95"
+          disabled ?"cursor-default opacity-70" :"cursor-pointer hover:scale-105 active:scale-95"
         }`}
         style={{ background: value ? BRAND.primary : BRAND.border }}
         aria-pressed={value}
       >
         <span
           className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-            value ? "left-[22px]" : "left-0.5"
+            value ?"left-[22px]" :"left-0.5"
           }`}
         />
       </button>
@@ -911,7 +911,7 @@ export function VerifyItem({ label, done }: { label: string; done?: boolean }) {
           className="flex h-7 w-7 items-center justify-center rounded-full"
           style={
             done
-              ? { background: "rgba(146,238,232,0.5)", color: BRAND.primaryDark }
+              ? { background:"rgba(146,238,232,0.5)", color: BRAND.primaryDark }
               : { background: BRAND.surfaceMuted, color: BRAND.textSubtle }
           }
         >
@@ -929,7 +929,7 @@ export function VerifyItem({ label, done }: { label: string; done?: boolean }) {
         className={`text-xs font-semibold hover:underline`}
         style={{ color: done ? BRAND.textSubtle : BRAND.primary }}
       >
-        {done ? "Xem" : "Xác minh ngay →"}
+        {done ?"Xem" :"Xác minh ngay →"}
       </button>
     </div>
   );
@@ -990,7 +990,7 @@ export function QuickLink({
       <div>
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ background: "rgba(42,123,217,0.1)", color: BRAND.primary }}
+          style={{ background:"rgba(42,123,217,0.1)", color: BRAND.primary }}
         >
           {code}
         </span>
@@ -1010,30 +1010,30 @@ export function QuickLink({
   );
 }
 
-export type ProfileRole = "TRAVELER" | "PROVIDER" | "ADMIN" | "BOTH";
+export type ProfileRole ="TRAVELER" |"PROVIDER" |"ADMIN" |"BOTH";
 
 export function RoleBadge({ role }: { role: ProfileRole }) {
   const map: Record<ProfileRole, { label: string }> = {
-    TRAVELER: { label: "Traveler" },
-    PROVIDER: { label: "Provider" },
-    ADMIN: { label: "Admin" },
-    BOTH: { label: "Traveler · Provider" },
+    TRAVELER: { label:"Traveler" },
+    PROVIDER: { label:"Provider" },
+    ADMIN: { label:"Admin" },
+    BOTH: { label:"Traveler · Provider" },
   };
   const m = map[role];
   const style: React.CSSProperties =
-    role === "PROVIDER"
+    role ==="PROVIDER"
       ? { background: BRAND.accent, color: BRAND.primaryDark }
-      : role === "ADMIN"
-      ? { background: "#0f1729", color: "white" }
-      : role === "TRAVELER"
-      ? { background: BRAND.primary, color: "white" }
-      : { background: "linear-gradient(135deg,#2a7bd9,#92eee8)", color: "white" };
+      : role ==="ADMIN"
+      ? { background:"#0f1729", color:"white" }
+      : role ==="TRAVELER"
+      ? { background: BRAND.primary, color:"white" }
+      : { background:"linear-gradient(135deg,#2a7bd9,#92eee8)", color:"white" };
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold"
       style={style}
     >
-      <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/70" />
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-white/70 dark:bg-[#121A2C] dark:text-white" />
       {m.label}
     </span>
   );
@@ -1058,11 +1058,11 @@ export function StickyCta({
   onCancel?: () => void;
   saving?: boolean;
 }) {
-  // Xác định trạng thái "đã lưu" (trong vòng 3 giây sau khi save)
+  // Xác định trạng thái"đã lưu" (trong vòng 3 giây sau khi save)
   const [justSaved, setJustSaved] = useState(false);
   const saved = savedAt !== null && savedAt !== undefined;
 
-  // Reset trạng thái "just saved" sau 3 giây
+  // Reset trạng thái"just saved" sau 3 giây
   useEffect(() => {
     if (savedAt) {
       setJustSaved(true);
@@ -1087,7 +1087,7 @@ export function StickyCta({
   // Chế độ bình thường: hiện CTA thông thường
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t bg-white/95 px-4 py-3 backdrop-blur lg:hidden dark:bg-[#121A2C] dark:text-white dark:border-white/10"
       style={{ borderColor: BRAND.border }}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-2">

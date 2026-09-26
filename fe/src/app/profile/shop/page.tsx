@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useEffect, useRef } from"react";
+import { useRouter } from"next/navigation";
+import Link from"next/link";
 import {
   Card,
   SectionTitle,
@@ -19,7 +19,7 @@ import {
   VerifyItem,
   SecurityItem,
   StickyCta,
-} from "@/components/profile/ui";
+} from"@/components/profile/ui";
 import {
   Reveal,
   MagneticAvatar,
@@ -30,14 +30,14 @@ import {
   AnimatedGradientText,
   StickyEditBar,
   useConfetti,
-} from "@/components/profile/wow";
-import { useEditingProfile } from "@/hooks/useEditingProfile";
-import { useProvidersProfile, useUpdateProviderProfile } from "@/hooks/useProvidersProfile";
-import { useMe } from "@/hooks/useSession";
-import { useSetAvatar } from "@/hooks/useSetAvatar";
-import { useQueryClient } from "@tanstack/react-query";
-import { Toast } from "@/components/ui/toast";
-import type { ProviderProfile } from "@/lib/api/client";
+} from"@/components/profile/wow";
+import { useEditingProfile } from"@/hooks/useEditingProfile";
+import { useProvidersProfile, useUpdateProviderProfile } from"@/hooks/useProvidersProfile";
+import { useMe } from"@/hooks/useSession";
+import { useSetAvatar } from"@/hooks/useSetAvatar";
+import { useQueryClient } from"@tanstack/react-query";
+import { Toast } from"@/components/ui/toast";
+import type { ProviderProfile } from"@/lib/api/client";
 
 interface ShopProfile {
   shopName: string;
@@ -77,7 +77,7 @@ function apiToForm(p: ProviderProfile | undefined): ShopProfile {
     category: cat,
     pickupAddress: p.pickupAddress,
     responseHours: p.responseHours,
-    languages: ["Tiếng Việt", "English"],
+    languages: ["Tiếng Việt","English"],
     itemsCount: p.itemsCount,
     rentalsCount: p.rentalsCount,
     responseTimeH: p.responseTimeH,
@@ -85,16 +85,16 @@ function apiToForm(p: ProviderProfile | undefined): ShopProfile {
     reviewsCount: p.reviewsCount,
     highlights: p.highlights ?? [],
     featured: [
-      { title: "Lều 4 người MSR Hubba", price: "250k/ngày", rating: 4.9, rentals: 56, src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600" },
-      { title: "Bộ nồi trekking MSR", price: "80k/ngày", rating: 4.8, rentals: 41, src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600" },
+      { title:"Lều 4 người MSR Hubba", price:"250k/ngày", rating: 4.9, rentals: 56, src:"https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600" },
+      { title:"Bộ nồi trekking MSR", price:"80k/ngày", rating: 4.8, rentals: 41, src:"https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600" },
     ],
     gallery: [
-      { src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600", caption: "Lều Hubba" },
-      { src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600", caption: "Bếp & nồi" },
-      { src: "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600", caption: "Túi ngủ -5°C" },
-      { src: "https://images.unsplash.com/photo-1487730116645-74489c95b41b?w=600", caption: "Bộ trekking pole" },
-      { src: "https://images.unsplash.com/photo-1532339142463-fd0a8549791a?w=600", caption: "Ba lô 65L" },
-      { src: "https://images.unsplash.com/photo-1455496231601-e6195da1f841?w=600", caption: "Đèn trekking" },
+      { src:"https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600", caption:"Lều Hubba" },
+      { src:"https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600", caption:"Bếp & nồi" },
+      { src:"https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600", caption:"Túi ngủ -5°C" },
+      { src:"https://images.unsplash.com/photo-1487730116645-74489c95b41b?w=600", caption:"Bộ trekking pole" },
+      { src:"https://images.unsplash.com/photo-1532339142463-fd0a8549791a?w=600", caption:"Ba lô 65L" },
+      { src:"https://images.unsplash.com/photo-1455496231601-e6195da1f841?w=600", caption:"Đèn trekking" },
     ],
     notifyBooking: true,
     notifyMessage: true,
@@ -104,9 +104,9 @@ function apiToForm(p: ProviderProfile | undefined): ShopProfile {
 
 function buildEmpty(): ShopProfile {
   return {
-    shopName: "", ownerName: "", email: "", phone: "",
-    bio: "", avatar: "", category: "Phương tiện",
-    pickupAddress: "", responseHours: "24 giờ",
+    shopName:"", ownerName:"", email:"", phone:"",
+    bio:"", avatar:"", category:"Phương tiện",
+    pickupAddress:"", responseHours:"24 giờ",
     languages: ["Tiếng Việt"],
     itemsCount: 0, rentalsCount: 0, responseTimeH: 24,
     rating: 0, reviewsCount: 0, highlights: [],
@@ -116,11 +116,11 @@ function buildEmpty(): ShopProfile {
 }
 
 const CATEGORY_MAP: Record<string, string> = {
-  CAMPING_TREKKING: "Camping & Trekking",
-  VEHICLE: "Phương tiện",
-  STAY: "Lưu trú",
-  EXPERIENCE: "Trải nghiệm",
-  OTHER: "Khác",
+  CAMPING_TREKKING:"Camping & Trekking",
+  VEHICLE:"Phương tiện",
+  STAY:"Lưu trú",
+  EXPERIENCE:"Trải nghiệm",
+  OTHER:"Khác",
 };
 const CATEGORY_REVERSE: Record<string, string> = Object.fromEntries(
   Object.entries(CATEGORY_MAP).map(([k, v]) => [v, k]),
@@ -223,7 +223,7 @@ export default function ShopProfilePage() {
                 size="lg"
               />
             </MagneticAvatar>
-            {/* Live badge "LIVE" đập đỏ trên avatar shop */}
+            {/* Live badge"LIVE" đập đỏ trên avatar shop */}
             <div className="absolute -bottom-2 -right-2">
               <LiveDot label="LIVE" tone="red" />
             </div>
@@ -235,7 +235,7 @@ export default function ShopProfilePage() {
               <button
                 onClick={() => setEditing(true)}
                 className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: "#2a7bd9", boxShadow: "0 8px 20px -8px rgba(42,123,217,0.5)" }}
+                style={{ background:"#2a7bd9", boxShadow:"0 8px 20px -8px rgba(42,123,217,0.5)" }}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -243,8 +243,8 @@ export default function ShopProfilePage() {
                 Chỉnh sửa shop
               </button>
               <button
-                className="inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2.5 text-sm font-semibold"
-                style={{ borderColor: "#e2e8f3", color: "#2a7bd9" }}
+                className="inline-flex items-center gap-2 rounded-full border bg-white px-4 py-2.5 text-sm font-semibold dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3", color:"#2a7bd9" }}
               >
                 💬 Chat Zalo
               </button>
@@ -254,7 +254,7 @@ export default function ShopProfilePage() {
               <button
                 onClick={handleSave}
                 className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-105"
-                style={{ background: "#2a7bd9", boxShadow: "0 8px 20px -8px rgba(42,123,217,0.5)" }}
+                style={{ background:"#2a7bd9", boxShadow:"0 8px 20px -8px rgba(42,123,217,0.5)" }}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -263,8 +263,8 @@ export default function ShopProfilePage() {
               </button>
               <button
                 onClick={cancel}
-                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="rounded-full border bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               >
                 Hủy
               </button>
@@ -277,7 +277,7 @@ export default function ShopProfilePage() {
         <div className="mx-auto mt-4 max-w-6xl px-6">
           <div
             className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm"
-            style={{ borderColor: "rgba(146,238,232,0.4)", background: "rgba(146,238,232,0.15)", color: "#1e5aa8" }}
+            style={{ borderColor:"rgba(146,238,232,0.4)", background:"rgba(146,238,232,0.15)", color:"#1e5aa8" }}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -292,7 +292,7 @@ export default function ShopProfilePage() {
           <KpiCards
             items={[
               {
-                label: "Đồ đang cho thuê",
+                label:"Đồ đang cho thuê",
                 value: p.itemsCount,
                 hint: `${p.featured.length} nổi bật`,
                 valueNode: <Counter value={p.itemsCount} />,
@@ -303,9 +303,9 @@ export default function ShopProfilePage() {
                 ),
               },
               {
-                label: "Lượt thuê",
+                label:"Lượt thuê",
                 value: p.rentalsCount,
-                hint: "tất cả thời gian",
+                hint:"tất cả thời gian",
                 valueNode: <Counter value={p.rentalsCount} />,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -314,9 +314,9 @@ export default function ShopProfilePage() {
                 ),
               },
               {
-                label: "Phản hồi trung bình",
+                label:"Phản hồi trung bình",
                 value: `${p.responseTimeH}h`,
-                hint: "98% trong 24h",
+                hint:"98% trong 24h",
                 valueNode: <><Counter value={p.responseTimeH} suffix="h" /></>,
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -325,7 +325,7 @@ export default function ShopProfilePage() {
                 ),
               },
               {
-                label: "Đánh giá",
+                label:"Đánh giá",
                 value: `${p.rating.toFixed(1)} ⭐`,
                 hint: `${p.reviewsCount} reviews`,
                 valueNode: <><Counter value={p.rating} decimals={1} /> ⭐</>,
@@ -377,7 +377,7 @@ export default function ShopProfilePage() {
                 <button
                   type="button"
                   className="text-xs font-semibold hover:underline"
-                  style={{ color: "#2a7bd9" }}
+                  style={{ color:"#2a7bd9" }}
                 >
                   + Thêm cam kết
                 </button>
@@ -393,9 +393,9 @@ export default function ShopProfilePage() {
               disabled={!editing}
               className="flex w-full items-center gap-3 rounded-xl border p-4 text-left"
               style={{
-                borderColor: "#92eee8",
-                background: "rgba(146,238,232,0.18)",
-                color: "#1e5aa8",
+                borderColor:"#92eee8",
+                background:"rgba(146,238,232,0.18)",
+                color:"#1e5aa8",
               }}
             >
               <span className="text-base font-semibold">{h}</span>
@@ -430,11 +430,11 @@ export default function ShopProfilePage() {
                 onChange={(v) => update("category", v)}
                 disabled={!editing}
                 options={[
-                  { value: "Camping & Trekking", label: "Camping & Trekking" },
-                  { value: "Phương tiện", label: "Phương tiện (xe máy, ô tô)" },
-                  { value: "Lưu trú", label: "Lưu trú (homestay, villa)" },
-                  { value: "Trải nghiệm", label: "Trải nghiệm (tour, workshop)" },
-                  { value: "Khác", label: "Khác" },
+                  { value:"Camping & Trekking", label:"Camping & Trekking" },
+                  { value:"Phương tiện", label:"Phương tiện (xe máy, ô tô)" },
+                  { value:"Lưu trú", label:"Lưu trú (homestay, villa)" },
+                  { value:"Trải nghiệm", label:"Trải nghiệm (tour, workshop)" },
+                  { value:"Khác", label:"Khác" },
                 ]}
               />
             </Field>
@@ -460,8 +460,8 @@ export default function ShopProfilePage() {
                 disabled={!editing}
                 onChange={(e) => update("bio", e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)]"
-                style={{ borderColor: "#e2e8f3" }}
+                className="w-full rounded-lg border bg-white px-4 py-2.5 text-sm outline-none focus:ring-2 disabled:bg-[var(--surface-muted)] dark:bg-[#121A2C] dark:text-white dark:border-white/10"
+                style={{ borderColor:"#e2e8f3" }}
               />
             </Field>
           </div>
@@ -472,7 +472,7 @@ export default function ShopProfilePage() {
           <VerifyItem label="Xác minh khuôn mặt" done />
           <VerifyItem label="Số tài khoản ngân hàng" />
           <VerifyItem label="Mã số thuế (tuỳ chọn)" />
-          <div className="mt-4 rounded-lg border border-dashed p-3 text-xs" style={{ borderColor: "#92eee8", background: "rgba(146,238,232,0.15)", color: "#1e5aa8" }}>
+          <div className="mt-4 rounded-lg border border-dashed p-3 text-xs" style={{ borderColor:"#92eee8", background:"rgba(146,238,232,0.15)", color:"#1e5aa8" }}>
             Hoàn tất KYC để tăng giới hạn rút tiền lên <strong>50M VND/ngày</strong>.
           </div>
         </Card>
@@ -483,20 +483,20 @@ export default function ShopProfilePage() {
               <div
                 key={it.title}
                 className="overflow-hidden rounded-xl border"
-                style={{ borderColor: "#e2e8f3" }}
+                style={{ borderColor:"#e2e8f3" }}
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-muted)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={it.src} alt={it.title} className="h-full w-full object-cover" />
-                  <div className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold" style={{ color: "#2a7bd9" }}>
+                  <div className="absolute right-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-bold dark:bg-[#121A2C] dark:text-white" style={{ color:"#2a7bd9" }}>
                     ⭐ {it.rating.toFixed(1)}
                   </div>
                 </div>
                 <div className="p-3">
                   <div className="text-sm font-semibold">{it.title}</div>
-                  <div className="mt-1 flex items-center justify-between text-xs" style={{ color: "#5a6b85" }}>
+                  <div className="mt-1 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                     <span>{it.rentals} lượt thuê</span>
-                    <span className="font-bold" style={{ color: "#2a7bd9" }}>{it.price}</span>
+                    <span className="font-bold" style={{ color:"#2a7bd9" }}>{it.price}</span>
                   </div>
                 </div>
               </div>
@@ -505,7 +505,7 @@ export default function ShopProfilePage() {
           <button
             type="button"
             className="mt-4 inline-flex items-center gap-1 text-sm font-semibold"
-            style={{ color: "#2a7bd9" }}
+            style={{ color:"#2a7bd9" }}
           >
             Xem tất cả {p.itemsCount} đồ đang cho thuê →
           </button>
@@ -557,7 +557,7 @@ export default function ShopProfilePage() {
         </Card>
       </section>
 
-      <StickyCta primary={{ label: "📅 Quản lý lịch trống" }} secondary={{ label: "💬 Chat Zalo" }} />
+      <StickyCta primary={{ label:"📅 Quản lý lịch trống" }} secondary={{ label:"💬 Chat Zalo" }} />
       <StickyEditBar visible={editing} savedAt={savedAt} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
       <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />

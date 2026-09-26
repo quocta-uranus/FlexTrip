@@ -66,7 +66,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,41,0.5)' }}>
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border bg-white shadow-2xl"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border bg-white shadow-2xl dark:bg-[#121A2C] dark:text-white dark:border-white/10"
         style={{ borderColor: '#e2e8f3' }}
       >
         {/* Header */}
@@ -75,7 +75,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
             <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
               AUTH-04
             </div>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               {step === 'recovery' ? 'Mã khôi phục' : 'Bật xác thực 2 bước'}
             </h2>
           </div>
@@ -113,7 +113,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
           {/* Scan QR */}
           {step === 'scan' && setup && (
             <div className="space-y-5">
-              <p className="text-sm" style={{ color: '#5a6b85' }}>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Quét mã QR bên dưới bằng ứng dụng Authenticator (Google Authenticator, Authy…).
               </p>
 
@@ -130,14 +130,14 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
               )}
 
               <div>
-                <p className="mb-1.5 text-xs font-medium" style={{ color: '#5a6b85' }}>
+                <p className="mb-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
                   Hoặc nhập mã thủ công:
                 </p>
                 <div
                   className="flex items-center gap-2 rounded-lg border px-3 py-2"
                   style={{ borderColor: '#e2e8f3', background: '#f1f5fa' }}
                 >
-                  <code className="flex-1 text-sm font-mono" style={{ color: '#0f1729' }}>
+                  <code className="flex-1 text-sm font-mono text-slate-900 dark:text-slate-100">
                     {setup.secret}
                   </code>
                   <button onClick={copySecret} className="shrink-0 text-xs font-semibold" style={{ color: '#2a7bd9' }}>
@@ -159,7 +159,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
           {/* Verify code */}
           {step === 'verify' && (
             <div className="space-y-5">
-              <p className="text-sm" style={{ color: '#5a6b85' }}>
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Nhập mã 6 chữ số từ ứng dụng Authenticator để xác nhận thiết lập.
               </p>
 
@@ -179,7 +179,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
                     inputMode="numeric"
                     maxLength={6}
                     placeholder="000000"
-                    className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30"
+                    className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30 dark:bg-[#121A2C] dark:text-white dark:border-white/10"
                     style={{ borderColor: '#e2e8f3', color: '#0f1729', letterSpacing: '0.4em' }}
                   />
                   {errors.code && (
@@ -220,7 +220,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
               </div>
 
               <div>
-                <p className="mb-2 text-sm font-medium" style={{ color: '#0f1729' }}>
+                <p className="mb-2 text-sm font-medium text-slate-900 dark:text-slate-100">
                   Mã khôi phục (lưu lại ngay, chỉ hiện một lần):
                 </p>
                 <div
@@ -229,13 +229,13 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
                 >
                   <div className="grid grid-cols-2 gap-1.5">
                     {result.recoveryCodes.map((code) => (
-                      <code key={code} className="text-xs font-mono" style={{ color: '#0f1729' }}>
+                      <code key={code} className="text-xs font-mono text-slate-900 dark:text-slate-100">
                         {code}
                       </code>
                     ))}
                   </div>
                 </div>
-                <p className="mt-2 text-xs" style={{ color: '#8694ad' }}>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Mỗi mã chỉ dùng được một lần. Lưu vào nơi an toàn.
                 </p>
               </div>

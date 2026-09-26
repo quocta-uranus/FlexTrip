@@ -55,7 +55,7 @@ function SetupPasswordForm() {
       className="flex min-h-screen items-center justify-center px-4"
       style={{ background: 'linear-gradient(135deg, #0f1729 0%, #1a3f7a 50%, #2a7bd9 100%)' }}
     >
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl sm:p-10">
+      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl sm:p-10 dark:bg-[#121A2C] dark:text-white">
         {done ? (
           <div className="flex flex-col items-center gap-4 py-8 text-center">
             <div
@@ -64,10 +64,10 @@ function SetupPasswordForm() {
             >
               ✅
             </div>
-            <h2 className="text-xl font-bold" style={{ color: '#0f1729' }}>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
               Mật khẩu đã được tạo!
             </h2>
-            <p className="leading-relaxed" style={{ color: '#5a6b85' }}>
+            <p className="leading-relaxed text-slate-600 dark:text-slate-300">
               Tài khoản Provider của bạn đã sẵn sàng.
               Đang chuyển đến trang đăng nhập...
             </p>
@@ -89,10 +89,10 @@ function SetupPasswordForm() {
               >
                 FlexTrip Provider
               </span>
-              <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Tạo mật khẩu của bạn
               </h1>
-              <p className="mt-2 text-sm" style={{ color: '#5a6b85' }}>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 Tài khoản Provider đã được phê duyệt.
                 Đặt mật khẩu để bắt đầu đăng tin cho thuê.
               </p>
@@ -100,7 +100,7 @@ function SetupPasswordForm() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-900 dark:text-slate-100">
                   Mật khẩu mới *
                 </label>
                 <input
@@ -116,7 +116,7 @@ function SetupPasswordForm() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold" style={{ color: '#0f1729' }}>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-900 dark:text-slate-100">
                   Nhập lại mật khẩu *
                 </label>
                 <input
@@ -149,7 +149,7 @@ function SetupPasswordForm() {
               </button>
             </form>
 
-            <p className="mt-6 text-center text-xs" style={{ color: '#8694ad' }}>
+            <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
               Gặp sự cố?{' '}
               <a href="mailto:support@flextrip.vn" className="underline" style={{ color: '#2a7bd9' }}>
                 Liên hệ support@flextrip.vn

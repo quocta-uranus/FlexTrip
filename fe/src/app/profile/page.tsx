@@ -37,7 +37,7 @@ export default function ProfileHubPage() {
           className="h-10 w-10 animate-spin rounded-full border-4"
           style={{ borderColor: '#e2e8f3', borderTopColor: '#2a7bd9' }}
         />
-        <p className="text-sm" style={{ color: '#5a6b85' }}>Đang chuyển hồ sơ…</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">Đang chuyển hồ sơ…</p>
       </div>
     </div>
   );

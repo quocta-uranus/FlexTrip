@@ -1,43 +1,43 @@
-import type { Metadata } from "next";
-import { Inter, Manrope, Plus_Jakarta_Sans, DM_Sans, DM_Serif_Display } from "next/font/google";
-import { Providers } from "./providers";
-import { AuthBootstrap } from "@/components/auth-bootstrap";
-import { Navbar } from "@/components/navbar";
-import "./globals.css";
+import type { Metadata } from"next";
+import { Inter, Manrope, Plus_Jakarta_Sans, DM_Sans, DM_Serif_Display } from"next/font/google";
+import { Providers } from"./providers";
+import { AuthBootstrap } from"@/components/auth-bootstrap";
+import { Navbar } from"@/components/navbar";
+import"./globals.css";
 
 const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "vietnamese"],
+  variable:"--font-inter",
+  subsets: ["latin","vietnamese"],
 });
 
 const bodyFont = Plus_Jakarta_Sans({
-  variable: "--font-sans",
-  subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
+  variable:"--font-sans",
+  subsets: ["latin","vietnamese"],
+  weight: ["400","500","600","700","800"],
 });
 
 const headingFont = Manrope({
-  variable: "--font-heading",
-  subsets: ["latin", "vietnamese"],
-  weight: ["600", "700", "800"],
+  variable:"--font-heading",
+  subsets: ["latin","vietnamese"],
+  weight: ["600","700","800"],
 });
 
 const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+  variable:"--font-dm-sans",
+  subsets: ["latin","latin-ext"],
+  weight: ["400","500","600","700"],
 });
 
 const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
+  variable:"--font-dm-serif",
   subsets: ["latin"],
   weight: ["400"],
-  style: ["normal", "italic"],
+  style: ["normal","italic"],
 });
 
 export const metadata: Metadata = {
-  title: "FlexTrip",
-  description: "Nền tảng du lịch linh hoạt",
+  title:"FlexTrip",
+  description:"Nền tảng du lịch linh hoạt",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body
-        className="has-travel-bg min-h-full flex flex-col bg-[#f1faff] dark:bg-[#070b12] text-slate-900 dark:text-slate-100 transition-colors duration-200"
+        className="has-travel-bg min-h-full flex flex-col bg-[#f1faff] dark:bg-[#070b12] transition-colors duration-200 text-slate-900 dark:text-slate-100"
       >
         {/* Wrapper giữ layout flex, không che background */}
         <div className="relative min-h-full flex flex-col">
