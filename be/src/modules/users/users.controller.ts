@@ -5,12 +5,10 @@ import {
   Get,
   Param,
   Patch,
-  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
 import {
   AccessTokenGuard,
   AuthenticatedRequest,
@@ -35,18 +33,6 @@ export class UsersController {
   @ApiOperation({ summary: 'PROF-01: Cập nhật hồ sơ' })
   updateMe(@Req() req: AuthenticatedRequest, @Body() dto: UpdateUserDto) {
     return this.svc.updateMe(req.authUserId, dto, req);
-  }
-
-  @Post('me/roles/:role')
-  @ApiOperation({ summary: 'Thêm role (vd upgrade lên Provider)' })
-  addRole(@Req() req: AuthenticatedRequest, @Param('role') role: Role) {
-    return this.svc.addRole(req.authUserId, role);
-  }
-
-  @Delete('me/roles/:role')
-  @ApiOperation({ summary: 'Thu hồi role' })
-  removeRole(@Req() req: AuthenticatedRequest, @Param('role') role: Role) {
-    return this.svc.removeRole(req.authUserId, role);
   }
 
   @Get('me/sessions')

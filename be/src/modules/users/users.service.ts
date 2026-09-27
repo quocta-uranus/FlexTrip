@@ -31,18 +31,6 @@ export class UsersService {
     return this.getMe(userId, req);
   }
 
-  async addRole(userId: string, role: Role) {
-    return this.prisma.userRole.upsert({
-      where: { userId_role: { userId, role } },
-      create: { userId, role },
-      update: {},
-    });
-  }
-
-  async removeRole(userId: string, role: Role) {
-    return this.prisma.userRole.delete({ where: { userId_role: { userId, role } } });
-  }
-
   async sessions(userId: string) {
     return this.prisma.authSession.findMany({
       where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
@@ -51,9 +39,13 @@ export class UsersService {
   }
 
   async revokeSession(userId: string, sessionId: string) {
-    return this.prisma.authSession
-      .update({ where: { id: sessionId }, data: { revokedAt: new Date() } })
-      .catch(() => { throw new NotFoundException('Session not found'); });
+    const { count } = await this.prisma.authSession.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (count === 0)
+      throw new NotFoundException({ code: 'SESSION_NOT_FOUND', message: 'Không tìm thấy phiên đăng nhập.' });
+    return { ok: true as const };
   }
 
   private publicProfile(u: any, req?: import('express').Request) {
