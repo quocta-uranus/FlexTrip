@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Redis } from 'ioredis';
-
-export const REDIS_CLIENT = Symbol('REDIS_CLIENT');
+import { REDIS_CLIENT } from '../../../common/redis/redis.module';
 
 const TTL_SECONDS = 600; // 10 minutes
 const RESEND_COOLDOWN_SECONDS = 60;

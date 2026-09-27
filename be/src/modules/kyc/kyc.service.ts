@@ -21,6 +21,8 @@ import {
 } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { KycReviewDecision, ReviewKycDto, SubmitKycDto } from './dto';
+import { AuditService } from '../audit/audit.service';
+import { RequestContext } from '../../common/request-context';
 
 const USER_WITH_ROLES = { roles: true } as const;
 
@@ -29,6 +31,7 @@ export class KycService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   async submit(userId: string, dto: SubmitKycDto) {
@@ -121,7 +124,7 @@ export class KycService {
     }));
   }
 
-  async review(adminId: string, applicationId: string, dto: ReviewKycDto) {
+  async review(adminId: string, applicationId: string, dto: ReviewKycDto, ctx: RequestContext) {
     return this.prisma.$transaction(async (tx) => {
       await this.requireCurrentUser(adminId, [Role.ADMIN], tx);
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
@@ -165,6 +168,13 @@ export class KycService {
           update: {},
         });
       }
+      await this.audit.log(tx, ctx, {
+        action: dto.decision === 'APPROVE' ? 'KYC_APPROVED' : 'KYC_REJECTED',
+        entityType: 'KycApplication',
+        entityId: applicationId,
+        before: { status: application.status },
+        after: { status: updated.status, rejectionReason: updated.rejectionReason ?? null },
+      });
       return this.publicSummary(updated);
     });
   }

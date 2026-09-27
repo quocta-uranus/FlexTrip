@@ -8,7 +8,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@ne
 import * as XLSX from 'xlsx';
 import { ListingsService } from './listings.service';
 import {
-  CreateListingDto, UpdateListingDto,
+  CreateListingDto, UpdateListingDto, FlagListingDto,
   AiSuggestDto, AiDescriptionDto, AiOptimizeDto, AiQualityDto,
 } from './listings.dto';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
@@ -22,14 +22,12 @@ export class ListingsController {
 
   @Get()
   @ApiOperation({ summary: 'Public: list active listings' })
-  @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'location', required: false })
   findAll(
-    @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('category') category?: string,
@@ -37,7 +35,6 @@ export class ListingsController {
     @Query('location') location?: string,
   ) {
     return this.svc.findAll({
-      status,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       category,
@@ -96,6 +93,14 @@ export class ListingsController {
   @ApiOperation({ summary: 'LIST-01: Delete listing' })
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.svc.remove(id, req.authUserId);
+  }
+
+  @Post(':id/flags')
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'ADMIN-03: Người dùng báo cáo vi phạm tin đăng' })
+  flag(@Param('id') id: string, @Body() dto: FlagListingDto, @Req() req: AuthenticatedRequest) {
+    return this.svc.flag(id, req.authUserId, dto);
   }
 
   @Patch(':id/publish')
