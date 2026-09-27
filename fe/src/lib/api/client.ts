@@ -86,6 +86,38 @@ function buildHeaders(extra?: HeadersInit, body?: BodyInit | null): HeadersInit 
   return headers;
 }
 
+export interface ApiError extends Error {
+  status?: number;
+  code?: string;
+}
+
+async function apiDownload(path: string, filename: string): Promise<void> {
+  const doFetch = () => fetch(`${API_URL}${path}`, { headers: buildHeaders(), credentials: 'include' });
+  let res = await doFetch();
+  if (res.status === 401 && (await tryRefresh())) res = await doFetch();
+  if (!res.ok) {
+    const err = new Error(`Tải file thất bại (HTTP ${res.status})`) as ApiError;
+    err.status = res.status;
+    throw err;
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function toQuery(params: Record<string, string | number | boolean | null | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '' || v === 'ALL') continue;
+    q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : '';
+}
+
 async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},
@@ -107,9 +139,11 @@ async function apiFetch<T = any>(
   }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Network error' }));
-    const err = new Error(error.message || `HTTP ${res.status}`);
-    (err as any).status = res.status;
+    const body = await res.json().catch(() => ({ message: 'Network error' }));
+    const message = Array.isArray(body.message) ? body.message.join('\n') : body.message;
+    const err = new Error(message || `HTTP ${res.status}`) as ApiError;
+    err.status = res.status;
+    err.code = typeof body.code === 'string' ? body.code : undefined;
     throw err;
   }
 
@@ -153,6 +187,8 @@ export const api = {
 
   delete: (path: string, headers?: HeadersInit) =>
     apiFetch(path, { method: 'DELETE', headers }),
+
+  download: (path: string, filename: string) => apiDownload(path, filename),
 };
 
 // ─── User / Profile ─────────────────────────────────────────────────────────
@@ -246,13 +282,6 @@ export const userApi = {
 
   revokeSession: (id: string) =>
     api.delete(`/users/me/sessions/${id}`) as Promise<any>,
-
-  // Roles
-  addRole: (role: string) =>
-    api.post(`/users/me/roles/${role}`, {}) as Promise<any>,
-
-  removeRole: (role: string) =>
-    api.delete(`/users/me/roles/${role}`) as Promise<any>,
 };
 
 // ─── Wallet ─────────────────────────────────────────────────────────────────
