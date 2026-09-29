@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingApi } from '@/lib/api/client';
-import type { CreateBookingPayload } from '@/types/booking';
+import type { ConfirmPaymentPayload, CreateBookingPayload } from '@/types/booking';
 
 export function useMyBookings(params?: { status?: string; limit?: number }) {
   return useQuery({
@@ -28,8 +28,41 @@ export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateBookingPayload) => bookingApi.create(data),
-    onSuccess: () => {
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-bookings'] }),
+  });
+}
+
+export function useConfirmPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ConfirmPaymentPayload }) =>
+      bookingApi.confirmPayment(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['booking', id] });
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
+    },
+  });
+}
+
+export function useApproveBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => bookingApi.approve(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['booking', id] });
+      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
+    },
+  });
+}
+
+export function useDeclineBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      bookingApi.decline(id, reason),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['booking', id] });
+      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
     },
   });
 }
@@ -37,18 +70,30 @@ export function useCreateBooking() {
 export function useCancelBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => bookingApi.cancel(id),
-    onSuccess: (_, id) => {
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      bookingApi.cancel(id, reason),
+    onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: ['booking', id] });
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
     },
   });
 }
 
-export function useConfirmBooking() {
+export function useStartBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => bookingApi.confirm(id),
+    mutationFn: (id: string) => bookingApi.start(id),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['booking', id] });
+      qc.invalidateQueries({ queryKey: ['provider-bookings'] });
+    },
+  });
+}
+
+export function useCompleteBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => bookingApi.complete(id),
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: ['booking', id] });
       qc.invalidateQueries({ queryKey: ['provider-bookings'] });

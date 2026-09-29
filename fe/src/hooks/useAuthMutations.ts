@@ -47,16 +47,19 @@ export function useLogin() {
       setAuth(user, result.accessToken, result.refreshToken);
       qc.setQueryData(['me'], user);
 
-      // Route theo role — mỗi user chỉ giữ 1 role duy nhất
       const roles = user.roles as string[];
-      if (roles.includes('PROVIDER')) {
-        router.push('/profile/shop');
-      } else if (roles.includes('TRAVELER')) {
-        router.push('/profile/travel');
-      } else if (roles.includes('ADMIN')) {
-        router.push('/profile/admin');
+      const redirectParam = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('redirect')
+        : null;
+
+      if (redirectParam) {
+        router.push(redirectParam);
+      } else if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+        router.push('/admin');
+      } else if (roles.includes('PROVIDER')) {
+        router.push('/dashboard');
       } else {
-        router.push('/profile');
+        router.push('/');
       }
     },
   });
@@ -75,7 +78,14 @@ export function useVerify2faLogin() {
       const user = await userApi.me(tokens.accessToken);
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
-      router.push('/');
+      const roles = user.roles as string[];
+      if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+        router.push('/admin');
+      } else if (roles.includes('PROVIDER')) {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
     },
   });
 }

@@ -42,12 +42,32 @@ enum KycDocumentType {
 }
 
 enum BookingStatus {
-  PENDING
+  PENDING_PAYMENT   // vừa tạo, chưa thanh toán
+  PENDING_APPROVAL  // đã trả tiền, chờ provider duyệt
   CONFIRMED
-  CANCELLED
+  IN_PROGRESS       // đang trong kỳ thuê
   COMPLETED
+  CANCELLED
+  DISPUTED          // tranh chấp — listing bị lock
   REFUNDING
   REFUNDED
+}
+
+enum DeliveryMethod {
+  PICKUP
+  DELIVERY
+}
+
+enum CancelledBy {
+  TRAVELER
+  PROVIDER
+  SYSTEM
+}
+
+enum ModifyRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum PaymentStatus {
@@ -215,6 +235,8 @@ model User {
   // business domain
   listings            Listing[]
   bookings            Booking[]            @relation("TravelerBookings")
+  cart                Cart?
+  modifyRequests      BookingModifyRequest[]
   sentMessages        Message[]            @relation("SentMessages")
   notifications       Notification[]
   reviewsGiven        Review[]             @relation("ReviewsGiven")
@@ -346,10 +368,18 @@ model Listing {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  provider User          @relation(fields: [providerId], references: [id])
-  bookings Booking[]
-  reviews  Review[]
-  flags    ListingFlag[]
+  // CAL-02: rental period config
+  minRentalDays Int     @default(1)
+  maxRentalDays Int?
+  quantity      Int     @default(1)
+  depositRate   Decimal @default(0.30) @db.Decimal(3, 2)
+
+  provider     User                  @relation(fields: [providerId], references: [id])
+  bookings     Booking[]
+  reviews      Review[]
+  flags        ListingFlag[]
+  availability ListingAvailability[]
+  cartItems    CartItem[]
 
   @@index([providerId])
   @@index([status])
@@ -360,28 +390,119 @@ model Listing {
 
 model Booking {
   id              String        @id @default(cuid())
-  startDate       DateTime
-  endDate         DateTime
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
   totalPrice      Decimal       @db.Decimal(10, 2)
-  status          BookingStatus @default(PENDING)
+  status          BookingStatus @default(PENDING_PAYMENT)
   notes           String?
   assignedStaffId String?
   travelerId      String
   listingId       String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
 
-  traveler      User      @relation("TravelerBookings", fields: [travelerId], references: [id])
-  listing       Listing   @relation(fields: [listingId], references: [id])
-  payment       Payment?
-  contract      Contract?
-  assignedStaff User?     @relation("StaffAssignedBookings", fields: [assignedStaffId], references: [id], onDelete: SetNull)
-  disputes      Dispute[]
+  // BOOK-01
+  quantity        Int            @default(1)
+  depositAmount   Decimal        @db.Decimal(10, 2) @default(0)
+  deliveryMethod  DeliveryMethod @default(PICKUP)
+  deliveryAddress String?
+
+  // BOOK-07: cancellation
+  cancelledBy        CancelledBy?
+  cancellationReason String?
+  cancelledAt        DateTime?
+
+  // BOOK-03: temporary hold
+  holdExpiresAt DateTime?
+
+  // BOOK-08: check-in/out (deferred, schema sẵn)
+  checkedInAt  DateTime?
+  checkedOutAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  traveler       User                  @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing        Listing               @relation(fields: [listingId], references: [id])
+  payment        Payment?
+  contract       Contract?
+  assignedStaff  User?                 @relation("StaffAssignedBookings", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  disputes       Dispute[]
+  modifyRequests BookingModifyRequest[]
 
   @@index([travelerId])
   @@index([listingId])
   @@index([status])
   @@index([assignedStaffId])
+  @@index([startDate, endDate])
+}
+
+// ─── Availability ────────────────────────────────────────────────────────────
+
+model ListingAvailability {
+  id        String   @id @default(cuid())
+  listingId String
+  date      DateTime @db.Date
+  isBlocked Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, date])
+  @@index([listingId])
+}
+
+// ─── Cart ────────────────────────────────────────────────────────────────────
+
+model Cart {
+  id         String     @id @default(cuid())
+  travelerId String     @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  traveler User       @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  items    CartItem[]
+}
+
+model CartItem {
+  id              String         @id @default(cuid())
+  cartId          String
+  listingId       String
+  startDate       DateTime       @db.Date
+  endDate         DateTime       @db.Date
+  quantity        Int            @default(1)
+  deliveryMethod  DeliveryMethod @default(PICKUP)
+  deliveryAddress String?
+  unitPrice       Decimal        @db.Decimal(10, 2)
+  holdExpiresAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@index([cartId])
+  @@index([holdExpiresAt])
+}
+
+// ─── Booking Modify Request ───────────────────────────────────────────────────
+
+model BookingModifyRequest {
+  id            String              @id @default(cuid())
+  bookingId     String
+  requestedById String
+  newStartDate  DateTime            @db.Date
+  newEndDate    DateTime            @db.Date
+  newQuantity   Int?
+  reason        String?
+  status        ModifyRequestStatus @default(PENDING)
+  respondedAt   DateTime?
+  createdAt     DateTime            @default(now())
+
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation(fields: [requestedById], references: [id])
+
+  @@index([bookingId])
 }
 
 // ─── Payment ─────────────────────────────────────────────────────────────────

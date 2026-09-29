@@ -10,7 +10,7 @@ import {
 } from './dto/admin-disputes.dto';
 
 const CLOSED: DisputeStatus[] = [DisputeStatus.RESOLVED, DisputeStatus.REJECTED];
-const REFUNDABLE: BookingStatus[] = [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.CANCELLED];
+const REFUNDABLE: BookingStatus[] = [BookingStatus.PENDING_APPROVAL, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED, BookingStatus.CANCELLED];
 
 const PARTIES = {
   booking: {

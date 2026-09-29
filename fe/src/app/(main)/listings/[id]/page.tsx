@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useListing } from '@/hooks/useListings';
-import { useBookingStore } from '@/store/booking.store';
+import { BookingWidget } from '@/components/listing/booking-widget';
 import { CATEGORY_LABELS } from '@/types/listing';
 
 function StarRating({ rating, count }: { rating: number; count?: number }) {
@@ -25,22 +25,7 @@ export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: listing, isLoading, error } = useListing(id);
-  const { setDraft } = useBookingStore();
   const [selectedImage, setSelectedImage] = useState(0);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-
-  const price = listing ? (typeof listing.price === 'number' ? listing.price : Number(listing.price)) : 0;
-  const nights = startDate && endDate
-    ? Math.max(0, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000))
-    : 0;
-  const total = nights * price;
-
-  function handleBook() {
-    if (!listing || !startDate || !endDate) return;
-    setDraft({ listing, listingId: listing.id, startDate, endDate, totalPrice: total, nights });
-    router.push(`/bookings/new?listingId=${listing.id}&from=${startDate}&to=${endDate}`);
-  }
 
   if (isLoading) {
     return (
@@ -271,68 +256,7 @@ export default function ListingDetailPage() {
 
           {/* Booking sidebar */}
           <div>
-            <div className="sticky top-48 rounded-2xl border bg-white p-6 shadow-lg" style={{ borderColor: '#DCEFFB', boxShadow: '0 20px 60px -15px rgba(42,123,217,0.15)' }}>
-              <div className="mb-5">
-                <span className="text-3xl font-bold" style={{ color: '#2a7bd9' }}>
-                  {price.toLocaleString('vi-VN')}
-                </span>
-                <span className="text-sm" style={{ color: '#8694ad' }}> {listing.currency ?? 'VND'}/ngày</span>
-              </div>
-
-              <div className="mb-5 space-y-3">
-                <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày bắt đầu</label>
-                  <input
-                    id="booking-start-date"
-                    type="date"
-                    min={new Date().toISOString().split('T')[0]}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/30"
-                    style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>Ngày kết thúc</label>
-                  <input
-                    id="booking-end-date"
-                    type="date"
-                    min={startDate || new Date().toISOString().split('T')[0]}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/30"
-                    style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-                  />
-                </div>
-              </div>
-
-              {nights > 0 && (
-                <div className="mb-5 rounded-xl p-3 space-y-2" style={{ background: '#f6fbfe' }}>
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: '#5a6b85' }}>{price.toLocaleString('vi-VN')} × {nights} ngày</span>
-                    <span style={{ color: '#0f1729' }}>{(price * nights).toLocaleString('vi-VN')}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2 text-sm font-bold" style={{ borderColor: '#DCEFFB' }}>
-                    <span style={{ color: '#0f1729' }}>Tổng cộng</span>
-                    <span style={{ color: '#2a7bd9' }}>{total.toLocaleString('vi-VN')} {listing.currency ?? 'VND'}</span>
-                  </div>
-                </div>
-              )}
-
-              <button
-                id="listing-book-btn"
-                onClick={handleBook}
-                disabled={!startDate || !endDate || nights <= 0 || listing.status !== 'ACTIVE'}
-                className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
-                style={{ background: '#2a7bd9', boxShadow: nights > 0 ? '0 8px 24px -6px rgba(42,123,217,0.5)' : 'none' }}
-              >
-                {listing.status !== 'ACTIVE' ? 'Không khả dụng' : !startDate || !endDate ? 'Chọn ngày thuê' : 'Đặt thuê ngay'}
-              </button>
-
-              <p className="mt-3 text-center text-xs" style={{ color: '#8694ad' }}>
-                Bạn chưa bị tính tiền cho đến khi xác nhận
-              </p>
-            </div>
+            <BookingWidget listing={listing} />
           </div>
         </div>
       </div>

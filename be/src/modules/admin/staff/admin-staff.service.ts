@@ -10,7 +10,7 @@ import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { RequestContext } from '../../../common/request-context';
 import { CreateStaffDto, ListStaffQueryDto, UpdateStaffDto } from './dto/admin-staff.dto';
 
-export const OPEN_BOOKING_STATUSES: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+export const OPEN_BOOKING_STATUSES: BookingStatus[] = [BookingStatus.PENDING_APPROVAL, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS];
 const INVITE_TTL_MS = 48 * 3600_000;
 
 const STAFF_SELECT = {

@@ -1,29 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { Reveal, LiveDot } from "@/components/profile/wow";
 import { useAdminDashboard } from "@/hooks/admin/use-admin-dashboard";
 import { useAuthStore } from "@/store/auth.store";
 import { formatDateTime } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const quickActions = [
-  { code: "ADMIN-01", title: "Manage Users", desc: "Lock/unlock accounts", icon: "👥", href: "/admin/01-user-accounts", color: "#2a7bd9" },
-  { code: "ADMIN-03", title: "Moderation", desc: "Review flagged content", icon: "🛡️", href: "/admin/03-moderate-listings", color: "#dc2626" },
-  { code: "ADMIN-04", title: "Disputes", desc: "Handle refunds", icon: "💬", href: "/admin/04-disputes-refunds", color: "#ca8a04" },
-  { code: "ADMIN-05", title: "Transactions", desc: "Reconcile payments", icon: "💰", href: "/admin/05-transactions", color: "#7c3aed" },
-  { code: "ADMIN-06", title: "Analytics", desc: "View platform metrics", icon: "📊", href: "/admin/06-analytics", color: "#2a7bd9" },
-  { code: "ADMIN-08", title: "AI Config", desc: "Adjust thresholds", icon: "⚙️", href: "/admin/08-ai-config", color: "#6b7280" },
-  { code: "ADMIN-09", title: "Audit Log", desc: "View activity history", icon: "📜", href: "/admin/09-audit-log", color: "#f59e0b" },
-  { code: "ADMIN-10", title: "Staff Mgmt", desc: "Manage team", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
+const QUICK_ACTIONS = [
+  { title: "Người dùng", desc: "Khoá / mở tài khoản", icon: "👥", href: "/admin/01-user-accounts", color: "#2a7bd9" },
+  { title: "Tin đăng vi phạm", desc: "Xét duyệt nội dung bị báo cáo", icon: "🛡️", href: "/admin/03-moderate-listings", color: "#dc2626" },
+  { title: "Tranh chấp", desc: "Xử lý khiếu nại & hoàn tiền", icon: "⚖️", href: "/admin/04-disputes-refunds", color: "#ca8a04" },
+  { title: "Giao dịch", desc: "Đối soát thanh toán", icon: "💰", href: "/admin/05-transactions", color: "#7c3aed" },
+  { title: "Thống kê", desc: "Chỉ số nền tảng", icon: "📊", href: "/admin/06-analytics", color: "#2a7bd9" },
+  { title: "Đăng ký Provider", desc: "Duyệt hồ sơ Provider mới", icon: "🏪", href: "/admin/02-provider-registration", color: "#16a34a" },
+  { title: "Nhật ký", desc: "Lịch sử hoạt động hệ thống", icon: "📜", href: "/admin/09-audit-log", color: "#f59e0b" },
+  { title: "Nhân sự", desc: "Phân công & quản lý staff", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
 ];
 
-const MODULE_COLORS: Record<string, string> = {
+const MODULE_LABEL: Record<string, string> = {
+  USER: "Tài khoản",
+  MODERATION: "Kiểm duyệt",
+  DISPUTE: "Tranh chấp",
+  FINANCE: "Tài chính",
+  CONFIG: "Cấu hình",
+  STAFF: "Nhân sự",
+  KYC: "KYC",
+  PROVIDER: "Provider",
+};
+
+const MODULE_COLOR: Record<string, string> = {
   USER: "#ca8a04",
   MODERATION: "#dc2626",
   DISPUTE: "#7c3aed",
   FINANCE: "#2a7bd9",
-  CONFIG: "#7c3aed",
+  CONFIG: "#5a6b85",
   STAFF: "#0f1729",
   KYC: "#16a34a",
   PROVIDER: "#16a34a",
@@ -34,105 +44,174 @@ export default function AdminDashboardPage() {
   const { data, isLoading } = useAdminDashboard();
 
   const stats = [
-    { label: "Open Disputes", value: data?.openDisputes ?? 0, color: "#ca8a04", icon: "🎫" },
-    { label: "Flagged Content", value: data?.openFlags ?? 0, color: "#dc2626", icon: "🚩" },
-    { label: "Pending KYC", value: data?.pendingKyc ?? 0, color: "#7c3aed", icon: "⏳" },
-    { label: "Resolved Today", value: data?.resolvedToday ?? 0, color: "#16a34a", icon: "✅" },
+    { label: "Tranh chấp đang mở", value: data?.openDisputes ?? 0, color: "#ca8a04", icon: "⚖️", href: "/admin/04-disputes-refunds" },
+    { label: "Nội dung bị báo cáo", value: data?.openFlags ?? 0, color: "#dc2626", icon: "🚩", href: "/admin/03-moderate-listings" },
+    { label: "KYC chờ duyệt", value: data?.pendingKyc ?? 0, color: "#7c3aed", icon: "🪪", href: "/admin/01-user-accounts" },
+    { label: "Xử lý hôm nay", value: data?.resolvedToday ?? 0, color: "#16a34a", icon: "✅", href: "/admin/09-audit-log" },
   ];
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <div className="mb-2 flex items-center gap-3">
-          <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">ADMIN</span>
-          <LiveDot label="ON-DUTY" tone="red" />
+    <div className="min-h-screen" style={{ background: "#f6fbfe" }}>
+      <div className="mx-auto max-w-6xl px-6 py-8">
+
+        {/* Header */}
+        <div className="mb-8">
+          <p className="text-sm" style={{ color: "#8694ad" }}>Xin chào, {me?.name ?? ""}</p>
+          <h1 className="mt-1 text-2xl font-bold" style={{ color: "#0f1729" }}>Bảng điều khiển</h1>
         </div>
-        <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Admin Dashboard</h1>
-        <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Xin chào, {me?.name ?? ""}</p>
-      </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-4">
-        {stats.map((stat) => (
-          <Reveal key={stat.label}>
-            <div className="rounded-2xl border bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg" style={{ borderColor: "#e2e8f3" }}>
-              <div className="flex items-center justify-between">
-                <span className="text-3xl">{stat.icon}</span>
-                <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: `${stat.color}15`, color: stat.color }}>
-                  Needs attention
-                </span>
+        {/* Stats */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="group rounded-2xl border bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              style={{ borderColor: "#DCEFFB" }}
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-2xl">{stat.icon}</span>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-10" />
+                ) : (
+                  <span className="text-3xl font-bold" style={{ color: stat.color }}>
+                    {stat.value}
+                  </span>
+                )}
               </div>
-              <div className="mt-3 text-3xl font-bold" style={{ color: stat.color }}>
-                {isLoading ? <Skeleton className="h-9 w-12" /> : stat.value}
-              </div>
-              <div className="mt-1 text-sm" style={{ color: "#5a6b85" }}>{stat.label}</div>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-
-      <div className="mb-8">
-        <h2 className="mb-4 text-lg font-bold" style={{ color: "#0f1729" }}>Quick Actions</h2>
-        <div className="grid gap-4 sm:grid-cols-4">
-          {quickActions.map((action, i) => (
-            <Reveal key={action.code} delay={i * 50}>
-              <Link
-                href={action.href}
-                className="group flex flex-col items-center rounded-2xl border bg-white p-5 text-center transition-all hover:-translate-y-1 hover:shadow-xl"
-                style={{ borderColor: "#e2e8f3" }}
-              >
-                <div
-                  className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform group-hover:scale-110"
-                  style={{ background: `${action.color}15` }}
-                >
-                  <span className="text-3xl">{action.icon}</span>
-                </div>
-                <div className="text-xs font-bold uppercase tracking-wider" style={{ color: action.color }}>{action.code}</div>
-                <div className="mt-1 font-semibold" style={{ color: "#0f1729" }}>{action.title}</div>
-                <div className="mt-0.5 text-xs" style={{ color: "#5a6b85" }}>{action.desc}</div>
-              </Link>
-            </Reveal>
+              <p className="mt-3 text-sm font-medium" style={{ color: "#5a6b85" }}>
+                {stat.label}
+              </p>
+              {!isLoading && stat.value > 0 && (
+                <p className="mt-0.5 text-xs font-semibold" style={{ color: stat.color }}>
+                  Cần xử lý →
+                </p>
+              )}
+            </Link>
           ))}
         </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-1">
-        <Reveal>
-          <div className="rounded-2xl border bg-white p-6" style={{ borderColor: "#e2e8f3" }}>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>Recent Activity</h3>
-              <Link href="/admin/09-audit-log" className="text-sm font-semibold" style={{ color: "#2a7bd9" }}>
-                View All →
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {isLoading &&
-                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-              {!isLoading && (data?.recentActivity?.length ?? 0) === 0 && (
-                <p className="text-sm" style={{ color: "#5a6b85" }}>Chưa có hoạt động gần đây.</p>
-              )}
-              {(data?.recentActivity ?? []).map((activity) => {
-                const color = MODULE_COLORS[activity.module] ?? "#2a7bd9";
-                return (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Quick actions */}
+          <div className="lg:col-span-2">
+            <h2 className="mb-4 text-base font-semibold" style={{ color: "#0f1729" }}>
+              Truy cập nhanh
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {QUICK_ACTIONS.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group flex items-center gap-4 rounded-2xl border bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  style={{ borderColor: "#DCEFFB" }}
+                >
                   <div
-                    key={activity.id}
-                    className="flex items-center gap-4 rounded-xl border p-4 transition-colors hover:bg-[#f8fafc]"
-                    style={{ borderColor: "#f1f5fa" }}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl transition-transform group-hover:scale-110"
+                    style={{ background: `${action.color}12` }}
                   >
-                    <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-                    <div className="flex-1">
-                      <div className="font-semibold" style={{ color: "#0f1729" }}>{activity.action}</div>
-                      <div className="text-xs" style={{ color: "#5a6b85" }}>{activity.actor?.name ?? "Hệ thống"}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-medium" style={{ color }}>{activity.module}</div>
-                      <div className="text-[10px]" style={{ color: "#8694ad" }}>{formatDateTime(activity.createdAt)}</div>
-                    </div>
+                    {action.icon}
                   </div>
-                );
-              })}
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-sm" style={{ color: "#0f1729" }}>
+                      {action.title}
+                    </p>
+                    <p className="truncate text-xs mt-0.5" style={{ color: "#8694ad" }}>
+                      {action.desc}
+                    </p>
+                  </div>
+                  <svg
+                    className="ml-auto h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                    style={{ color: action.color }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              ))}
             </div>
           </div>
-        </Reveal>
+
+          {/* Recent activity */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold" style={{ color: "#0f1729" }}>
+                Hoạt động gần đây
+              </h2>
+              <Link
+                href="/admin/09-audit-log"
+                className="text-xs font-semibold"
+                style={{ color: "#2a7bd9" }}
+              >
+                Xem tất cả →
+              </Link>
+            </div>
+
+            <div
+              className="rounded-2xl border bg-white"
+              style={{ borderColor: "#DCEFFB" }}
+            >
+              {isLoading && (
+                <div className="divide-y" style={{ borderColor: "#f1f5fa" }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="p-4">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!isLoading && (data?.recentActivity?.length ?? 0) === 0 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <span className="mb-2 text-3xl">📋</span>
+                  <p className="text-sm" style={{ color: "#8694ad" }}>
+                    Chưa có hoạt động nào
+                  </p>
+                </div>
+              )}
+
+              {!isLoading && (data?.recentActivity ?? []).length > 0 && (
+                <div className="divide-y" style={{ borderColor: "#f6fbfe" }}>
+                  {(data?.recentActivity ?? []).map((activity, i) => {
+                    const color = MODULE_COLOR[activity.module] ?? "#2a7bd9";
+                    const label = MODULE_LABEL[activity.module] ?? activity.module;
+                    return (
+                      <div
+                        key={activity.id}
+                        className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[#f6fbfe]"
+                        style={{ borderColor: i === 0 ? "transparent" : "#f1f5fa" }}
+                      >
+                        <div
+                          className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ background: color }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium" style={{ color: "#0f1729" }}>
+                            {activity.action}
+                          </p>
+                          <p className="text-xs" style={{ color: "#8694ad" }}>
+                            {activity.actor?.name ?? "Hệ thống"}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                            style={{ background: `${color}12`, color }}
+                          >
+                            {label}
+                          </span>
+                          <p className="mt-1 text-[10px]" style={{ color: "#8694ad" }}>
+                            {formatDateTime(activity.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

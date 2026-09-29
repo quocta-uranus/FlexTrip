@@ -246,7 +246,16 @@ export default function EditListingPage() {
           <span style={{ color: '#0f1729' }}>Chỉnh sửa</span>
         </nav>
 
-        <h1 className="mb-8 text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
+          <Link
+            href={`/dashboard/listings/${id}/calendar`}
+            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition hover:bg-[#f6fbfe]"
+            style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
+          >
+            📅 Quản lý lịch
+          </Link>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
