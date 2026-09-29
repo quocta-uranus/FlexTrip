@@ -17,7 +17,7 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <div className="landing-shell min-h-screen bg-[#F1FAFF] dark:bg-[#070B12] text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="landing-shell min-h-screen bg-[#F1FAFF] text-slate-900 transition-colors duration-300">
       <LandingHeader />
       <main>
         <HeroSection />

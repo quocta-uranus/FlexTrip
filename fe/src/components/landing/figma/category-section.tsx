@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { useTheme } from "@/context/theme-context";
-
 const categories = [
   {
     name: "Lều & cắm trại",
@@ -44,43 +42,34 @@ const categories = [
 ];
 
 export function CategorySection() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
   return (
     <section
-      className="w-full py-20 px-6 sm:px-12 transition-colors duration-300"
+      className="w-full py-20 px-6 sm:px-12"
       id="categories"
-      style={{
-        backgroundColor: isDark ? "#070B12" : "#FFFFFF",
-      }}
+      style={{ backgroundColor: "#FFFFFF" }}
     >
       <div className="max-w-7xl mx-auto">
         {/* Section Heading */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.16em] text-[#00A3FF] dark:text-[#38BDF8] mb-3">
+            <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.16em] text-[#00A3FF] mb-3">
               <span className="h-[1.5px] w-6 bg-current" />
               Chọn theo hành trình
             </p>
             <h2
               className="text-4xl sm:text-5xl lg:text-[54px] font-bold leading-[1.08] tracking-tight"
-              style={{
-                color: isDark ? "#FFFFFF" : "#0E2233",
-              }}
+              style={{ color: "#0E2233" }}
             >
               Bạn cần gì<br />
               cho{" "}
-              <span className="text-[#00A3FF] dark:text-[#38BDF8]">
+              <span className="text-[#00A3FF]">
                 chuyến đi?
               </span>
             </h2>
           </div>
           <p
             className="max-w-md text-xs sm:text-sm leading-relaxed"
-            style={{
-              color: isDark ? "#94A3B8" : "#5B7A93",
-            }}
+            style={{ color: "#5B7A93" }}
           >
             Từ một chiếc lều gọn nhẹ đến camera cho thước phim đáng nhớ. Thuê đúng
             thiết bị, dành ngân sách cho trải nghiệm.
@@ -94,11 +83,7 @@ export function CategorySection() {
               key={category.name}
               href={`/search?category=${category.cat}`}
               className="group relative rounded-2xl overflow-hidden h-[260px] sm:h-[300px] shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 block"
-              style={{
-                border: isDark
-                  ? "1px solid rgba(255, 255, 255, 0.1)"
-                  : "1px solid rgba(220, 239, 251, 0.6)",
-              }}
+              style={{ border: "1px solid rgba(220, 239, 251, 0.6)" }}
             >
               <img
                 src={category.image}
