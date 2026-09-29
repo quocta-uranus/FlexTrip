@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   useMouseTilt,
   useMagnetic,
@@ -499,26 +499,58 @@ export function EditingBanner({ visible }: { visible: boolean }) {
  * ───────────────────────────────────────────────────────────────────── */
 export function StickyEditBar({
   visible,
+  savedAt,
   onSave,
   onCancel,
   brand = "#2a7bd9",
   saving = false,
 }: {
   visible: boolean;
+  savedAt?: string | null;
   onSave: () => void;
   onCancel: () => void;
   brand?: string;
   saving?: boolean;
 }) {
+  const [justSaved, setJustSaved] = useState(false);
+
+  // Reset trạng thái "just saved" sau 3 giây
+  useEffect(() => {
+    if (savedAt) {
+      setJustSaved(true);
+      const timer = setTimeout(() => setJustSaved(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [savedAt]);
+
   if (!visible) return null;
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur" style={{ borderColor: "rgba(146,238,232,0.5)" }}>
+    <div
+      className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur transition-all duration-300"
+      style={{
+        borderColor: justSaved ? "rgba(16,185,129,0.5)" : "rgba(146,238,232,0.5)",
+        transform: visible ? "translateY(0)" : "translateY(100%)",
+        opacity: visible ? 1 : 0,
+      }}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3">
-        <div className="flex items-center gap-2 text-sm" style={{ color: "#1e5aa8" }}>
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="font-medium">Đang chỉnh sửa — nhớ bấm Lưu để giữ thay đổi.</span>
+        <div className="flex items-center gap-2 text-sm" style={{ color: justSaved ? "#059669" : "#1e5aa8" }}>
+          {justSaved ? (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-medium">Đã lưu hồ sơ!</span>
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="font-medium">Đang chỉnh sửa — nhớ bấm Lưu để giữ thay đổi.</span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -534,13 +566,31 @@ export function StickyEditBar({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-60"
-            style={{ background: brand, boxShadow: `0 8px 20px -8px ${brand}80` }}
+            className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-60 transition-all"
+            style={{
+              background: saving || justSaved
+                ? "linear-gradient(135deg, #10b981, #059669)"
+                : brand,
+              boxShadow: saving || justSaved
+                ? "0 8px 20px -8px rgba(16,185,129,0.5)"
+                : `0 8px 20px -8px ${brand}80`,
+            }}
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Lưu thay đổi
+            {saving || justSaved ? (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {justSaved ? "Đã lưu" : "Đang lưu..."}
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Lưu thay đổi
+              </>
+            )}
           </button>
         </div>
       </div>

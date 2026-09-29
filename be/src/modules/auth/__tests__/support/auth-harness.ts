@@ -7,6 +7,7 @@ import { AppModule } from '../../../../app.module';
 import { AuthService } from '../../services/auth.service';
 import { OtpService } from '../../services/otp.service';
 import { ResendService } from '../../services/resend.service';
+import { REDIS_CLIENT } from '../../../../common/redis/redis.module';
 import { Client } from 'pg';
 import request from 'supertest';
 import { jest } from '@jest/globals';
@@ -31,16 +32,41 @@ export function assertTestDatabase(): string {
   return connection;
 }
 
+export async function resetDatabase(prisma: PrismaService): Promise<void> {
+  // Table names come from the catalog of the asserted test database, never from input.
+  const rows = await prisma.$queryRaw<{ tablename: string }[]>`
+    SELECT tablename FROM pg_tables
+    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+  if (!rows.length) return;
+  const tables = rows.map(({ tablename }) => `"${tablename}"`).join(', ');
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} CASCADE`);
+}
+
+export class FakeRedis {
+  private store = new Map<string, string>();
+  async exists(key: string) { return this.store.has(key) ? 1 : 0; }
+  async get(key: string) { return this.store.get(key) ?? null; }
+  async set(key: string, value: string, ..._args: unknown[]) { this.store.set(key, value); return 'OK'; }
+  async del(key: string) { return this.store.delete(key) ? 1 : 0; }
+  keys() { return [...this.store.keys()]; }
+  clear() { this.store.clear(); }
+  disconnect() {}
+  quit() { return Promise.resolve('OK'); }
+}
+
 export class AuthHarness {
   app!: INestApplication;
   prisma!: PrismaService;
   auth!: AuthService;
   jwt!: JwtService;
   config!: ConfigService;
+  redis = new FakeRedis();
 
   resend = {
     sendOtp: jest.fn<(email: string, code: string) => Promise<boolean>>(),
     sendPasswordReset: jest.fn<(email: string, url: string) => Promise<boolean>>(),
+    sendStaffInvite: jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+    sendProviderApproved: jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
   };
 
   otp = {
@@ -65,6 +91,8 @@ export class AuthHarness {
 
     this.resend.sendOtp.mockResolvedValue(true);
     this.resend.sendPasswordReset.mockResolvedValue(true);
+    this.resend.sendStaffInvite.mockResolvedValue(true);
+    this.resend.sendProviderApproved.mockResolvedValue(true);
     this.otp.generate.mockResolvedValue('123456');
     this.otp.verify.mockResolvedValue(true);
     this.otp.canResend.mockResolvedValue(true);
@@ -74,6 +102,8 @@ export class AuthHarness {
       .useValue(this.resend)
       .overrideProvider(OtpService)
       .useValue(this.otp)
+      .overrideProvider(REDIS_CLIENT)
+      .useValue(this.redis)
       .compile();
 
     this.app = module.createNestApplication();
@@ -91,12 +121,7 @@ export class AuthHarness {
     this.jwt = module.get(JwtService);
     this.config = module.get(ConfigService);
 
-    await this.prisma.kycApplication.deleteMany();
-    await this.prisma.authSession.deleteMany();
-    await this.prisma.passwordResetToken.deleteMany();
-    await this.prisma.verificationToken.deleteMany();
-    await this.prisma.userRole.deleteMany();
-    await this.prisma.user.deleteMany();
+    await resetDatabase(this.prisma);
   }
 
   async close(): Promise<void> {

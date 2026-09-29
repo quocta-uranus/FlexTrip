@@ -8,6 +8,13 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Local database backups
+*.dump
+
 # Editor
 .vscode/
 .idea/
+
+# Local dependencies and credentials
+/node_modules/
+*.tok

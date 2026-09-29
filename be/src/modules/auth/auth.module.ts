@@ -2,10 +2,9 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
-import { Redis } from 'ioredis';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
-import { OtpService, REDIS_CLIENT } from './services/otp.service';
+import { OtpService } from './services/otp.service';
 import { ResendService } from './services/resend.service';
 import {
   RegisterRateLimitGuard,
@@ -30,20 +29,11 @@ import { AccessTokenGuard } from './guards/access-token.guard';
     AuthService,
     OtpService,
     ResendService,
-    {
-      provide: REDIS_CLIENT,
-      useFactory: (config: ConfigService) =>
-        new Redis({
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        }),
-      inject: [ConfigService],
-    },
     RegisterRateLimitGuard,
     ForgotPasswordRateLimitGuard,
     ResetPasswordRateLimitGuard,
     AccessTokenGuard,
   ],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, ResendService, JwtModule],
 })
 export class AuthModule {}

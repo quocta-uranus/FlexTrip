@@ -73,13 +73,49 @@ async function tryRefresh(): Promise<string | null> {
   }
 }
 
-function buildHeaders(extra?: HeadersInit): HeadersInit {
+function buildHeaders(extra?: HeadersInit, body?: BodyInit | null): HeadersInit {
   const token = getAccessToken();
-  return {
-    'Content-Type': 'application/json',
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers: HeadersInit = {
+    // FormData: browser tự set 'multipart/form-data; boundary=...'
+    // KHÔNG set 'application/json' vì sẽ thiếu boundary
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   };
+  return headers;
+}
+
+export interface ApiError extends Error {
+  status?: number;
+  code?: string;
+}
+
+async function apiDownload(path: string, filename: string): Promise<void> {
+  const doFetch = () => fetch(`${API_URL}${path}`, { headers: buildHeaders(), credentials: 'include' });
+  let res = await doFetch();
+  if (res.status === 401 && (await tryRefresh())) res = await doFetch();
+  if (!res.ok) {
+    const err = new Error(`Tải file thất bại (HTTP ${res.status})`) as ApiError;
+    err.status = res.status;
+    throw err;
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function toQuery(params: Record<string, string | number | boolean | null | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '' || v === 'ALL') continue;
+    q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : '';
 }
 
 async function apiFetch<T = any>(
@@ -93,19 +129,21 @@ async function apiFetch<T = any>(
       credentials: 'include',
     });
 
-  let res = await doFetch(buildHeaders(options.headers));
+  let res = await doFetch(buildHeaders(options.headers, options.body));
 
   if (res.status === 401) {
     const newToken = await tryRefresh();
     if (newToken) {
-      res = await doFetch(buildHeaders(options.headers));
+      res = await doFetch(buildHeaders(options.headers, options.body));
     }
   }
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Network error' }));
-    const err = new Error(error.message || `HTTP ${res.status}`);
-    (err as any).status = res.status;
+    const body = await res.json().catch(() => ({ message: 'Network error' }));
+    const message = Array.isArray(body.message) ? body.message.join('\n') : body.message;
+    const err = new Error(message || `HTTP ${res.status}`) as ApiError;
+    err.status = res.status;
+    err.code = typeof body.code === 'string' ? body.code : undefined;
     throw err;
   }
 
@@ -125,6 +163,14 @@ export const api = {
       headers,
     }),
 
+  /** Multipart upload. Body là FormData, KHÔNG set Content-Type (browser tự thêm boundary). */
+  upload: <T = any>(path: string, formData: FormData) =>
+    apiFetch<T>(path, {
+      method: 'POST',
+      body: formData,
+      headers: undefined, // để apiFetch KHÔNG inject 'application/json'
+    }),
+
   patch: (path: string, body: unknown, headers?: HeadersInit) =>
     apiFetch(path, {
       method: 'PATCH',
@@ -141,6 +187,8 @@ export const api = {
 
   delete: (path: string, headers?: HeadersInit) =>
     apiFetch(path, { method: 'DELETE', headers }),
+
+  download: (path: string, filename: string) => apiDownload(path, filename),
 };
 
 // ─── User / Profile ─────────────────────────────────────────────────────────
@@ -165,6 +213,18 @@ export interface UserProfile {
   bio?: string | null;
   emergencyContact?: string | null;
   languages?: string[];
+  providerProfile?: {
+    shopName: string;
+    ratingAvg: number;
+    reviewsCount: number;
+    responseHours: string;
+    category: string;
+  } | null;
+  adminProfile?: {
+    employeeId: string;
+    department: string;
+    level: string;
+  } | null;
 }
 
 export interface UpdateMePayload {
@@ -182,7 +242,7 @@ export interface UpdateMePayload {
 }
 
 export const userApi = {
-  me: () => api.get('/users/me') as Promise<UserProfile>,
+  me: (accessToken?: string) => api.get('/users/me', accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined) as Promise<UserProfile>,
 
   updateMe: (data: UpdateMePayload) => api.patch('/users/me', data) as Promise<UserProfile>,
 
@@ -203,22 +263,25 @@ export const userApi = {
   changePassword: (oldPassword: string, newPassword: string) =>
     api.post('/profile/password', { oldPassword, newPassword }) as Promise<{ ok: boolean }>,
 
-  // Avatar
-  setAvatar: (avatarUrl: string) =>
-    api.post('/profile/avatar', { avatarUrl }) as Promise<{ userId: string; avatarUrl: string }>,
+  /**
+   * Upload file avatar lên BE (multipart/form-data, field "file").
+   * BE lưu vào /uploads và trả về { avatarUrl, avatarPublicUrl }.
+   * FE trả URL tuyệt đối cho <img src> (không dùng base64).
+   */
+  setAvatar: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ userId: string; avatarUrl: string; avatarPublicUrl: string }>(
+      '/profile/avatar',
+      fd,
+    );
+  },
 
   // Sessions
   getSessions: () => api.get('/users/me/sessions') as Promise<any[]>,
 
   revokeSession: (id: string) =>
     api.delete(`/users/me/sessions/${id}`) as Promise<any>,
-
-  // Roles
-  addRole: (role: string) =>
-    api.post(`/users/me/roles/${role}`, {}) as Promise<any>,
-
-  removeRole: (role: string) =>
-    api.delete(`/users/me/roles/${role}`) as Promise<any>,
 };
 
 // ─── Wallet ─────────────────────────────────────────────────────────────────
@@ -287,6 +350,9 @@ export const authApi = {
   disable2fa: (code: string) =>
     api.post('/auth/2fa/disable', { code }) as Promise<{ ok: boolean }>,
 
+  setupPassword: (token: string, password: string) =>
+    api.post('/auth/setup-password', { token, password }) as Promise<{ code: string }>,
+
   sessions: () =>
     api.get('/auth/sessions') as Promise<Session[]>,
 
@@ -319,6 +385,41 @@ export const kycApi = {
     api.post(`/kyc/submissions/${id}/review`, { decision, reason }) as Promise<any>,
 };
 
+// ─── Provider Profile ─────────────────────────────────────────────────────────
+
+export interface ProviderProfile {
+  id: string;
+  userId: string;
+  shopName: string;
+  ownerName: string;
+  category: string;
+  pickupAddress: string;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  responseHours: string;
+  bio?: string | null;
+  highlights: string[];
+  itemsCount: number;
+  rentalsCount: number;
+  ratingAvg: number;
+  reviewsCount: number;
+  responseTimeH: number;
+  isLive: boolean;
+  payoutMethod?: string | null;
+  bankAccount?: string | null;
+  // User fields
+  email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  wallet?: { balance: unknown; currency: string } | null;
+}
+
+export const providersApi = {
+  me: () => api.get('/providers/me') as Promise<ProviderProfile>,
+  updateMe: (data: Partial<ProviderProfile>) =>
+    api.patch('/providers/me', data) as Promise<ProviderProfile>,
+};
+
 // ─── Payment Methods ────────────────────────────────────────────────────────
 
 export const paymentMethodApi = {
@@ -327,4 +428,307 @@ export const paymentMethodApi = {
     api.post('/payment-methods', data) as Promise<any>,
   setDefault: (id: string) => api.post(`/payment-methods/${id}/default`, {}) as Promise<any>,
   delete: (id: string) => api.delete(`/payment-methods/${id}`) as Promise<{ ok: boolean }>,
+};
+
+// ─── Listings ────────────────────────────────────────────────────────────────
+
+import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/types/listing';
+import type { Booking, Cart, CartItem, CreateBookingPayload, ModifyRequest } from '@/types/booking';
+import type { Conversation, Message } from '@/types/message';
+
+export interface ListingPage {
+  items: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const listingApi = {
+  list: (params?: { status?: string; page?: number; limit?: number; category?: string; keyword?: string; location?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.category) q.set('category', params.category);
+    if (params?.keyword) q.set('keyword', params.keyword);
+    if (params?.location) q.set('location', params.location);
+    const qs = q.toString();
+    return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<ListingPage>;
+  },
+
+  get: (id: string) => api.get(`/listings/${id}`) as Promise<Listing>,
+
+  create: (data: {
+    title: string;
+    description: string;
+    price: number;
+    currency?: string;
+    location: string;
+    category: ListingCategory;
+    amenities?: string[];
+    imageUrls?: string[];
+    latitude?: number;
+    longitude?: number;
+  }) => api.post('/listings', data) as Promise<Listing>,
+
+  update: (id: string, data: Partial<{
+    title: string;
+    description: string;
+    price: number;
+    location: string;
+    category: ListingCategory;
+    amenities: string[];
+    imageUrls: string[];
+    status: string;
+  }>) => api.patch(`/listings/${id}`, data) as Promise<Listing>,
+
+  delete: (id: string) => api.delete(`/listings/${id}`) as Promise<{ ok: boolean }>,
+
+  myListings: (params?: { page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/listings/me${qs ? `?${qs}` : ''}`) as Promise<Listing[]>;
+  },
+
+  publish: (id: string) => api.patch(`/listings/${id}/publish`, {}) as Promise<Listing>,
+  pause: (id: string) => api.patch(`/listings/${id}/pause`, {}) as Promise<Listing>,
+  resume: (id: string) => api.patch(`/listings/${id}/resume`, {}) as Promise<Listing>,
+
+  uploadImage: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ url: string }>('/listings/upload-image', fd);
+  },
+
+  deleteImage: (url: string) =>
+    api.delete(`/listings/delete-image?url=${encodeURIComponent(url)}`) as Promise<{ ok: boolean }>,
+
+  bulkUpload: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.upload<{ created: number; ids: string[] }>('/listings/bulk-upload', fd);
+  },
+
+  // AI endpoints
+  aiSuggest: (title: string, description?: string) =>
+    api.post('/listings/ai/suggest-category', { title, description }) as Promise<{
+      category: string; tags: string[]; reason: string;
+    }>,
+
+  aiGenerateDescription: (data: {
+    title: string; category: string; location: string; amenities?: string[]; price?: number;
+  }) => api.post('/listings/ai/generate-description', data) as Promise<{ description: string }>,
+
+  aiOptimize: (data: { description: string; title: string; category: string }) =>
+    api.post('/listings/ai/optimize-description', data) as Promise<{
+      optimized: string; improvements: string[];
+    }>,
+
+  aiQualityScore: (data: {
+    title: string; description: string; category: string;
+    imageUrls: string[]; amenities?: string[]; price?: number;
+  }) => api.post('/listings/ai/quality-score', data) as Promise<{
+    score: number;
+    breakdown: { title: number; description: number; images: number; amenities: number; price: number };
+    suggestions: string[];
+    grade: string;
+  }>,
+};
+
+// ─── Availability ─────────────────────────────────────────────────────────────
+
+export const availabilityApi = {
+  get: (listingId: string, from: string, to: string) =>
+    api.get(`/listings/${listingId}/availability?from=${from}&to=${to}`) as Promise<{
+      listingId: string;
+      from: string;
+      to: string;
+      config: { quantity: number; minRentalDays: number; maxRentalDays: number | null; depositRate: string };
+      manuallyBlocked: Array<{ date: string; note: string | null }>;
+      fullyBooked: string[];
+    }>,
+
+  block: (listingId: string, dates: string[], note?: string) =>
+    api.post(`/listings/${listingId}/availability/block`, { dates, note }) as Promise<{ blocked: number }>,
+
+  unblock: (listingId: string, dates: string[]) =>
+    api.post(`/listings/${listingId}/availability/unblock`, { dates }) as Promise<{ unblocked: number }>,
+
+  getRentalConfig: (listingId: string) =>
+    api.get(`/listings/${listingId}/rental-config`) as Promise<{
+      id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+    }>,
+
+  updateRentalConfig: (listingId: string, data: {
+    minRentalDays: number; maxRentalDays?: number | null; depositRate?: number;
+  }) => api.patch(`/listings/${listingId}/rental-config`, data) as Promise<{
+    id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+  }>,
+};
+
+// ─── Search ──────────────────────────────────────────────────────────────────
+
+export const searchApi = {
+  search: (filters: SearchFilters) => {
+    const q = new URLSearchParams();
+    if (filters.keyword) q.set('q', filters.keyword);
+    if (filters.category) q.set('category', filters.category);
+    if (filters.location) q.set('location', filters.location);
+    if (filters.dateFrom) q.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) q.set('dateTo', filters.dateTo);
+    if (filters.priceMin != null) q.set('priceMin', String(filters.priceMin));
+    if (filters.priceMax != null) q.set('priceMax', String(filters.priceMax));
+    if (filters.sortBy) q.set('sortBy', filters.sortBy);
+    if (filters.page) q.set('page', String(filters.page));
+    if (filters.limit) q.set('limit', String(filters.limit));
+    return api.get(`/search?${q.toString()}`) as Promise<SearchResult>;
+  },
+};
+
+// ─── Bookings ────────────────────────────────────────────────────────────────
+
+export const bookingApi = {
+  create: (data: CreateBookingPayload) =>
+    api.post('/bookings', data) as Promise<Booking>,
+
+  myBookings: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return api.get(`/bookings${qs ? `?${qs}` : ''}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+  },
+
+  get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
+
+  cancel: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/cancel`, { reason }) as Promise<{ message: string; refundAmount: number }>,
+
+  start: (id: string) => api.post(`/bookings/${id}/start`, {}) as Promise<Booking>,
+
+  complete: (id: string) => api.post(`/bookings/${id}/complete`, {}) as Promise<Booking>,
+
+  confirmPayment: (id: string, data: { method: string; transactionRef?: string }) =>
+    api.post(`/bookings/${id}/confirm-payment`, data) as Promise<Booking>,
+
+  approve: (id: string) => api.post(`/bookings/${id}/approve`, {}) as Promise<Booking>,
+
+  decline: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/decline`, { reason }) as Promise<Booking>,
+
+  // Provider: bookings for provider's listings
+  providerBookings: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    q.set('as', 'provider');
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    return api.get(`/bookings?${q.toString()}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+  },
+};
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
+
+export const cartApi = {
+  get: () => api.get('/cart') as Promise<Cart>,
+
+  addItem: (data: {
+    listingId: string; startDate: string; endDate: string;
+    quantity?: number; deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.post('/cart/items', data) as Promise<CartItem>,
+
+  updateItem: (itemId: string, data: {
+    startDate?: string; endDate?: string; quantity?: number;
+    deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.patch(`/cart/items/${itemId}`, data) as Promise<CartItem>,
+
+  removeItem: (itemId: string) =>
+    api.delete(`/cart/items/${itemId}`) as Promise<{ message: string }>,
+
+  checkout: (data: { paymentMethod: string; transactionRef?: string }) =>
+    api.post('/cart/checkout', data) as Promise<{
+      message: string;
+      bookings: Array<{ id: string; listingTitle: string; status: string }>;
+    }>,
+};
+
+// ─── Modify Booking ───────────────────────────────────────────────────────────
+
+export const modifyBookingApi = {
+  list: (bookingId: string) =>
+    api.get(`/bookings/${bookingId}/modify-requests`) as Promise<ModifyRequest[]>,
+
+  create: (bookingId: string, data: {
+    newStartDate: string; newEndDate: string;
+    newQuantity?: number; reason?: string;
+  }) => api.post(`/bookings/${bookingId}/modify-requests`, data) as Promise<ModifyRequest>,
+
+  accept: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/accept`, { reason }) as Promise<{ message: string }>,
+
+  reject: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/reject`, { reason }) as Promise<{ message: string }>,
+};
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+// ─── Provider Applications ───────────────────────────────────────────────────
+
+export interface ProviderApplication {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  city: string;
+  categories: string[];
+  description?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const providerApplicationApi = {
+  submit: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    city: string;
+    categories: string[];
+    description?: string;
+  }) => api.post('/provider-applications', data) as Promise<ProviderApplication>,
+
+  list: (status?: 'PENDING' | 'APPROVED' | 'REJECTED') => {
+    const qs = status ? `?status=${status}` : '';
+    return api.get(`/provider-applications${qs}`) as Promise<ProviderApplication[]>;
+  },
+
+  approve: (id: string) =>
+    api.patch(`/provider-applications/${id}/approve`, {}) as Promise<{ message: string }>,
+
+  reject: (id: string, adminNote?: string) =>
+    api.patch(`/provider-applications/${id}/reject`, { adminNote }) as Promise<ProviderApplication>,
+};
+
+export const messageApi = {
+  getConversations: () =>
+    api.get('/messages/conversations') as Promise<Conversation[]>,
+
+  getMessages: (conversationId: string) =>
+    api.get(`/messages/conversations/${conversationId}`) as Promise<Message[]>,
+
+  sendMessage: (conversationId: string, content: string) =>
+    api.post(`/messages/conversations/${conversationId}`, { content }) as Promise<Message>,
+
+  startConversation: (targetUserId: string, content: string) =>
+    api.post('/messages/conversations', { targetUserId, content }) as Promise<Conversation>,
+
+  markRead: (conversationId: string) =>
+    api.post(`/messages/conversations/${conversationId}/read`, {}) as Promise<{ ok: boolean }>,
 };

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -27,15 +28,16 @@ import {
   ConfettiBurst,
   PulseDot,
   AnimatedGradientText,
-  EditingBanner,
   StickyEditBar,
   useConfetti,
 } from "@/components/profile/wow";
 import { useEditingProfile } from "@/hooks/useEditingProfile";
-
-/**
- * /profile/shop — Shop profile (Provider).
- */
+import { useProvidersProfile, useUpdateProviderProfile } from "@/hooks/useProvidersProfile";
+import { useMe } from "@/hooks/useSession";
+import { useSetAvatar } from "@/hooks/useSetAvatar";
+import { useQueryClient } from "@tanstack/react-query";
+import { Toast } from "@/components/ui/toast";
+import type { ProviderProfile } from "@/lib/api/client";
 
 interface ShopProfile {
   shopName: string;
@@ -54,6 +56,7 @@ interface ShopProfile {
   rating: number;
   reviewsCount: number;
   highlights: string[];
+  // TODO: fetch from API when BE supports listings
   featured: { title: string; price: string; rating: number; rentals: number; src: string }[];
   gallery: { src: string; caption?: string }[];
   notifyBooking: boolean;
@@ -61,52 +64,104 @@ interface ShopProfile {
   notifyPayout: boolean;
 }
 
-const initial: ShopProfile = {
-  shopName: "Minhan Outdoor Gear",
-  ownerName: "Nguyễn Minh",
-  email: "shop@minhan.vn",
-  phone: "+84 905 112 233",
-  bio: "Chuyên cung cấp đồ camping & trekking chuẩn outdoor cho khu vực Đà Nẵng – Sơn Trà – Bà Nà. Đồ mới 90%, vệ sinh sau mỗi lượt thuê.",
-  avatar: "",
-  category: "Camping & Trekking",
-  pickupAddress: "12 Bạch Đằng, Sơn Trà, Đà Nẵng",
-  responseHours: "2 giờ",
-  languages: ["Tiếng Việt", "English"],
-  itemsCount: 42,
-  rentalsCount: 318,
-  responseTimeH: 2,
-  rating: 4.9,
-  reviewsCount: 248,
-  highlights: [
-    "✅ Đã xác minh CCCD",
-    "🛡 Bảo hiểm đơn hàng 100%",
-    "💯 Đổi trả trong 24h nếu lỗi",
-    "📦 Đóng gói chuẩn outdoor",
-  ],
-  featured: [
-    { title: "Lều 4 người MSR Hubba", price: "250k/ngày", rating: 4.9, rentals: 56, src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600" },
-    { title: "Bộ nồi trekking MSR", price: "80k/ngày", rating: 4.8, rentals: 41, src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600" },
-  ],
-  gallery: [
-    { src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600", caption: "Lều Hubba" },
-    { src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600", caption: "Bếp & nồi" },
-    { src: "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600", caption: "Túi ngủ -5°C" },
-    { src: "https://images.unsplash.com/photo-1487730116645-74489c95b41b?w=600", caption: "Bộ trekking pole" },
-    { src: "https://images.unsplash.com/photo-1532339142463-fd0a8549791a?w=600", caption: "Ba lô 65L" },
-    { src: "https://images.unsplash.com/photo-1455496231601-e6195da1f841?w=600", caption: "Đèn trekking" },
-    { src: "https://images.unsplash.com/photo-1419833173245-f59e1b93f9ee?w=600", caption: "Áo khoác" },
-    { src: "https://images.unsplash.com/photo-1455762911825-3a7e6c1b8e3f?w=600", caption: "Giày leo núi" },
-  ],
-  notifyBooking: true,
-  notifyMessage: true,
-  notifyPayout: true,
+function apiToForm(p: ProviderProfile | undefined): ShopProfile {
+  if (!p) return buildEmpty();
+  const cat = CATEGORY_MAP[p.category] ?? p.category;
+  return {
+    shopName: p.shopName,
+    ownerName: p.ownerName,
+    email: p.email,
+    phone: p.phone ?? '',
+    bio: p.bio ?? '',
+    avatar: p.avatarUrl ?? '',
+    category: cat,
+    pickupAddress: p.pickupAddress,
+    responseHours: p.responseHours,
+    languages: ["Tiếng Việt", "English"],
+    itemsCount: p.itemsCount,
+    rentalsCount: p.rentalsCount,
+    responseTimeH: p.responseTimeH,
+    rating: p.ratingAvg,
+    reviewsCount: p.reviewsCount,
+    highlights: p.highlights ?? [],
+    featured: [
+      { title: "Lều 4 người MSR Hubba", price: "250k/ngày", rating: 4.9, rentals: 56, src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600" },
+      { title: "Bộ nồi trekking MSR", price: "80k/ngày", rating: 4.8, rentals: 41, src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600" },
+    ],
+    gallery: [
+      { src: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600", caption: "Lều Hubba" },
+      { src: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600", caption: "Bếp & nồi" },
+      { src: "https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600", caption: "Túi ngủ -5°C" },
+      { src: "https://images.unsplash.com/photo-1487730116645-74489c95b41b?w=600", caption: "Bộ trekking pole" },
+      { src: "https://images.unsplash.com/photo-1532339142463-fd0a8549791a?w=600", caption: "Ba lô 65L" },
+      { src: "https://images.unsplash.com/photo-1455496231601-e6195da1f841?w=600", caption: "Đèn trekking" },
+    ],
+    notifyBooking: true,
+    notifyMessage: true,
+    notifyPayout: true,
+  };
+}
+
+function buildEmpty(): ShopProfile {
+  return {
+    shopName: "", ownerName: "", email: "", phone: "",
+    bio: "", avatar: "", category: "Phương tiện",
+    pickupAddress: "", responseHours: "24 giờ",
+    languages: ["Tiếng Việt"],
+    itemsCount: 0, rentalsCount: 0, responseTimeH: 24,
+    rating: 0, reviewsCount: 0, highlights: [],
+    featured: [], gallery: [],
+    notifyBooking: true, notifyMessage: true, notifyPayout: true,
+  };
+}
+
+const CATEGORY_MAP: Record<string, string> = {
+  CAMPING_TREKKING: "Camping & Trekking",
+  VEHICLE: "Phương tiện",
+  STAY: "Lưu trú",
+  EXPERIENCE: "Trải nghiệm",
+  OTHER: "Khác",
 };
+const CATEGORY_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_MAP).map(([k, v]) => [v, k]),
+);
 
 export default function ShopProfilePage() {
+  const router = useRouter();
+  const { data: me } = useMe();
+  const { data: apiData, isLoading, error } = useProvidersProfile();
+  // Bảo vệ route: chỉ PROVIDER mới được vào /profile/shop
+  useEffect(() => {
+    if (!me) return;
+    const roles = (me.roles ?? []) as string[];
+    if (!roles.includes('PROVIDER')) {
+      router.replace(roles.includes('TRAVELER') ? '/profile/travel' : '/profile');
+    }
+  }, [me, router]);
   const { data: p, setData: setP, editing, setEditing, save, cancel, savedAt } =
-    useEditingProfile<ShopProfile>("flextrip.profile.shop", initial);
+    useEditingProfile<ShopProfile>("flextrip.profile.shop", buildEmpty());
+  const [showSaved, setShowSaved] = useState(false);
+
+  // Chỉ hiện toast khi savedAt thay đổi (tức save thật sự)
+  useEffect(() => {
+    if (!savedAt) return;
+    setShowSaved(true);
+    const timer = setTimeout(() => setShowSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+
+  const { mutateAsync: uploadAvatar, isPending: avatarUploading } = useSetAvatar();
+  const { mutateAsync: updateProvider } = useUpdateProviderProfile();
+  const qc = useQueryClient();
   const [showConfetti, setShowConfetti] = useState(false);
   const confetti = useConfetti(36);
+
+  // Sync local state when API data loads
+  useEffect(() => {
+    if (apiData) {
+      setP(apiToForm(apiData));
+    }
+  }, [apiData, setP]);
 
   const completion = computeCompletion(p);
 
@@ -120,10 +175,24 @@ export default function ShopProfilePage() {
         : { ...s, highlights: [...s.highlights, h] }
     );
   }
-  function handleSave() {
-    save();
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 1600);
+  async function handleSave() {
+    try {
+      await updateProvider({
+        shopName: p.shopName,
+        ownerName: p.ownerName,
+        phone: p.phone || undefined,
+        bio: p.bio || undefined,
+        avatarUrl: p.avatar || undefined,
+        category: CATEGORY_REVERSE[p.category] || p.category,
+        pickupAddress: p.pickupAddress,
+        responseHours: p.responseHours,
+      });
+      save();
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 1600);
+    } catch (err) {
+      console.error("Lưu thất bại:", err);
+    }
   }
 
   return (
@@ -142,6 +211,13 @@ export default function ShopProfilePage() {
               <AvatarField
                 name={p.shopName}
                 value={p.avatar}
+                uploading={avatarUploading}
+                onUpload={async (file) => {
+                  const url = await uploadAvatar(file);
+                  qc.invalidateQueries({ queryKey: ['me'] });
+                  qc.invalidateQueries({ queryKey: ['provider-profile'] });
+                  return url;
+                }}
                 onChange={(v) => update("avatar", v)}
                 disabled={!editing}
                 size="lg"
@@ -196,8 +272,6 @@ export default function ShopProfilePage() {
           )
         }
       />
-
-      <EditingBanner visible={editing} />
 
       {savedAt && (
         <div className="mx-auto mt-4 max-w-6xl px-6">
@@ -263,6 +337,27 @@ export default function ShopProfilePage() {
               },
             ]}
           />
+        </Reveal>
+      </section>
+
+      <section className="mx-auto mt-4 max-w-6xl px-6">
+        <Reveal>
+          <div className="flex flex-wrap gap-3 mb-2">
+            <Link
+              href="/dashboard/listings"
+              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-md"
+              style={{ borderColor: '#2a7bd9', color: '#2a7bd9', background: 'rgba(42,123,217,0.06)' }}
+            >
+              <span>📦</span> Quản lý sản phẩm
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-md"
+              style={{ borderColor: '#DCEFFB', color: '#5a6b85', background: '#fff' }}
+            >
+              <span>🏕️</span> Provider Dashboard
+            </Link>
+          </div>
         </Reveal>
       </section>
 
@@ -463,8 +558,9 @@ export default function ShopProfilePage() {
       </section>
 
       <StickyCta primary={{ label: "📅 Quản lý lịch trống" }} secondary={{ label: "💬 Chat Zalo" }} />
-      <StickyEditBar visible={editing} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" />
+      <StickyEditBar visible={editing} savedAt={savedAt} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
+      <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
     </div>
   );
 }

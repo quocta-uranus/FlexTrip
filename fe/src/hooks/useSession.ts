@@ -1,13 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi, authApi, type UpdateMePayload } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth.store';
+import { getAccessToken } from '@/lib/api/token';
 
 export function useMe() {
   const { isAuthenticated, setUser } = useAuthStore();
   return useQuery({
     queryKey: ['me'],
     queryFn: async () => {
-      const user = await userApi.me();
+      // Thử lấy token từ in-memory trước, fallback về localStorage
+      const token = getAccessToken() || localStorage.getItem('flextrip_rt');
+      const user = await userApi.me(token || undefined);
       setUser(user);
       return user;
     },

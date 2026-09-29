@@ -42,14 +42,25 @@ export function useLogin() {
         router.push(`/2fa-challenge?token=${encodeURIComponent(result.challengeToken)}`);
         return;
       }
-      // Set token vào memory trước để userApi.me() gửi được Authorization header
-      setAccessToken(result.accessToken);
-      const user = await userApi.me();
+      // Truyền token trực tiếp vào userApi.me() để tránh race condition với React Query
+      const user = await userApi.me(result.accessToken);
       setAuth(user, result.accessToken, result.refreshToken);
       qc.setQueryData(['me'], user);
 
-      const params = new URLSearchParams(window.location.search);
-      router.push(params.get('redirect') ?? '/profile');
+      const roles = user.roles as string[];
+      const redirectParam = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('redirect')
+        : null;
+
+      if (redirectParam) {
+        router.push(redirectParam);
+      } else if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+        router.push('/admin');
+      } else if (roles.includes('PROVIDER')) {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
     },
   });
 }
@@ -63,10 +74,18 @@ export function useVerify2faLogin() {
     mutationFn: ({ challengeToken, code }: { challengeToken: string; code: string }) =>
       authApi.verify2fa(challengeToken, code),
     onSuccess: async (tokens) => {
-      const user = await userApi.me();
+      // Truyền token trực tiếp để tránh race condition
+      const user = await userApi.me(tokens.accessToken);
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
-      router.push('/profile');
+      const roles = user.roles as string[];
+      if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+        router.push('/admin');
+      } else if (roles.includes('PROVIDER')) {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
     },
   });
 }
@@ -103,5 +122,11 @@ export function useResetPassword() {
     onSuccess: () => {
       router.push('/login?reset=1');
     },
+  });
+}
+
+export function useSetupPassword() {
+  return useMutation({
+    mutationFn: ({ token, password }: { token: string; password: string }) => authApi.setupPassword(token, password),
   });
 }

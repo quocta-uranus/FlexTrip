@@ -61,6 +61,11 @@ export const twoFactorLoginSchema = z.object({
     .regex(/^\d{6}$/, 'Mã xác thực chỉ gồm chữ số'),
 });
 
+export const setupPasswordSchema = z
+  .object({ token: z.string().min(1), password: passwordField, confirmPassword: z.string() })
+  .refine((d) => d.password === d.confirmPassword, { message: 'Mật khẩu xác nhận không khớp', path: ['confirmPassword'] });
+export type SetupPasswordInput = z.infer<typeof setupPasswordSchema>;
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;

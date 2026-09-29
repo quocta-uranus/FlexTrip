@@ -36,12 +36,80 @@ export class ResendService {
         `,
       });
       if (error) {
-        this.logger.warn({ event: 'resend_otp_failed', error: error.name });
+        this.logger.error({ event: 'resend_otp_failed', name: error.name, message: (error as any).message, from: this.from });
         return false;
       }
       return true;
+    } catch (e: unknown) {
+      this.logger.error({ event: 'resend_otp_exception', message: (e as Error)?.message });
+      return false;
+    }
+  }
+
+  async sendProviderApproved(email: string, name: string, setupUrl: string): Promise<boolean> {
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: '🎉 Tài khoản Provider FlexTrip của bạn đã được duyệt!',
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+            <div style="background:linear-gradient(135deg,#1e5aa8,#2a7bd9);border-radius:16px;padding:32px;text-align:center;margin-bottom:28px">
+              <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700">🎉 Chào mừng bạn đến với FlexTrip!</h1>
+              <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:15px">Tài khoản Provider của bạn đã được phê duyệt</p>
+            </div>
+            <p style="margin:0 0 16px;color:#0f1729;font-size:15px">Xin chào <strong>${name}</strong>,</p>
+            <p style="margin:0 0 24px;color:#5a6b85;font-size:14px;line-height:1.6">
+              FlexTrip rất vui được chào đón bạn trong cộng đồng Provider! Nhấn nút bên dưới để
+              tạo mật khẩu và bắt đầu đăng tin cho thuê ngay hôm nay.
+            </p>
+            <div style="text-align:center;margin-bottom:28px">
+              <a href="${setupUrl}"
+                 style="display:inline-block;background:linear-gradient(135deg,#1e5aa8,#2a7bd9);color:#fff;
+                        text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700;
+                        font-size:15px;box-shadow:0 4px 16px rgba(42,123,217,0.4)">
+                Tạo mật khẩu ngay →
+              </a>
+            </div>
+            <div style="background:#f1f5fa;border-radius:10px;padding:16px;margin-bottom:20px">
+              <p style="margin:0;font-size:13px;color:#5a6b85">
+                ⏰ Link có hiệu lực trong <strong>48 giờ</strong>.<br/>
+                Nếu link hết hạn, hãy liên hệ <a href="mailto:support@flextrip.vn" style="color:#2a7bd9">support@flextrip.vn</a>.
+              </p>
+            </div>
+            <p style="margin:0;color:#8694ad;font-size:12px;text-align:center">
+              Nếu bạn không đăng ký tài khoản này, hãy bỏ qua email này.
+            </p>
+          </div>
+        `,
+      });
+      return !error;
     } catch {
-      this.logger.warn({ event: 'resend_otp_exception' });
+      return false;
+    }
+  }
+
+  async sendStaffInvite(email: string, name: string, setupUrl: string): Promise<boolean> {
+    const safeName = name.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Lời mời tham gia đội vận hành FlexTrip',
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+            <h1 style="margin:0 0 16px;color:#0f1729;font-size:22px">Chào mừng ${safeName}!</h1>
+            <p style="margin:0 0 24px;color:#5a6b85;font-size:14px;line-height:1.6">
+              Bạn đã được thêm vào đội ngũ nhân viên vận hành FlexTrip. Nhấn nút bên dưới để tạo mật khẩu đăng nhập.
+            </p>
+            <p style="text-align:center;margin:0 0 24px">
+              <a href="${setupUrl}" style="display:inline-block;background:#1e5aa8;color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700">Tạo mật khẩu →</a>
+            </p>
+            <p style="margin:0;color:#8694ad;font-size:12px">Link có hiệu lực trong 48 giờ.</p>
+          </div>`,
+      });
+      return !error;
+    } catch {
       return false;
     }
   }

@@ -17,6 +17,8 @@ import {
 } from '../auth/guards/access-token.guard';
 import { ListKycDto, ReviewKycDto, SubmitKycDto } from './dto';
 import { KycService } from './kyc.service';
+import { requestContext } from '../../common/request-context';
+import { Role } from '@prisma/client';
 
 @ApiTags('kyc')
 @ApiBearerAuth()
@@ -53,6 +55,6 @@ export class KycController {
     @Param('id') id: string,
     @Body() dto: ReviewKycDto,
   ) {
-    return this.kyc.review(request.authUserId, id, dto);
+    return this.kyc.review(request.authUserId, id, dto, requestContext(request, Role.ADMIN));
   }
 }
