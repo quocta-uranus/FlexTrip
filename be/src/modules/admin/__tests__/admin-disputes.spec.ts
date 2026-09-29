@@ -60,7 +60,7 @@ describe('ADMIN-04 disputes', () => {
     const { api, dispute } = await setup();
     expect((await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'REJECTED', resolution: 'x', refundAmount: 1 })).body.code)
       .toBe('INVALID_REFUND_AMOUNT');
-    const pending = await setup(BookingStatus.PENDING);
+    const pending = await setup(BookingStatus.PENDING_PAYMENT);
     expect((await pending.api.post(`/admin/disputes/${pending.dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'x', refundAmount: 1000 })).body.code)
       .toBe('BOOKING_NOT_REFUNDABLE');
     expect((await pending.api.post(`/admin/disputes/${pending.dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Không hoàn' })).status).toBe(201);

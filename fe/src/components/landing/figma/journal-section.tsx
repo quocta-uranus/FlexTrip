@@ -9,20 +9,20 @@ const articles = [
 
 export function JournalSection() {
   return (
-    <section className="w-full bg-white dark:bg-[#070B12] py-24 px-6 sm:px-12 transition-colors duration-300" id="journal">
+    <section className="w-full bg-white py-24 px-6 sm:px-12 transition-colors duration-300" id="journal">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
         <div>
-          <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#00b4ea] dark:text-[#38bdf8] mb-3">
+          <p className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#00b4ea] mb-3">
             <span className="h-[1px] w-6 bg-current" />
             Field notes
           </p>
-          <h2 className="text-3xl sm:text-5xl lg:text-[46px] font-extrabold text-slate-900 dark:text-white leading-tight tracking-tight">
+          <h2 className="text-3xl sm:text-5xl lg:text-[46px] font-extrabold text-slate-900 leading-tight tracking-tight">
             Chuẩn bị tốt.<br />
-            <em className="not-italic text-[#00b4ea] dark:text-[#38bdf8]">Đi xa hơn.</em>
+            <em className="not-italic text-[#00b4ea]">Đi xa hơn.</em>
           </h2>
         </div>
-        <p className="max-w-md text-sm sm:text-base text-slate-600 dark:text-slate-400">
+        <p className="max-w-md text-sm sm:text-base text-slate-600">
           Gợi ý thiết thực để chọn, nhận và sử dụng thiết bị đúng cách.
         </p>
       </div>
@@ -30,7 +30,7 @@ export function JournalSection() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {articles.map((art) => (
           <article key={art.title} className="group flex flex-col">
-            <Link href="/search" className="overflow-hidden rounded-xl mb-4 aspect-[1.25] block border border-transparent dark:border-white/10">
+            <Link href="/search" className="overflow-hidden rounded-xl mb-4 aspect-[1.25] block border border-transparent">
               <img
                 src={`/assets/${art.image}`}
                 alt={art.title}
@@ -38,18 +38,18 @@ export function JournalSection() {
               />
             </Link>
 
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00b4ea] dark:text-[#38bdf8]">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#00b4ea]">
               <span>{art.tag}</span>
               <small className="text-slate-400 font-normal">{art.time}</small>
             </div>
 
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-3 mb-4 leading-snug group-hover:text-[#00b4ea] dark:group-hover:text-[#38bdf8] transition-colors tracking-tight">
+            <h3 className="text-xl font-bold text-slate-900 mt-3 mb-4 leading-snug group-hover:text-[#00b4ea] transition-colors tracking-tight">
               <Link href="/search">{art.title}</Link>
             </h3>
 
             <Link
               href="/search"
-              className="mt-auto inline-flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-[#38bdf8] group-hover:text-[#00b4ea] dark:group-hover:text-cyan-300 transition-colors"
+              className="mt-auto inline-flex items-center gap-2 text-xs font-bold text-slate-900 group-hover:text-[#00b4ea] transition-colors"
             >
               <span>Đọc bài viết</span>
               <ArrowRight className="h-4 w-4" />

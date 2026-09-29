@@ -3,12 +3,8 @@
 import { FormEvent, PointerEvent as ReactPointerEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Search, Calendar } from "lucide-react";
-import { useTheme } from "@/context/theme-context";
-
 export function HeroSection() {
   const router = useRouter();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const [location, setLocation] = useState("Đà Lạt");
   const [category, setCategory] = useState("CAMPING_TREKKING");
   const [dateRange, setDateRange] = useState("12/10 — 15/10");
@@ -95,7 +91,7 @@ export function HeroSection() {
 
       {/* Light Overlay */}
       <div
-        className="absolute inset-0 z-[1] transition-opacity duration-300 dark:opacity-0"
+        className="absolute inset-0 z-[1] transition-opacity duration-300"
         style={{
           background:
             "linear-gradient(90deg, rgba(0, 32, 55, 0.6) 0%, rgba(9, 125, 174, 0.2) 55%, rgba(42, 123, 217, 0.05) 100%), linear-gradient(0deg, rgba(0, 32, 55, 0.45) 0%, transparent 45%)",
@@ -104,7 +100,7 @@ export function HeroSection() {
 
       {/* Dark Overlay: subtle cool twilight tint so the scenic mountains and pine forest are clearly visible */}
       <div
-        className="absolute inset-0 z-[1] opacity-0 dark:opacity-100 transition-opacity duration-300"
+        className="absolute inset-0 z-[1] opacity-0 transition-opacity duration-300"
         style={{
           background:
             "linear-gradient(180deg, rgba(7, 11, 18, 0.2) 0%, rgba(7, 11, 18, 0.28) 45%, rgba(7, 11, 18, 0.8) 100%), linear-gradient(90deg, rgba(7, 11, 18, 0.4) 0%, transparent 35%, transparent 65%, rgba(7, 11, 18, 0.4) 100%)",
@@ -122,9 +118,9 @@ export function HeroSection() {
 
       {/* Orbit Ornaments */}
       <div className="hero-atmosphere pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden="true">
-        <span className="absolute right-[8%] top-[17%] h-[280px] w-[280px] rounded-full border border-sky-200/20 dark:border-sky-400/10" />
-        <span className="absolute -right-[11%] top-[5%] h-[510px] w-[510px] rounded-full border border-[#92eee8]/20 dark:border-sky-400/10" />
-        <span className="absolute right-[31%] top-[27%] h-[7px] w-[7px] rounded-full bg-[#00b4ea]/30 dark:bg-[#38bdf8]/40 blur-[3px]" />
+        <span className="absolute right-[8%] top-[17%] h-[280px] w-[280px] rounded-full border border-sky-200/20" />
+        <span className="absolute -right-[11%] top-[5%] h-[510px] w-[510px] rounded-full border border-[#92eee8]/20" />
+        <span className="absolute right-[31%] top-[27%] h-[7px] w-[7px] rounded-full bg-[#00b4ea]/30 blur-[3px]" />
       </div>
 
       {/* Content Box */}
@@ -135,7 +131,7 @@ export function HeroSection() {
             "translate3d(calc(-50% + var(--content-x, 0px)), var(--content-y, 0px), 70px) rotateX(var(--hero-rx, 0deg)) rotateY(var(--hero-ry, 0deg))",
         }}
       >
-        <p className="eyebrow light mb-5 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#c8edff] dark:text-[#38bdf8]">
+        <p className="eyebrow light mb-5 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-[#c8edff]">
           <span className="h-[1px] w-8 bg-current" />
           Thiết bị sẵn sàng. Hành trình rộng mở.
         </p>
@@ -145,7 +141,7 @@ export function HeroSection() {
             Thuê thôi.
           </em>
         </h1>
-        <p className="hero-copy mt-6 max-w-[620px] mx-auto text-base sm:text-lg text-white/80 dark:text-slate-300 leading-relaxed font-normal">
+        <p className="hero-copy mt-6 max-w-[620px] mx-auto text-base sm:text-lg text-white/80 leading-relaxed font-normal">
           Tìm và thuê thiết bị outdoor từ cộng đồng địa phương — đúng nơi, đúng lúc,
           không cần mua mọi thứ cho vài ngày khám phá.
         </p>
@@ -156,24 +152,22 @@ export function HeroSection() {
         className="search-panel absolute bottom-14 sm:bottom-20 lg:bottom-24 z-[3] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_1.1fr_auto] rounded-full transition-all duration-300 ease-out border p-1.5 pl-6 sm:pl-8 items-center"
         onSubmit={handleSearch}
         style={{
-          backgroundColor: isDark ? "#121A2C" : "#FFFFFF",
-          borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#E0F2FE",
-          boxShadow: isDark
-            ? "0 20px 60px rgba(0, 0, 0, 0.55)"
-            : "0 16px 45px rgba(2, 50, 90, 0.15), 0 4px 12px rgba(0, 0, 0, 0.04)",
+          backgroundColor: "#FFFFFF",
+          borderColor: "#E0F2FE",
+          boxShadow: "0 16px 45px rgba(2, 50, 90, 0.15), 0 4px 12px rgba(0, 0, 0, 0.04)",
           transform:
             "translate3d(calc(-50% + var(--panel-x, 0px)), var(--panel-y, 0px), 45px) rotateX(var(--panel-rx, 0deg)) rotateY(var(--panel-ry, 0deg))",
         }}
       >
-        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 pr-5 cursor-text ${isDark ? "border-white/10" : "border-[#E2F1F8]"}`}>
+        <label className="flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 pr-5 cursor-text border-[#E2F1F8]">
           <MapPin className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className="block text-[10px] font-bold uppercase tracking-wider mb-0.5 text-[#8A9BA8]">
               Địa điểm
             </small>
             <input
               aria-label="Địa điểm"
-              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ? "text-white placeholder:text-slate-500" : "text-[#0E2233] placeholder:text-slate-400"}`}
+              className="w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 text-[#0E2233] placeholder:text-slate-400"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="VD: Đà Lạt"
@@ -181,19 +175,15 @@ export function HeroSection() {
           </span>
         </label>
 
-        <label className={`flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 px-3 sm:px-5 cursor-text ${isDark ? "border-white/10" : "border-[#E2F1F8]"}`}>
+        <label className="flex items-center gap-3.5 border-b sm:border-b-0 sm:border-r py-3 sm:py-2 px-3 sm:px-5 cursor-text border-[#E2F1F8]">
           <Search className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className="block text-[10px] font-bold uppercase tracking-wider mb-0.5 text-[#8A9BA8]">
               Loại thiết bị
             </small>
             <select
               aria-label="Loại thiết bị"
-              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 cursor-pointer ${
-                isDark
-                  ? "text-white [&>option]:bg-[#121A2C] [&>option]:text-white"
-                  : "text-[#0E2233] [&>option]:bg-white [&>option]:text-[#0E2233]"
-              }`}
+              className="w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 cursor-pointer text-[#0E2233] [&>option]:bg-white [&>option]:text-[#0E2233]"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -209,12 +199,12 @@ export function HeroSection() {
         <label className="flex items-center gap-3.5 py-3 sm:py-2 px-3 sm:px-5 cursor-text">
           <Calendar className="h-5 w-5 shrink-0 text-[#00A3FF]" />
           <span className="w-full min-w-0">
-            <small className={`block text-[10px] font-bold uppercase tracking-wider mb-0.5 ${isDark ? "text-[#38BDF8]" : "text-[#8A9BA8]"}`}>
+            <small className="block text-[10px] font-bold uppercase tracking-wider mb-0.5 text-[#8A9BA8]">
               Ngày thuê
             </small>
             <input
               aria-label="Ngày thuê"
-              className={`w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 ${isDark ? "text-white placeholder:text-slate-500" : "text-[#0E2233] placeholder:text-slate-400"}`}
+              className="w-full border-0 bg-transparent text-sm font-semibold outline-none p-0 text-[#0E2233] placeholder:text-slate-400"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
             />

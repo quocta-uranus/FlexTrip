@@ -24,7 +24,7 @@ describe('ADMIN-10 rules & assignment', () => {
     const hcmListing = await createListing(h, provider.id, { location: 'Quận 1, TP. Hồ Chí Minh' });
     const dlListing = await createListing(h, provider.id, { location: 'Đà Lạt, Lâm Đồng' });
     const hcmBooking = await createBooking(h, { travelerId: t.id, listingId: hcmListing.id, status: BookingStatus.CONFIRMED });
-    const dlBooking = await createBooking(h, { travelerId: t.id, listingId: dlListing.id, status: BookingStatus.PENDING });
+    const dlBooking = await createBooking(h, { travelerId: t.id, listingId: dlListing.id, status: BookingStatus.PENDING_APPROVAL });
     const done = await createBooking(h, { travelerId: t.id, listingId: hcmListing.id, status: BookingStatus.COMPLETED });
     return { admin, hcm1, hcm2, off, hcmBooking, dlBooking, done, api: http(h, admin.accessToken) };
   }
