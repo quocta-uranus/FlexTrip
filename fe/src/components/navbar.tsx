@@ -5,12 +5,44 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useLogout } from '@/hooks/useAuthMutations';
+import { useCart } from '@/hooks/useCart';
 
 const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/bookings', label: 'Đặt thuê', icon: '📋' },
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
+
+const PROVIDER_NAV_LINKS = [
+  { href: '/search', label: 'Khám phá', icon: '🔍' },
+  { href: '/dashboard/bookings', label: 'Đơn thuê', icon: '📋' },
+  { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' },
+  { href: '/messages', label: 'Tin nhắn', icon: '💬' },
+];
+
+function CartIcon() {
+  const { data: cart } = useCart();
+  const count = cart?.items.length ?? 0;
+  return (
+    <Link
+      href="/cart"
+      className="relative flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-[#f1f5fa]"
+      title="Giỏ hàng"
+    >
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ color: '#5a6b85' }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      {count > 0 && (
+        <span
+          className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
+          style={{ background: '#2a7bd9' }}
+        >
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -19,9 +51,7 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isProvider = user?.roles?.includes('PROVIDER') ?? false;
-  const NAV_LINKS = isProvider
-    ? [...BASE_NAV_LINKS, { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' }]
-    : BASE_NAV_LINKS;
+  const NAV_LINKS = isProvider ? PROVIDER_NAV_LINKS : BASE_NAV_LINKS;
 
   // Hide on auth pages and landing page (LandingHeader handles those)
   if (pathname === '/' ||
@@ -85,6 +115,8 @@ export function Navbar() {
 
         {/* Right: user / auth */}
         <div className="flex items-center gap-2 shrink-0">
+
+          {isAuthenticated && <CartIcon />}
 
           {isAuthenticated && user ? (
             <div className="relative">

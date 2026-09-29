@@ -27,7 +27,7 @@ export default function DashboardPage() {
   const { data: bookings, isLoading: loadBookings } = useProviderBookings({ limit: 5 });
 
   const activeListings = listings?.filter((l) => l.status === 'ACTIVE').length ?? 0;
-  const pendingBookings = bookings?.filter((b) => b.status === 'PENDING').length ?? 0;
+  const pendingBookings = bookings?.filter((b) => b.status === 'PENDING_APPROVAL').length ?? 0;
   const confirmedBookings = bookings?.filter((b) => b.status === 'CONFIRMED').length ?? 0;
   const totalRevenue = bookings
     ?.filter((b) => ['CONFIRMED', 'COMPLETED'].includes(b.status))
@@ -211,11 +211,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick links */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-4">
           {[
-            { href: '/dashboard/listings/new', icon: '➕', label: 'Thêm sản phẩm mới', sub: 'Đăng sản phẩm cho thuê' },
+            { href: '/dashboard/bookings', icon: '📋', label: 'Quản lý đơn thuê', sub: 'Duyệt, bắt đầu, hoàn thành' },
+            { href: '/dashboard/listings/new', icon: '➕', label: 'Thêm sản phẩm', sub: 'Đăng sản phẩm cho thuê' },
             { href: '/profile/shop', icon: '🏪', label: 'Cập nhật Shop', sub: 'Thông tin cửa hàng, địa chỉ' },
-            { href: '/messages', icon: '💬', label: 'Xem tin nhắn', sub: 'Trò chuyện với khách hàng' },
+            { href: '/messages', icon: '💬', label: 'Tin nhắn', sub: 'Trò chuyện với khách hàng' },
           ].map((item) => (
             <Link
               key={item.href}

@@ -51,6 +51,11 @@ export interface Listing {
   providerId: string;
   createdAt: string;
   updatedAt: string;
+  // availability/rental config fields
+  quantity?: number;
+  minRentalDays?: number;
+  maxRentalDays?: number | null;
+  depositRate?: string | number;
   provider?: ListingProvider;
   reviews?: ListingReview[];
   _count?: { reviews: number; bookings: number };

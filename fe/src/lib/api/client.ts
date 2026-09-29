@@ -433,7 +433,7 @@ export const paymentMethodApi = {
 // ─── Listings ────────────────────────────────────────────────────────────────
 
 import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/types/listing';
-import type { Booking, CreateBookingPayload } from '@/types/booking';
+import type { Booking, Cart, CartItem, CreateBookingPayload, ModifyRequest } from '@/types/booking';
 import type { Conversation, Message } from '@/types/message';
 
 export interface ListingPage {
@@ -538,6 +538,37 @@ export const listingApi = {
   }>,
 };
 
+// ─── Availability ─────────────────────────────────────────────────────────────
+
+export const availabilityApi = {
+  get: (listingId: string, from: string, to: string) =>
+    api.get(`/listings/${listingId}/availability?from=${from}&to=${to}`) as Promise<{
+      listingId: string;
+      from: string;
+      to: string;
+      config: { quantity: number; minRentalDays: number; maxRentalDays: number | null; depositRate: string };
+      manuallyBlocked: Array<{ date: string; note: string | null }>;
+      fullyBooked: string[];
+    }>,
+
+  block: (listingId: string, dates: string[], note?: string) =>
+    api.post(`/listings/${listingId}/availability/block`, { dates, note }) as Promise<{ blocked: number }>,
+
+  unblock: (listingId: string, dates: string[]) =>
+    api.post(`/listings/${listingId}/availability/unblock`, { dates }) as Promise<{ unblocked: number }>,
+
+  getRentalConfig: (listingId: string) =>
+    api.get(`/listings/${listingId}/rental-config`) as Promise<{
+      id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+    }>,
+
+  updateRentalConfig: (listingId: string, data: {
+    minRentalDays: number; maxRentalDays?: number | null; depositRate?: number;
+  }) => api.patch(`/listings/${listingId}/rental-config`, data) as Promise<{
+    id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+  }>,
+};
+
 // ─── Search ──────────────────────────────────────────────────────────────────
 
 export const searchApi = {
@@ -569,26 +600,80 @@ export const bookingApi = {
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     const qs = q.toString();
-    return api.get(`/bookings/me${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+    return api.get(`/bookings${qs ? `?${qs}` : ''}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 
   get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
 
-  cancel: (id: string) => api.post(`/bookings/${id}/cancel`, {}) as Promise<Booking>,
+  cancel: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/cancel`, { reason }) as Promise<{ message: string; refundAmount: number }>,
 
-  confirm: (id: string) => api.post(`/bookings/${id}/confirm`, {}) as Promise<Booking>,
+  start: (id: string) => api.post(`/bookings/${id}/start`, {}) as Promise<Booking>,
 
   complete: (id: string) => api.post(`/bookings/${id}/complete`, {}) as Promise<Booking>,
+
+  confirmPayment: (id: string, data: { method: string; transactionRef?: string }) =>
+    api.post(`/bookings/${id}/confirm-payment`, data) as Promise<Booking>,
+
+  approve: (id: string) => api.post(`/bookings/${id}/approve`, {}) as Promise<Booking>,
+
+  decline: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/decline`, { reason }) as Promise<Booking>,
 
   // Provider: bookings for provider's listings
   providerBookings: (params?: { status?: string; page?: number; limit?: number }) => {
     const q = new URLSearchParams();
+    q.set('as', 'provider');
     if (params?.status) q.set('status', params.status);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
-    const qs = q.toString();
-    return api.get(`/bookings/provider${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+    return api.get(`/bookings?${q.toString()}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
+};
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
+
+export const cartApi = {
+  get: () => api.get('/cart') as Promise<Cart>,
+
+  addItem: (data: {
+    listingId: string; startDate: string; endDate: string;
+    quantity?: number; deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.post('/cart/items', data) as Promise<CartItem>,
+
+  updateItem: (itemId: string, data: {
+    startDate?: string; endDate?: string; quantity?: number;
+    deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.patch(`/cart/items/${itemId}`, data) as Promise<CartItem>,
+
+  removeItem: (itemId: string) =>
+    api.delete(`/cart/items/${itemId}`) as Promise<{ message: string }>,
+
+  checkout: (data: { paymentMethod: string; transactionRef?: string }) =>
+    api.post('/cart/checkout', data) as Promise<{
+      message: string;
+      bookings: Array<{ id: string; listingTitle: string; status: string }>;
+    }>,
+};
+
+// ─── Modify Booking ───────────────────────────────────────────────────────────
+
+export const modifyBookingApi = {
+  list: (bookingId: string) =>
+    api.get(`/bookings/${bookingId}/modify-requests`) as Promise<ModifyRequest[]>,
+
+  create: (bookingId: string, data: {
+    newStartDate: string; newEndDate: string;
+    newQuantity?: number; reason?: string;
+  }) => api.post(`/bookings/${bookingId}/modify-requests`, data) as Promise<ModifyRequest>,
+
+  accept: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/accept`, { reason }) as Promise<{ message: string }>,
+
+  reject: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/reject`, { reason }) as Promise<{ message: string }>,
 };
 
 // ─── Messages ────────────────────────────────────────────────────────────────
