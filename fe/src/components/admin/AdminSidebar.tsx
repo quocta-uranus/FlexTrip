@@ -3,7 +3,8 @@
 import { type ReactElement } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useAuthStore } from "@/store/auth.store";
+import { useLogout } from "@/hooks/useAuthMutations";
 
 const ADMIN_NAV = [
   {
@@ -98,6 +99,8 @@ const ICONS: Record<string, ReactElement> = {
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const me = useAuthStore((s) => s.user);
+  const logout = useLogout();
 
   return (
     <aside
@@ -154,6 +157,21 @@ export function AdminSidebar() {
           </div>
         ))}
       </nav>
+
+      <div className="border-t border-slate-100 p-4">
+        <div className="mb-3 min-w-0">
+          <div className="truncate text-sm font-semibold text-slate-900">{me?.name ?? '…'}</div>
+          <div className="truncate text-xs text-slate-500">{me?.email}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => logout.mutate()}
+          disabled={logout.isPending}
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          {logout.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
+        </button>
+      </div>
 
     </aside>
   );

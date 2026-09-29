@@ -1,6 +1,6 @@
 import {
   IsString, IsNumber, IsPositive, IsEnum, IsArray,
-  IsOptional, IsUrl, MinLength, MaxLength, Min, ArrayMinSize,
+  IsOptional, IsUrl, IsNotEmpty, MinLength, MaxLength, Min, ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
@@ -54,4 +54,10 @@ export class AiQualityDto {
   @ApiProperty({ type: [String] }) @IsArray() imageUrls: string[];
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() amenities?: string[];
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) price?: number;
+}
+
+export class FlagListingDto {
+  @ApiProperty({ example: 'Hình ảnh không đúng thực tế' })
+  @IsString() @IsNotEmpty() @MaxLength(500)
+  reason!: string;
 }

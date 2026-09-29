@@ -1,16 +1,18 @@
 import {
   Injectable, NotFoundException, ForbiddenException, BadRequestException,
-  InternalServerErrorException, Logger,
+  ConflictException, InternalServerErrorException, Logger,
 } from '@nestjs/common';
-import { Prisma, ListingStatus } from '@prisma/client';
+import { Prisma, ListingStatus, ListingFlagStatus } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { uploadImage, deleteFromSupabase } from '../../common/upload.util';
 import {
-  CreateListingDto, UpdateListingDto,
+  CreateListingDto, UpdateListingDto, FlagListingDto,
   AiSuggestDto, AiDescriptionDto, AiOptimizeDto, AiQualityDto,
 } from './listings.dto';
+
+const ADMIN_LOCKED: ListingStatus[] = [ListingStatus.SUSPENDED, ListingStatus.REMOVED];
 
 @Injectable()
 export class ListingsService {
@@ -47,12 +49,12 @@ export class ListingsService {
     });
   }
 
-  async findAll(params?: { status?: string; page?: number; limit?: number; category?: string; keyword?: string; location?: string }) {
+  async findAll(params?: { page?: number; limit?: number; category?: string; keyword?: string; location?: string }) {
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 20;
     const where: Prisma.ListingWhereInput = {
-      status: (params?.status as ListingStatus) ?? ListingStatus.ACTIVE,
-      ...(params?.category ? { category: params.category as any } : {}),
+      status: ListingStatus.ACTIVE,
+      ...(params?.category ? { category: params.category } : {}),
       ...(params?.keyword ? {
         OR: [
           { title: { contains: params.keyword, mode: 'insensitive' } },
@@ -108,7 +110,8 @@ export class ListingsService {
         _count: { select: { reviews: true, bookings: true } },
       },
     });
-    if (!listing) throw new NotFoundException('Không tìm thấy tin đăng.');
+    if (!listing || listing.status === ListingStatus.REMOVED)
+      throw new NotFoundException('Không tìm thấy tin đăng.');
     return listing;
   }
 
@@ -304,10 +307,33 @@ Trả về JSON thuần (không markdown):
 
   // ─── Internal ─────────────────────────────────────────────────────────────
 
+  async flag(listingId: string, reporterId: string, dto: FlagListingDto) {
+    const listing = await this.prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { providerId: true, status: true },
+    });
+    if (!listing || listing.status === ListingStatus.REMOVED)
+      throw new NotFoundException({ code: 'LISTING_NOT_FOUND', message: 'Không tìm thấy tin đăng.' });
+    if (listing.providerId === reporterId)
+      throw new ForbiddenException({ code: 'CANNOT_FLAG_OWN_LISTING', message: 'Bạn không thể báo cáo tin của chính mình.' });
+    const existing = await this.prisma.listingFlag.findFirst({
+      where: { listingId, reporterId, status: ListingFlagStatus.OPEN },
+      select: { id: true },
+    });
+    if (existing)
+      throw new ConflictException({ code: 'ALREADY_FLAGGED', message: 'Bạn đã báo cáo tin này, đang chờ xử lý.' });
+    return this.prisma.listingFlag.create({
+      data: { listingId, reporterId, reason: dto.reason },
+      select: { id: true, status: true, createdAt: true },
+    });
+  }
+
   private async assertOwner(id: string, providerId: string) {
     const listing = await this.prisma.listing.findUnique({ where: { id } });
     if (!listing) throw new NotFoundException('Không tìm thấy tin đăng.');
     if (listing.providerId !== providerId) throw new ForbiddenException('Bạn không có quyền chỉnh sửa tin này.');
+    if (ADMIN_LOCKED.includes(listing.status))
+      throw new ForbiddenException({ code: 'LISTING_LOCKED_BY_ADMIN', message: 'Tin đăng đang bị quản trị viên khoá.' });
     return listing;
   }
 }

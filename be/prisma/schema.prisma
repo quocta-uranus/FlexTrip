@@ -19,6 +19,7 @@ enum Role {
   TRAVELER
   PROVIDER
   ADMIN
+  STAFF
 }
 
 enum AuthProviderName {
@@ -61,6 +62,7 @@ enum ListingStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
+  REMOVED
 }
 
 enum ContractStatus {
@@ -112,6 +114,46 @@ enum AdminLevel {
   L3
 }
 
+enum ListingFlagSource {
+  USER
+  SYSTEM
+}
+
+enum ListingFlagStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum DisputeType {
+  REFUND_REQUEST
+  PAYMENT_DISPUTE
+  CANCELLATION_DISPUTE
+  DAMAGE_CLAIM
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  PENDING_INFO
+  ESCALATED
+  RESOLVED
+  REJECTED
+}
+
+enum DisputePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  ON_HOLD
+}
+
 enum AiChatRole {
   USER
   ASSISTANT
@@ -135,6 +177,8 @@ model User {
   twoFactorEnabled         Boolean    @default(false)
   twoFactorSecret          String?
   twoFactorRecoveryCodes   String[]   @default([])
+  suspendedAt              DateTime?
+  suspensionReason         String?
 
   // traveler profile fields
   dateOfBirth       DateTime?
@@ -161,22 +205,35 @@ model User {
   authProviders AuthProvider[]
 
   // profile relations
-  travelPreferences TravelPreference[]
-  paymentMethods    PaymentMethod[]
-  wallet            Wallet?
+  travelPreferences  TravelPreference[]
+  paymentMethods     PaymentMethod[]
+  wallet             Wallet?
   providerProfile    ProviderProfile?
   adminProfile       AdminProfile?
   providerSetupToken ProviderSetupToken?
 
   // business domain
-  listings        Listing[]
-  bookings        Booking[]            @relation("TravelerBookings")
-  sentMessages    Message[]            @relation("SentMessages")
-  notifications   Notification[]
-  reviewsGiven    Review[]             @relation("ReviewsGiven")
-  reviewsReceived Review[]             @relation("ReviewsReceived")
-  conversations   ConversationMember[]
+  listings            Listing[]
+  bookings            Booking[]            @relation("TravelerBookings")
+  sentMessages        Message[]            @relation("SentMessages")
+  notifications       Notification[]
+  reviewsGiven        Review[]             @relation("ReviewsGiven")
+  reviewsReceived     Review[]             @relation("ReviewsReceived")
+  conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
+
+  // admin
+  staffProfile     StaffProfile?
+  assignedBookings Booking[]             @relation("StaffAssignedBookings")
+  reportedFlags    ListingFlag[]         @relation("FlagReporter")
+  resolvedFlags    ListingFlag[]         @relation("FlagResolver")
+  disputesOpened   Dispute[]             @relation("DisputeOpener")
+  disputesHandled  Dispute[]             @relation("DisputeHandler")
+  payouts          Payout[]              @relation("ProviderPayouts")
+  payoutsCreated   Payout[]              @relation("PayoutCreator")
+  configUpdates    SystemConfig[]        @relation("ConfigUpdater")
+  auditLogs        AuditLog[]            @relation("AuditActor")
+  staffRules       StaffAssignmentRule[] @relation("StaffRules")
 
   @@index([email])
 }
@@ -289,9 +346,10 @@ model Listing {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  provider User      @relation(fields: [providerId], references: [id])
+  provider User          @relation(fields: [providerId], references: [id])
   bookings Booking[]
   reviews  Review[]
+  flags    ListingFlag[]
 
   @@index([providerId])
   @@index([status])
@@ -301,25 +359,29 @@ model Listing {
 // ─── Booking ─────────────────────────────────────────────────────────────────
 
 model Booking {
-  id         String        @id @default(cuid())
-  startDate  DateTime
-  endDate    DateTime
-  totalPrice Decimal       @db.Decimal(10, 2)
-  status     BookingStatus @default(PENDING)
-  notes      String?
-  travelerId String
-  listingId  String
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  startDate       DateTime
+  endDate         DateTime
+  totalPrice      Decimal       @db.Decimal(10, 2)
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  assignedStaffId String?
+  travelerId      String
+  listingId       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  traveler User      @relation("TravelerBookings", fields: [travelerId], references: [id])
-  listing  Listing   @relation(fields: [listingId], references: [id])
-  payment  Payment?
-  contract Contract?
+  traveler      User      @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing       Listing   @relation(fields: [listingId], references: [id])
+  payment       Payment?
+  contract      Contract?
+  assignedStaff User?     @relation("StaffAssignedBookings", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  disputes      Dispute[]
 
   @@index([travelerId])
   @@index([listingId])
   @@index([status])
+  @@index([assignedStaffId])
 }
 
 // ─── Payment ─────────────────────────────────────────────────────────────────
@@ -328,6 +390,7 @@ model Payment {
   id              String        @id @default(cuid())
   amount          Decimal       @db.Decimal(10, 2)
   currency        String        @default("VND")
+  platformFee     Decimal       @default(0) @db.Decimal(10, 2)
   status          PaymentStatus @default(PENDING)
   method          String
   transactionId   String?       @unique
@@ -397,11 +460,11 @@ model Message {
 // ─── AI Chat ────────────────────────────────────────────────────────────────
 
 model AiChatConversation {
-  id        String          @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  title     String          @default("Cuộc trò chuyện mới")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  title     String   @default("Cuộc trò chuyện mới")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages AiChatMessage[]
@@ -410,11 +473,11 @@ model AiChatConversation {
 }
 
 model AiChatMessage {
-  id             String          @id @default(cuid())
+  id             String     @id @default(cuid())
   conversationId String
   role           AiChatRole
-  content        String          @db.Text
-  createdAt      DateTime        @default(now())
+  content        String     @db.Text
+  createdAt      DateTime   @default(now())
 
   conversation AiChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -609,4 +672,137 @@ model AdminProfile {
 
   @@index([department])
   @@index([level])
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+model ListingFlag {
+  id             String            @id @default(cuid())
+  listingId      String
+  reporterId     String?
+  source         ListingFlagSource @default(USER)
+  reason         String
+  status         ListingFlagStatus @default(OPEN)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime          @default(now())
+
+  listing    Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reporter   User?   @relation("FlagReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  resolvedBy User?   @relation("FlagResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([listingId, status])
+  @@index([status, createdAt])
+}
+
+model Dispute {
+  id              String          @id @default(cuid())
+  bookingId       String
+  openedById      String
+  type            DisputeType
+  priority        DisputePriority @default(MEDIUM)
+  status          DisputeStatus   @default(OPEN)
+  reason          String
+  description     String?         @db.Text
+  requestedAmount Decimal?        @db.Decimal(10, 2)
+  resolution      String?         @db.Text
+  refundAmount    Decimal?        @db.Decimal(10, 2)
+  handledById     String?
+  resolvedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  openedBy  User    @relation("DisputeOpener", fields: [openedById], references: [id])
+  handledBy User?   @relation("DisputeHandler", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([bookingId])
+}
+
+model Payout {
+  id               String       @id @default(cuid())
+  providerId       String
+  periodStart      DateTime     @db.Date
+  periodEnd        DateTime     @db.Date
+  grossAmount      Decimal      @db.Decimal(14, 2)
+  commissionAmount Decimal      @db.Decimal(14, 2)
+  expectedNet      Decimal      @db.Decimal(14, 2)
+  paymentCount     Int
+  actualPaid       Decimal?     @db.Decimal(14, 2)
+  // Stored (= actualPaid − expectedNet) because Prisma cannot compare two columns in a where.
+  discrepancy      Decimal?     @db.Decimal(14, 2)
+  transferRef      String?
+  status           PayoutStatus @default(PENDING)
+  note             String?
+  paidAt           DateTime?
+  createdById      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  provider  User @relation("ProviderPayouts", fields: [providerId], references: [id])
+  createdBy User @relation("PayoutCreator", fields: [createdById], references: [id])
+
+  @@unique([providerId, periodStart, periodEnd])
+  @@index([status])
+}
+
+model SystemConfig {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation("ConfigUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorRole  Role?
+  action     String
+  module     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([module, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model StaffProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  employeeCode String   @unique
+  phone        String?
+  regions      String[] @default([])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StaffAssignmentRule {
+  id        String   @id @default(cuid())
+  name      String
+  region    String
+  staffId   String
+  priority  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff User @relation("StaffRules", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, priority])
 }

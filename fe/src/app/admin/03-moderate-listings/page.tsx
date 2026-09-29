@@ -2,20 +2,27 @@
 
 import { useState } from "react";
 import { Reveal, LiveDot } from "@/components/profile/wow";
-
-const mockListings = [
-  { id: "LST-001", title: "Xe máy Yamaha Sirius cũ mới 80%", price: 150000, location: "Quận 1, TP.HCM", category: "VEHICLE", provider: "Trần Văn Minh", status: "FLAGGED", flags: 3, reason: "Giá quá thấp, có dấu hiệu lừa đảo", reportedAt: "2024-09-14" },
-  { id: "LST-002", title: "Lều camping 4 người Naturehike", price: 80000, location: "Đà Lạt, Lâm Đồng", category: "CAMPING_TREKKING", provider: "Nguyễn Thị Lan", status: "PENDING", flags: 1, reason: "Hình ảnh không rõ ràng", reportedAt: "2024-09-13" },
-  { id: "LST-003", title: "Homestay view biển Mũi Né", price: 450000, location: "Mũi Né, Bình Thuận", category: "STAY", provider: "Lê Hoàng Nam", status: "FLAGGED", flags: 5, reason: "Spam đăng tin trùng lặp", reportedAt: "2024-09-12" },
-  { id: "LST-004", title: "Tour ẩm thực Sài Gòn 4h", price: 350000, location: "Quận 3, TP.HCM", category: "EXPERIENCE", provider: "Phạm Đức Anh", status: "PENDING", flags: 0, reason: "", reportedAt: "2024-09-11" },
-  { id: "LST-005", title: "Xe đạp đua carbon Giant", price: 120000, location: "Cần Thơ", category: "VEHICLE", provider: "Hoàng Minh Châu", status: "ACTIVE", flags: 0, reason: "", reportedAt: "" },
-];
+import { Pagination } from "@/components/admin/pagination";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { useAdminToast } from "@/components/admin/use-admin-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import {
+  useAdminListings,
+  useListingFlags,
+  useListingModerationStats,
+  useModerateListing,
+} from "@/hooks/admin/use-admin-listings";
+import { formatDate, formatDateTime, formatVnd } from "@/lib/format";
+import type { AdminListing, ListingTab, ModerateAction } from "@/types/admin";
 
 const statusStyles: Record<string, { label: string; color: string; bg: string }> = {
   ACTIVE: { label: "Active", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
-  PENDING: { label: "Pending Review", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
-  FLAGGED: { label: "Flagged", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
+  INACTIVE: { label: "Inactive", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
+  SUSPENDED: { label: "Suspended", color: "#ea580c", bg: "rgba(234,88,12,0.1)" },
   REMOVED: { label: "Removed", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
+  DRAFT: { label: "Draft", color: "#8694ad", bg: "rgba(134,148,173,0.15)" },
 };
 
 const categoryEmoji: Record<string, string> = {
@@ -25,14 +32,86 @@ const categoryEmoji: Record<string, string> = {
   EXPERIENCE: "🎯",
 };
 
-export default function ModerateListingsPage() {
-  const [filter, setFilter] = useState<"ALL" | "FLAGGED" | "PENDING" | "ACTIVE">("FLAGGED");
+const TABS: ListingTab[] = ["FLAGGED", "ACTIVE", "SUSPENDED", "REMOVED", "ALL"];
 
-  const filtered = mockListings.filter((l) => filter === "ALL" || l.status === filter);
+const ACTION_LABEL: Record<ModerateAction, string> = {
+  KEEP: "giữ tin",
+  HIDE: "ẩn tin",
+  REMOVE: "gỡ tin",
+  RESTORE: "khôi phục",
+};
+
+type Target = { listing: AdminListing; action: ModerateAction };
+
+export default function ModerateListingsPage() {
+  const [tab, setTab] = useState<ListingTab>("FLAGGED");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const debounced = useDebouncedValue(search);
+  const filterKey = `${tab}|${debounced}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setPage(1);
+  }
+
+  const { data, isLoading } = useAdminListings({ tab, search: debounced, page });
+  const { data: stats } = useListingModerationStats();
+  const moderate = useModerateListing();
+  const toast = useAdminToast();
+  const [target, setTarget] = useState<Target | null>(null);
+  const [openFlagsFor, setOpenFlagsFor] = useState<string | null>(null);
+  const { data: flags, isLoading: flagsLoading } = useListingFlags(openFlagsFor);
+
+  const listings = data?.items ?? [];
+
+  const onConfirm = (note: string) => {
+    if (!target) return;
+    moderate.mutate(
+      { id: target.listing.id, action: target.action, note: note || undefined },
+      {
+        onSuccess: (res) => {
+          const base = `Đã ${ACTION_LABEL[target.action]}`;
+          const extra = res.flagsUpdated > 0 ? `\n${res.flagsUpdated} báo cáo đã được xử lý` : "";
+          toast.success(base + extra);
+          setTarget(null);
+        },
+        onError: toast.error,
+      },
+    );
+  };
+
+  const actionButtons = (listing: AdminListing) => {
+    const buttons: { label: string; action: ModerateAction; className: string; style: React.CSSProperties }[] = [];
+    const live = listing.status === "ACTIVE" || listing.status === "INACTIVE";
+
+    if (live && listing.openFlagsCount > 0) {
+      buttons.push(
+        { label: "Giữ tin", action: "KEEP", className: "rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#15803d]", style: {} },
+        { label: "Ẩn", action: "HIDE", className: "rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fff7ed]", style: { borderColor: "#fed7aa", color: "#ea580c" } },
+        { label: "Gỡ", action: "REMOVE", className: "rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fef2f2]", style: { borderColor: "#fecaca", color: "#dc2626" } },
+      );
+    } else if (live) {
+      buttons.push(
+        { label: "Ẩn", action: "HIDE", className: "rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fff7ed]", style: { borderColor: "#fed7aa", color: "#ea580c" } },
+        { label: "Gỡ", action: "REMOVE", className: "rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fef2f2]", style: { borderColor: "#fecaca", color: "#dc2626" } },
+      );
+    } else if (listing.status === "SUSPENDED") {
+      buttons.push(
+        { label: "Khôi phục", action: "RESTORE", className: "rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#15803d]", style: {} },
+        { label: "Gỡ", action: "REMOVE", className: "rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fef2f2]", style: { borderColor: "#fecaca", color: "#dc2626" } },
+      );
+    } else if (listing.status === "REMOVED") {
+      buttons.push(
+        { label: "Khôi phục", action: "RESTORE", className: "rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#15803d]", style: {} },
+      );
+    }
+
+    return buttons;
+  };
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -42,21 +121,14 @@ export default function ModerateListingsPage() {
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Moderate Listings</h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Duyệt hoặc gỡ bỏ tin đăng bị gắn cờ vi phạm chính sách</p>
         </div>
-        <div className="flex gap-2">
-          <button className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]" style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}>
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-            Export Report
-          </button>
-        </div>
       </div>
 
-      {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-4">
         {[
-          { label: "Flagged Listings", value: 18, trend: "+3 today", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
-          { label: "Pending Review", value: 24, trend: "Need attention", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
-          { label: "Removed This Week", value: 7, trend: "-2 vs last week", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
-          { label: "Avg Resolution", value: "2.4h", trend: "SLA: 4h", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
+          { label: "Flagged Listings", value: stats?.flagged ?? "—", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
+          { label: "Suspended", value: stats?.suspended ?? "—", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
+          { label: "Removed This Week", value: stats?.removedThisWeek ?? "—", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
+          { label: "Avg Resolution", value: `${stats?.avgResolutionHours ?? "—"}h`, color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
         ].map((stat) => (
           <Reveal key={stat.label}>
             <div className="rounded-2xl border bg-white p-4" style={{ borderColor: "#e2e8f3" }}>
@@ -67,71 +139,204 @@ export default function ModerateListingsPage() {
                 </div>
               </div>
               <div className="mt-1 text-xs" style={{ color: "#5a6b85" }}>{stat.label}</div>
-              <div className="mt-1 text-[10px] font-medium" style={{ color: stat.color }}>{stat.trend}</div>
             </div>
           </Reveal>
         ))}
       </div>
 
-      {/* Filters */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm theo tiêu đề, địa điểm, provider..."
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+          />
+        </div>
+      </div>
+
       <div className="mb-6 flex items-center gap-2 border-b" style={{ borderColor: "#e2e8f3" }}>
-        {(["ALL", "FLAGGED", "PENDING", "ACTIVE"] as const).map((tab) => (
+        {TABS.map((t) => (
           <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-3 text-sm font-semibold transition-all ${filter === tab ? "border-b-2 text-[#2a7bd9]" : "text-[#5a6b85] hover:text-[#0f1729]"}`}
-            style={{ borderColor: filter === tab ? "#2a7bd9" : "transparent" }}
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`px-4 py-3 text-sm font-semibold transition-all ${tab === t ? "border-b-2 text-[#2a7bd9]" : "text-[#5a6b85] hover:text-[#0f1729]"}`}
+            style={{ borderColor: tab === t ? "#2a7bd9" : "transparent" }}
           >
-            {tab.charAt(0) + tab.slice(1).toLowerCase()}
-            {tab === "FLAGGED" && <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ background: "rgba(239,68,68,0.2)", color: "#dc2626" }}>18</span>}
-            {tab === "PENDING" && <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ background: "rgba(234,179,8,0.2)", color: "#ca8a04" }}>24</span>}
+            {t.charAt(0) + t.slice(1).toLowerCase()}
+            {t === "FLAGGED" && (
+              <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ background: "rgba(239,68,68,0.2)", color: "#dc2626" }}>
+                {stats?.flagged ?? 0}
+              </span>
+            )}
+            {t === "SUSPENDED" && (
+              <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ background: "rgba(234,179,8,0.2)", color: "#ca8a04" }}>
+                {stats?.suspended ?? 0}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Listings */}
       <div className="space-y-4">
-        {filtered.map((listing, i) => (
-          <Reveal key={listing.id} delay={i * 80}>
-            <div className={`rounded-2xl border bg-white p-6 transition-all hover:shadow-lg ${listing.status === "FLAGGED" ? "ring-2 ring-red-200" : ""}`} style={{ borderColor: listing.status === "FLAGGED" ? "#fecaca" : "#e2e8f3" }}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl" style={{ background: "rgba(146,238,232,0.2)" }}>
-                    {categoryEmoji[listing.category] || "📦"}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>{listing.title}</h3>
-                      <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}>{listing.id}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ ...statusStyles[listing.status], background: statusStyles[listing.status].bg }}>
-                        {listing.status === "FLAGGED" && "🚩"}
-                        {listing.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Provider: <span className="font-semibold" style={{ color: "#0f1729" }}>{listing.provider}</span></p>
-                    <p className="text-sm" style={{ color: "#5a6b85" }}>📍 {listing.location} · <span className="font-semibold" style={{ color: "#16a34a" }}>{listing.price.toLocaleString("vi-VN")}đ/ngày</span></p>
-                    {listing.flags > 0 && (
-                      <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{listing.flags}</span>
-                          <span className="text-sm font-semibold text-red-700">Flag Reason:</span>
-                        </div>
-                        <p className="text-sm text-red-600">{listing.reason}</p>
-                        <p className="mt-1 text-xs text-red-400">Reported: {listing.reportedAt}</p>
+        {isLoading &&
+          Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
+        {!isLoading && listings.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
+            Không có tin đăng trong tab này.
+          </div>
+        )}
+        {listings.map((listing, i) => {
+          const st = statusStyles[listing.status] ?? statusStyles.ACTIVE;
+          const flagged = listing.openFlagsCount > 0;
+          return (
+            <Reveal key={listing.id} delay={i * 40}>
+              <div
+                className={`rounded-2xl border bg-white p-6 transition-all hover:shadow-lg ${flagged ? "ring-2 ring-red-200" : ""}`}
+                style={{ borderColor: flagged ? "#fecaca" : "#e2e8f3" }}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    {listing.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={listing.imageUrl} alt="" className="h-14 w-14 rounded-2xl object-cover" />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl" style={{ background: "rgba(146,238,232,0.2)" }}>
+                        {categoryEmoji[listing.category] || "📦"}
                       </div>
                     )}
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>{listing.title}</h3>
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}>
+                          {listing.id}
+                        </span>
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+                          style={{ color: st.color, background: st.bg }}
+                        >
+                          {flagged && "🚩"}
+                          {listing.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>
+                        Provider: <span className="font-semibold" style={{ color: "#0f1729" }}>{listing.provider.name}</span>
+                      </p>
+                      <p className="text-sm" style={{ color: "#5a6b85" }}>
+                        📍 {listing.location} ·{" "}
+                        <span className="font-semibold" style={{ color: "#16a34a" }}>
+                          {formatVnd(listing.price)}/ngày
+                        </span>
+                      </p>
+                      {listing.openFlagsCount > 0 && listing.latestFlag && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                              {listing.openFlagsCount}
+                            </span>
+                            <span className="text-sm font-semibold text-red-700">Flag Reason:</span>
+                          </div>
+                          <p className="text-sm text-red-600">{listing.latestFlag.reason}</p>
+                          <p className="mt-1 text-xs text-red-400">Reported: {formatDate(listing.latestFlag.createdAt)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpenFlagsFor(listing.id)}
+                      className="rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]"
+                      style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
+                    >
+                      Xem báo cáo
+                    </button>
+                    <a
+                      href={`/listings/${listing.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]"
+                      style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
+                    >
+                      Xem tin
+                    </a>
+                    {actionButtons(listing).map((btn) => (
+                      <button
+                        key={btn.action}
+                        type="button"
+                        onClick={() => setTarget({ listing, action: btn.action })}
+                        className={btn.className}
+                        style={btn.style}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#f1f5fa]" style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}>Preview</button>
-                  <button className="rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:bg-[#fef2f2]" style={{ borderColor: "#fecaca", color: "#dc2626" }}>Remove</button>
-                  <button className="rounded-full bg-[#16a34a] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#15803d]">Keep Live</button>
-                </div>
               </div>
-            </div>
-          </Reveal>
-        ))}
+            </Reveal>
+          );
+        })}
       </div>
+
+      <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={setPage} />
+
+      <ConfirmDialog
+        open={target !== null}
+        onOpenChange={(o) => !o && setTarget(null)}
+        title={
+          target
+            ? `${target.action === "REMOVE" ? "Gỡ" : target.action === "HIDE" ? "Ẩn" : target.action === "KEEP" ? "Giữ" : "Khôi phục"} tin "${target.listing.title}"?`
+            : ""
+        }
+        confirmLabel={target ? ACTION_LABEL[target.action].replace(/^./, (c) => c.toUpperCase()) : "Xác nhận"}
+        tone={target?.action === "REMOVE" ? "danger" : "default"}
+        requireReason={target?.action === "HIDE" || target?.action === "REMOVE"}
+        optionalReason={target?.action === "KEEP" || target?.action === "RESTORE"}
+        pending={moderate.isPending}
+        onConfirm={onConfirm}
+      />
+
+      <Dialog open={openFlagsFor !== null} onOpenChange={(o) => !o && setOpenFlagsFor(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Báo cáo vi phạm</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-80 space-y-3 overflow-y-auto">
+            {flagsLoading && <Skeleton className="h-20 w-full" />}
+            {!flagsLoading && (flags?.length ?? 0) === 0 && (
+              <p className="text-sm text-slate-500">Không có báo cáo.</p>
+            )}
+            {(flags ?? []).map((f) => (
+              <div key={f.id} className="rounded-xl border border-slate-200 p-3">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900">{f.reason}</span>
+                  {f.source === "SYSTEM" && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">AI</span>
+                  )}
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">{f.status}</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {f.reporter?.name ?? "Hệ thống"} · {formatDateTime(f.createdAt)}
+                </p>
+                {f.resolvedBy && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Xử lý bởi {f.resolvedBy.name}
+                    {f.resolutionNote ? `: ${f.resolutionNote}` : ""}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {toast.node}
     </div>
   );
 }

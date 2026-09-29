@@ -114,3 +114,9 @@ export function useResetPassword() {
     },
   });
 }
+
+export function useSetupPassword() {
+  return useMutation({
+    mutationFn: ({ token, password }: { token: string; password: string }) => authApi.setupPassword(token, password),
+  });
+}

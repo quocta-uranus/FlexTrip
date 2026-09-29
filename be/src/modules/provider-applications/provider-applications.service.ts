@@ -12,6 +12,8 @@ import { ResendService } from '../auth/services/resend.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateProviderApplicationDto, RejectApplicationDto } from './provider-applications.dto';
 import { ApplicationStatus, Role, ShopCategory } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
+import { RequestContext } from '../../common/request-context';
 
 const SETUP_TOKEN_TTL_MS = 48 * 60 * 60 * 1000; // 48h
 
@@ -21,6 +23,7 @@ export class ProviderApplicationsService {
     private readonly prisma: PrismaService,
     private readonly resend: ResendService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
   ) {}
 
   async submit(dto: CreateProviderApplicationDto) {
@@ -41,7 +44,7 @@ export class ProviderApplicationsService {
     });
   }
 
-  async approve(id: string, adminUserId: string) {
+  async approve(id: string, adminUserId: string, ctx: RequestContext) {
     const app = await this.prisma.providerApplication.findUnique({ where: { id } });
     if (!app) throw new NotFoundException('Không tìm thấy đơn đăng ký.');
     if (app.status !== ApplicationStatus.PENDING) {
@@ -97,10 +100,19 @@ export class ProviderApplicationsService {
       update: { tokenHash, expiresAt, usedAt: null },
     });
 
-    // Update application status
-    await this.prisma.providerApplication.update({
-      where: { id },
-      data: { status: ApplicationStatus.APPROVED },
+    // Update application status + audit
+    await this.prisma.$transaction(async (tx) => {
+      await tx.providerApplication.update({
+        where: { id },
+        data: { status: ApplicationStatus.APPROVED },
+      });
+      await this.audit.log(tx, ctx, {
+        action: 'PROVIDER_APPLICATION_APPROVED',
+        entityType: 'ProviderApplication',
+        entityId: id,
+        before: { status: app.status },
+        after: { status: 'APPROVED', userId: user.id },
+      });
     });
 
     // Send approval email
@@ -113,7 +125,7 @@ export class ProviderApplicationsService {
     return { message: 'Đã duyệt và gửi email cho provider.' };
   }
 
-  async reject(id: string, adminUserId: string, dto: RejectApplicationDto) {
+  async reject(id: string, adminUserId: string, dto: RejectApplicationDto, ctx: RequestContext) {
     const app = await this.prisma.providerApplication.findUnique({ where: { id } });
     if (!app) throw new NotFoundException('Không tìm thấy đơn đăng ký.');
     if (app.status !== ApplicationStatus.PENDING) {
@@ -122,9 +134,19 @@ export class ProviderApplicationsService {
 
     await this.assertAdmin(adminUserId);
 
-    return this.prisma.providerApplication.update({
-      where: { id },
-      data: { status: ApplicationStatus.REJECTED, adminNote: dto.adminNote },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.providerApplication.update({
+        where: { id },
+        data: { status: ApplicationStatus.REJECTED, adminNote: dto.adminNote },
+      });
+      await this.audit.log(tx, ctx, {
+        action: 'PROVIDER_APPLICATION_REJECTED',
+        entityType: 'ProviderApplication',
+        entityId: id,
+        before: { status: app.status },
+        after: { status: updated.status, adminNote: updated.adminNote },
+      });
+      return updated;
     });
   }
 

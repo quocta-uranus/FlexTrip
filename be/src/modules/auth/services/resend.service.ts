@@ -89,6 +89,31 @@ export class ResendService {
     }
   }
 
+  async sendStaffInvite(email: string, name: string, setupUrl: string): Promise<boolean> {
+    const safeName = name.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Lời mời tham gia đội vận hành FlexTrip',
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+            <h1 style="margin:0 0 16px;color:#0f1729;font-size:22px">Chào mừng ${safeName}!</h1>
+            <p style="margin:0 0 24px;color:#5a6b85;font-size:14px;line-height:1.6">
+              Bạn đã được thêm vào đội ngũ nhân viên vận hành FlexTrip. Nhấn nút bên dưới để tạo mật khẩu đăng nhập.
+            </p>
+            <p style="text-align:center;margin:0 0 24px">
+              <a href="${setupUrl}" style="display:inline-block;background:#1e5aa8;color:#fff;text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700">Tạo mật khẩu →</a>
+            </p>
+            <p style="margin:0;color:#8694ad;font-size:12px">Link có hiệu lực trong 48 giờ.</p>
+          </div>`,
+      });
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
   async sendPasswordReset(email: string, resetUrl: string): Promise<boolean> {
     try {
       const { error } = await this.resend.emails.send({

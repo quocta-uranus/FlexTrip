@@ -10,9 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { ProviderApplicationsService } from './provider-applications.service';
 import { CreateProviderApplicationDto, RejectApplicationDto } from './provider-applications.dto';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
+import { requestContext } from '../../common/request-context';
 
 @ApiTags('provider-applications')
 @Controller('provider-applications')
@@ -39,7 +41,7 @@ export class ProviderApplicationsController {
   @UseGuards(AccessTokenGuard)
   @ApiOperation({ summary: '[Admin] Approve application → create account + send magic link' })
   approve(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.approve(id, req.authUserId);
+    return this.svc.approve(id, req.authUserId, requestContext(req, Role.ADMIN));
   }
 
   @Patch(':id/reject')
@@ -51,6 +53,6 @@ export class ProviderApplicationsController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: RejectApplicationDto,
   ) {
-    return this.svc.reject(id, req.authUserId, dto);
+    return this.svc.reject(id, req.authUserId, dto, requestContext(req, Role.ADMIN));
   }
 }
