@@ -640,6 +640,9 @@ export const bookingApi = {
 export const reviewApi = {
   create: (data: CreateReviewPayload) => api.post('/reviews', data) as Promise<Review>,
   mine: () => api.get('/reviews/mine') as Promise<Review[]>,
+  received: () => api.get('/reviews/received') as Promise<Review[]>,
+  respond: (reviewId: string, response: string) =>
+    api.put(`/reviews/${reviewId}/response`, { response }) as Promise<Review>,
   forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
 };
 

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewApi } from '@/lib/api/client';
-import type { CreateReviewPayload } from '@/types/review';
+import type { CreateReviewPayload, RespondToReviewPayload } from '@/types/review';
 
 export function useListingReviews(listingId: string) {
   return useQuery({
@@ -25,6 +25,30 @@ export function useCreateReview() {
       if (review.listingId) {
         queryClient.invalidateQueries({ queryKey: ['reviews', 'listing', review.listingId] });
         queryClient.invalidateQueries({ queryKey: ['listing', review.listingId] });
+      }
+    },
+  });
+}
+
+export function useReceivedReviews() {
+  return useQuery({
+    queryKey: ['reviews', 'received'],
+    queryFn: reviewApi.received,
+  });
+}
+
+export function useRespondToReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, response }: RespondToReviewPayload) =>
+      reviewApi.respond(reviewId, response),
+    onSuccess: (review) => {
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'received'] });
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'mine'] });
+      if (review.listingId) {
+        queryClient.invalidateQueries({
+          queryKey: ['reviews', 'listing', review.listingId],
+        });
       }
     },
   });

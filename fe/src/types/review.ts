@@ -21,3 +21,8 @@ export interface CreateReviewPayload {
   rating: number;
   comment: string;
 }
+
+export interface RespondToReviewPayload {
+  reviewId: string;
+  response: string;
+}

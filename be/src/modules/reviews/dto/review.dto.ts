@@ -32,3 +32,14 @@ export class CreateReviewDto {
   @MaxLength(2000)
   comment!: string;
 }
+
+export class RespondToReviewDto {
+  @ApiProperty({ minLength: 1, maxLength: 2000 })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  response!: string;
+}

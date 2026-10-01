@@ -48,6 +48,12 @@ export default function MyReviewsPage() {
               </span>
             </div>
             <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{review.comment}</p>
+            {review.response && (
+              <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{review.response}</p>
+              </div>
+            )}
             <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
               <span>{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
               {review.listingId && (

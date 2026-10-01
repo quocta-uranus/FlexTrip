@@ -18,6 +18,7 @@ const PROVIDER_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/dashboard/bookings', label: 'Đơn thuê', icon: '📋' },
   { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' },
+  { href: '/dashboard/reviews', label: 'Đánh giá', icon: '⭐' },
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
 
@@ -168,6 +169,7 @@ export function Navbar() {
                       ...(isStaff ? [{ href: '/staff', label: 'Bảng điều phối', icon: '🗓️' }] : []),
                       ...(isProvider ? [
                         { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: '📦' },
+                        { href: '/dashboard/reviews', label: 'Quản lý đánh giá', icon: '⭐' },
                         { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
                       ] : []),
                     ].map((item) => (

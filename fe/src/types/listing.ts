@@ -31,6 +31,8 @@ export interface ListingReview {
   id: string;
   rating: number;
   comment?: string | null;
+  response?: string | null;
+  respondedAt?: string | null;
   createdAt: string;
   author: { id: string; name: string; avatarUrl?: string | null };
 }

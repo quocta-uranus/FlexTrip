@@ -246,6 +246,12 @@ export default function ListingDetailPage() {
                         <StarRating rating={r.rating} />
                       </div>
                       {r.comment && <p className="text-sm leading-relaxed" style={{ color: '#5a6b85' }}>{r.comment}</p>}
+                      {r.response && (
+                        <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">{r.response}</p>
+                        </div>
+                      )}
                       <p className="mt-2 text-xs" style={{ color: '#8694ad' }}>
                         {new Date(r.createdAt).toLocaleDateString('vi-VN')}
                       </p>

@@ -1,4 +1,14 @@
-export const AUDIT_MODULES = ['USER', 'MODERATION', 'DISPUTE', 'FINANCE', 'CONFIG', 'STAFF', 'KYC', 'PROVIDER'] as const;
+export const AUDIT_MODULES = [
+  'USER',
+  'MODERATION',
+  'DISPUTE',
+  'FINANCE',
+  'CONFIG',
+  'STAFF',
+  'KYC',
+  'PROVIDER',
+  'REVIEW',
+] as const;
 export type AuditModuleName = (typeof AUDIT_MODULES)[number];
 
 export const AUDIT_ACTIONS = {
@@ -35,6 +45,8 @@ export const AUDIT_ACTIONS = {
   KYC_REJECTED: 'KYC',
   PROVIDER_APPLICATION_APPROVED: 'PROVIDER',
   PROVIDER_APPLICATION_REJECTED: 'PROVIDER',
+  REVIEW_RESPONSE_CREATED: 'REVIEW',
+  REVIEW_RESPONSE_UPDATED: 'REVIEW',
 } as const satisfies Record<string, AuditModuleName>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

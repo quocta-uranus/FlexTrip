@@ -4,9 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BookingStatus, Prisma, ReviewStatus } from '@prisma/client';
+import {
+  BookingStatus,
+  NotificationType,
+  Prisma,
+  ReviewStatus,
+} from '@prisma/client';
+import { RequestContext } from '../../common/request-context';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateReviewDto } from './dto/review.dto';
+import { AuditService } from '../audit/audit.service';
+import { CreateReviewDto, RespondToReviewDto } from './dto/review.dto';
 import { moderateReviewWithRules } from './review-moderation.rules';
 
 const PUBLIC_REVIEW_SELECT = {
@@ -25,7 +32,10 @@ const PUBLIC_REVIEW_SELECT = {
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async create(authorId: string, dto: CreateReviewDto) {
     const moderation = moderateReviewWithRules(dto.comment);
@@ -129,6 +139,104 @@ export class ReviewsService {
       where: { listingId, status: ReviewStatus.PUBLISHED },
       orderBy: { createdAt: 'desc' },
       select: PUBLIC_REVIEW_SELECT,
+    });
+  }
+
+  findReceived(providerId: string) {
+    return this.prisma.review.findMany({
+      where: { targetId: providerId, status: ReviewStatus.PUBLISHED },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        ...PUBLIC_REVIEW_SELECT,
+        listing: { select: { id: true, title: true, imageUrls: true } },
+      },
+    });
+  }
+
+  async respond(
+    providerId: string,
+    reviewId: string,
+    dto: RespondToReviewDto,
+    ctx: RequestContext,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.review.findUnique({
+        where: { id: reviewId },
+        select: {
+          id: true,
+          targetId: true,
+          authorId: true,
+          status: true,
+          response: true,
+          respondedAt: true,
+          listingId: true,
+        },
+      });
+
+      if (!existing) throw new NotFoundException('Đánh giá không tồn tại');
+      if (existing.targetId !== providerId)
+        throw new ForbiddenException(
+          'Bạn chỉ có thể phản hồi đánh giá dành cho mình',
+        );
+      if (existing.status !== ReviewStatus.PUBLISHED)
+        throw new ConflictException({
+          code: 'REVIEW_NOT_PUBLISHED',
+          message: 'Chỉ đánh giá đã công khai mới có thể được phản hồi.',
+        });
+
+      const now = new Date();
+      const firstResponse = await tx.review.updateMany({
+        where: {
+          id: reviewId,
+          targetId: providerId,
+          status: ReviewStatus.PUBLISHED,
+          response: null,
+        },
+        data: { response: dto.response, respondedAt: now },
+      });
+      const isCreate = firstResponse.count === 1;
+
+      if (!isCreate) {
+        await tx.review.update({
+          where: { id: reviewId },
+          data: { response: dto.response, respondedAt: now },
+        });
+      }
+
+      const updated = await tx.review.findUniqueOrThrow({
+        where: { id: reviewId },
+        select: PUBLIC_REVIEW_SELECT,
+      });
+
+      await this.audit.log(tx, ctx, {
+        action: isCreate
+          ? 'REVIEW_RESPONSE_CREATED'
+          : 'REVIEW_RESPONSE_UPDATED',
+        entityType: 'Review',
+        entityId: reviewId,
+        before: {
+          response: existing.response,
+          respondedAt: existing.respondedAt,
+        },
+        after: { response: updated.response, respondedAt: updated.respondedAt },
+      });
+
+      if (isCreate) {
+        await tx.notification.create({
+          data: {
+            userId: existing.authorId,
+            type: NotificationType.REVIEW,
+            title: 'Provider đã phản hồi đánh giá của bạn',
+            body: 'Provider đã gửi phản hồi cho đánh giá bạn đã đăng.',
+            data: {
+              reviewId,
+              listingId: existing.listingId,
+            },
+          },
+        });
+      }
+
+      return updated;
     });
   }
 
