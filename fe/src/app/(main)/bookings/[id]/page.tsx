@@ -9,6 +9,8 @@ import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus, ModifyRequestStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
+import { ReviewForm } from '@/components/reviews/review-form';
+import { useMyReviews } from '@/hooks/useReviews';
 
 const STATUS_STEPS: BookingStatus[] = ['PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -17,6 +19,7 @@ function BookingDetailContent() {
   const searchParams = useSearchParams();
   const justCreated = searchParams.get('created') === '1';
   const { user } = useAuthStore();
+  const { data: myReviews } = useMyReviews(user?.roles.includes('TRAVELER') ?? false);
   const { data: booking, isLoading, error } = useBooking(id);
   const { mutateAsync: cancelBookingAsync, isPending: cancelling } = useCancelBooking();
   const approve = useApproveBooking();
@@ -67,6 +70,7 @@ function BookingDetailContent() {
   const currentStepIdx = STATUS_STEPS.indexOf(booking.status as BookingStatus);
   const canCancel = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED'].includes(booking.status);
   const isProvider = user?.id === booking.listing?.providerId;
+  const currentReview = myReviews?.find((review) => review.bookingId === booking.id);
   const isPendingApproval = booking.status === 'PENDING_APPROVAL';
   const canModify = !isProvider && booking.status === 'CONFIRMED';
   const hasPendingRequest = modifyRequests?.some((r) => r.status === 'PENDING') ?? false;
@@ -562,6 +566,21 @@ function BookingDetailContent() {
           )}
         </div>
       </div>
+
+      {!isProvider && booking.status === 'COMPLETED' && !currentReview && (
+        <ReviewForm bookingId={booking.id} />
+      )}
+
+      {!isProvider && currentReview && (
+        <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+          <h2 className="text-sm font-semibold" style={{ color: '#0f1729' }}>Đánh giá của bạn</h2>
+          <p className="mt-2 text-xl" style={{ color: '#f59e0b' }}>{'★'.repeat(currentReview.rating)}{'☆'.repeat(5 - currentReview.rating)}</p>
+          <p className="mt-2 text-sm" style={{ color: '#5a6b85' }}>{currentReview.comment}</p>
+          {currentReview.status !== 'PUBLISHED' && (
+            <p className="mt-2 text-xs" style={{ color: '#a16207' }}>Đánh giá đang được kiểm tra trước khi hiển thị công khai.</p>
+          )}
+        </div>
+      )}
 
       {/* Modify requests history */}
       {!!modifyRequests?.length && (

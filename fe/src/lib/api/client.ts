@@ -7,6 +7,7 @@ import type {
   TwoFactorEnableResult,
 } from '@/types/auth';
 import type { NotificationListResult, NotificationType } from '@/types/notification';
+import type { CreateReviewPayload, Review } from '@/types/review';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -632,6 +633,14 @@ export const bookingApi = {
     return api.get(`/bookings?${q.toString()}`)
       .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
+};
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+export const reviewApi = {
+  create: (data: CreateReviewPayload) => api.post('/reviews', data) as Promise<Review>,
+  mine: () => api.get('/reviews/mine') as Promise<Review[]>,
+  forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
 };
 
 // ─── Cart ─────────────────────────────────────────────────────────────────────

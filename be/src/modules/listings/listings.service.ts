@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, ForbiddenException, BadRequestException,
   ConflictException, InternalServerErrorException, Logger,
 } from '@nestjs/common';
-import { Prisma, ListingStatus, ListingFlagStatus } from '@prisma/client';
+import { Prisma, ListingStatus, ListingFlagStatus, ReviewStatus } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -103,11 +103,25 @@ export class ListingsService {
           },
         },
         reviews: {
+          where: { status: ReviewStatus.PUBLISHED },
           orderBy: { createdAt: 'desc' },
           take: 10,
-          include: { author: { select: { id: true, name: true, avatarUrl: true } } },
+          select: {
+            id: true,
+            rating: true,
+            comment: true,
+            response: true,
+            respondedAt: true,
+            createdAt: true,
+            author: { select: { id: true, name: true, avatarUrl: true } },
+          },
         },
-        _count: { select: { reviews: true, bookings: true } },
+        _count: {
+          select: {
+            reviews: { where: { status: ReviewStatus.PUBLISHED } },
+            bookings: true,
+          },
+        },
       },
     });
     if (!listing || listing.status === ListingStatus.REMOVED)

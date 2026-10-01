@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useListing } from '@/hooks/useListings';
 import { BookingWidget } from '@/components/listing/booking-widget';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { useListingReviews } from '@/hooks/useReviews';
 
 function StarRating({ rating, count }: { rating: number; count?: number }) {
   return (
@@ -25,6 +26,7 @@ export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: listing, isLoading, error } = useListing(id);
+  const { data: publicReviews } = useListingReviews(id);
   const [selectedImage, setSelectedImage] = useState(0);
 
   if (isLoading) {
@@ -59,7 +61,7 @@ export default function ListingDetailPage() {
   }
 
   const images = listing.imageUrls?.length > 0 ? listing.imageUrls : [];
-  const reviews = listing.reviews ?? [];
+  const reviews = publicReviews ?? listing.reviews ?? [];
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   return (

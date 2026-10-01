@@ -22,6 +22,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -53,7 +54,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AiChatModule,
     AdminModule,
     StaffModule,
-    NotificationsModule
+    NotificationsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
