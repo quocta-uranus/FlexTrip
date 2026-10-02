@@ -1,3 +1,5 @@
+import type { PublicReputationBadge } from './reputation';
+
 export type ReviewStatus = 'PENDING' | 'PUBLISHED' | 'FLAGGED' | 'REJECTED';
 
 export interface Review {
@@ -14,6 +16,8 @@ export interface Review {
   author: { id: string; name: string; avatarUrl?: string | null };
   listing?: { id: string; title: string; imageUrls: string[] } | null;
   target?: { id: string; name: string; avatarUrl?: string | null };
+  authorBadges?: PublicReputationBadge[];
+  targetBadges?: PublicReputationBadge[];
 }
 
 export interface CreateReviewPayload {

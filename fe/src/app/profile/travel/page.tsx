@@ -36,6 +36,8 @@ import {
 } from "@/components/profile/wow";
 import { useEditingProfile } from "@/hooks/useEditingProfile";
 import { Toast } from "@/components/ui/toast";
+import { ReputationProgressCard } from "@/components/reputation/reputation-badge";
+import { useMyReputation } from "@/hooks/useReputation";
 
 const LANG_CODE_TO_LABEL: Record<string, string> = {
   vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
@@ -142,6 +144,7 @@ export default function TravelProfilePage() {
   const confetti = useConfetti(36);
   const [show2faModal, setShow2faModal] = useState(false);
   const { data: me } = useMe();
+  const { data: reputation } = useMyReputation();
   const { mutateAsync: uploadAvatar, isPending: avatarUploading } = useSetAvatar();
   const qc = useQueryClient();
   // Bảo vệ route: chỉ TRAVELER mới được vào /profile/travel
@@ -222,12 +225,9 @@ export default function TravelProfilePage() {
     { date: "T2/2026", title: "City tour Đà Nẵng", subtitle: "FlexTrip Verified · nửa ngày", badge: "City" },
   ];
 
-  const trips = p.tripsCount;
-  const badges = [
-    { name: "Newbie Trekker", desc: "Hoàn thành 1–3 chuyến thuê", level: trips >= 1 ? ("done" as const) : ("locked" as const) },
-    { name: "Explorer", desc: "Hoàn thành 4–9 chuyến thuê", level: trips >= 4 ? ("done" as const) : trips >= 1 ? ("current" as const) : ("locked" as const) },
-    { name: "Pro Trekker", desc: "Hoàn thành 10+ chuyến thuê", level: trips >= 10 ? ("done" as const) : trips >= 4 ? ("current" as const) : ("locked" as const) },
-  ];
+  const travelerReputation = reputation?.badges.find(
+    (badge) => badge.code === 'RELIABLE_TRAVELER',
+  );
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%)" }}>
@@ -384,6 +384,12 @@ export default function TravelProfilePage() {
             </div>
           ))}
         </div>
+
+        {travelerReputation && (
+          <div className="mb-8">
+            <ReputationProgressCard badge={travelerReputation} />
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">

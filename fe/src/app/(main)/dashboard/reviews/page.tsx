@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useReceivedReviews, useRespondToReview } from '@/hooks/useReviews';
 import type { Review } from '@/types/review';
+import { ReputationBadge } from '@/components/reputation/reputation-badge';
 
 function ResponseEditor({ review }: { review: Review }) {
   const [response, setResponse] = useState(review.response ?? '');
@@ -163,6 +164,11 @@ export default function ProviderReviewsPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-950">{review.author.name}</p>
+                    {review.authorBadges && review.authorBadges.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {review.authorBadges.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
+                      </div>
+                    )}
                     <p className="truncate text-sm text-slate-500">{review.listing?.title ?? 'Sản phẩm đã thuê'}</p>
                   </div>
                 </div>

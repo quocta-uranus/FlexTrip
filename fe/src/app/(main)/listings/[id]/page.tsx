@@ -7,6 +7,7 @@ import { useListing } from '@/hooks/useListings';
 import { BookingWidget } from '@/components/listing/booking-widget';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { useListingReviews } from '@/hooks/useReviews';
+import { ReputationBadge } from '@/components/reputation/reputation-badge';
 
 function StarRating({ rating, count }: { rating: number; count?: number }) {
   return (
@@ -63,6 +64,7 @@ export default function ListingDetailPage() {
   const images = listing.imageUrls?.length > 0 ? listing.imageUrls : [];
   const reviews = publicReviews ?? listing.reviews ?? [];
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const providerBadges = reviews[0]?.targetBadges ?? [];
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
@@ -204,6 +206,11 @@ export default function ListingDetailPage() {
                     <p className="font-semibold" style={{ color: '#0f1729' }}>
                       {listing.provider.providerProfile?.shopName ?? listing.provider.name}
                     </p>
+                    {providerBadges.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {providerBadges.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
+                      </div>
+                    )}
                     {listing.provider.providerProfile && (
                       <div className="mt-1.5 flex flex-wrap gap-3 text-xs" style={{ color: '#8694ad' }}>
                         <span>⭐ {Number(listing.provider.providerProfile.ratingAvg).toFixed(1)} ({listing.provider.providerProfile.reviewsCount} đánh giá)</span>
@@ -241,14 +248,24 @@ export default function ListingDetailPage() {
                               {r.author.name.charAt(0)}
                             </div>
                           )}
-                          <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>{r.author.name}</span>
+                          <div>
+                            <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>{r.author.name}</span>
+                            {r.authorBadges && r.authorBadges.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {r.authorBadges.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <StarRating rating={r.rating} />
                       </div>
                       {r.comment && <p className="text-sm leading-relaxed" style={{ color: '#5a6b85' }}>{r.comment}</p>}
                       {r.response && (
                         <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                            {r.targetBadges?.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
+                          </div>
                           <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">{r.response}</p>
                         </div>
                       )}

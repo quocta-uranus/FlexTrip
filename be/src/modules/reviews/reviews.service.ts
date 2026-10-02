@@ -13,6 +13,7 @@ import {
 import { RequestContext } from '../../common/request-context';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ReputationService } from '../reputation/reputation.service';
 import { CreateReviewDto, RespondToReviewDto } from './dto/review.dto';
 import { moderateReviewWithRules } from './review-moderation.rules';
 
@@ -35,6 +36,7 @@ export class ReviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly reputation: ReputationService,
   ) {}
 
   async create(authorId: string, dto: CreateReviewDto) {
@@ -122,8 +124,8 @@ export class ReviewsService {
     }
   }
 
-  findMine(authorId: string) {
-    return this.prisma.review.findMany({
+  async findMine(authorId: string) {
+    const reviews = await this.prisma.review.findMany({
       where: { authorId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -132,18 +134,34 @@ export class ReviewsService {
         target: { select: { id: true, name: true, avatarUrl: true } },
       },
     });
+    const badges = await this.reputation.getPublicBadgesForUsers(
+      reviews.flatMap((review) => [review.author.id, review.target.id]),
+    );
+    return reviews.map((review) => ({
+      ...review,
+      authorBadges: badges[review.author.id] ?? [],
+      targetBadges: badges[review.target.id] ?? [],
+    }));
   }
 
-  findPublishedForListing(listingId: string) {
-    return this.prisma.review.findMany({
+  async findPublishedForListing(listingId: string) {
+    const reviews = await this.prisma.review.findMany({
       where: { listingId, status: ReviewStatus.PUBLISHED },
       orderBy: { createdAt: 'desc' },
-      select: PUBLIC_REVIEW_SELECT,
+      select: { ...PUBLIC_REVIEW_SELECT, targetId: true },
     });
+    const badges = await this.reputation.getPublicBadgesForUsers(
+      reviews.flatMap((review) => [review.author.id, review.targetId]),
+    );
+    return reviews.map(({ targetId, ...review }) => ({
+      ...review,
+      authorBadges: badges[review.author.id] ?? [],
+      targetBadges: badges[targetId] ?? [],
+    }));
   }
 
-  findReceived(providerId: string) {
-    return this.prisma.review.findMany({
+  async findReceived(providerId: string) {
+    const reviews = await this.prisma.review.findMany({
       where: { targetId: providerId, status: ReviewStatus.PUBLISHED },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -151,6 +169,15 @@ export class ReviewsService {
         listing: { select: { id: true, title: true, imageUrls: true } },
       },
     });
+    const badges = await this.reputation.getPublicBadgesForUsers([
+      providerId,
+      ...reviews.map((review) => review.author.id),
+    ]);
+    return reviews.map((review) => ({
+      ...review,
+      authorBadges: badges[review.author.id] ?? [],
+      targetBadges: badges[providerId] ?? [],
+    }));
   }
 
   async respond(

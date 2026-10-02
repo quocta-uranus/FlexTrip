@@ -13,6 +13,7 @@ const GROUP_ICONS: Record<string, string> = {
   moderation: '🔍',
   policies: '📋',
   commission: '💰',
+  reputation: '🏅',
 };
 
 export default function AIConfigPage() {

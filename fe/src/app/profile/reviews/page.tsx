@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMyReviews } from '@/hooks/useReviews';
 import type { ReviewStatus } from '@/types/review';
+import { ReputationBadge } from '@/components/reputation/reputation-badge';
 
 const STATUS_LABEL: Record<ReviewStatus, string> = {
   PENDING: 'Đang kiểm tra',
@@ -50,7 +51,10 @@ export default function MyReviewsPage() {
             <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{review.comment}</p>
             {review.response && (
               <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi từ Provider</p>
+                  {review.targetBadges?.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
+                </div>
                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{review.response}</p>
               </div>
             )}

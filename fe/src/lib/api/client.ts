@@ -8,6 +8,7 @@ import type {
 } from '@/types/auth';
 import type { NotificationListResult, NotificationType } from '@/types/notification';
 import type { CreateReviewPayload, Review } from '@/types/review';
+import type { MyReputation, PublicReputationBadge } from '@/types/reputation';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -644,6 +645,17 @@ export const reviewApi = {
   respond: (reviewId: string, response: string) =>
     api.put(`/reviews/${reviewId}/response`, { response }) as Promise<Review>,
   forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
+};
+
+// ─── Reputation ──────────────────────────────────────────────────────────────
+
+export const reputationApi = {
+  mine: () => api.get('/reputation/me') as Promise<MyReputation>,
+  publicForUser: (userId: string) =>
+    api.get(`/reputation/users/${userId}`) as Promise<{
+      userId: string;
+      badges: PublicReputationBadge[];
+    }>,
 };
 
 // ─── Cart ─────────────────────────────────────────────────────────────────────
