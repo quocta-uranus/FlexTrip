@@ -54,8 +54,10 @@ export function useLogin() {
 
       if (redirectParam) {
         router.push(redirectParam);
-      } else if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+      } else if (roles.includes('ADMIN')) {
         router.push('/admin');
+      } else if (roles.includes('STAFF')) {
+        router.push('/staff');
       } else if (roles.includes('PROVIDER')) {
         router.push('/dashboard');
       } else {
@@ -79,8 +81,10 @@ export function useVerify2faLogin() {
       setAuth(user, tokens.accessToken, tokens.refreshToken);
       qc.setQueryData(['me'], user);
       const roles = user.roles as string[];
-      if (roles.includes('ADMIN') || roles.includes('STAFF')) {
+      if (roles.includes('ADMIN')) {
         router.push('/admin');
+      } else if (roles.includes('STAFF')) {
+        router.push('/staff');
       } else if (roles.includes('PROVIDER')) {
         router.push('/dashboard');
       } else {

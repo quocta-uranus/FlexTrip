@@ -1,9 +1,12 @@
 import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
-  ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEmail, IsOptional, IsString, Length, Matches, MaxLength,
+  ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, Matches, MaxLength,
+  MinLength, ValidateBy,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../../common/dto/pagination.dto';
+
+export const STAFF_REGIONS = ['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh'] as const;
 
 export class CreateStaffDto {
   @ApiProperty() @IsString() @Length(2, 100) name!: string;
@@ -14,14 +17,24 @@ export class CreateStaffDto {
 
   @ApiPropertyOptional() @IsOptional() @Matches(/^[0-9+\s-]{8,20}$/) phone?: string;
 
-  @ApiProperty({ example: 'EMP-OP-001' }) @Matches(/^[A-Z0-9-]{3,30}$/) employeeCode!: string;
+  @ApiProperty({ minLength: 8, description: 'Maximum 72 UTF-8 bytes; never trimmed' })
+  @IsString()
+  @MinLength(8)
+  @ValidateBy({
+    name: 'maxPasswordBytes',
+    validator: {
+      validate: (value: unknown) => typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= 72,
+      defaultMessage: () => 'password must not exceed 72 UTF-8 bytes',
+    },
+  })
+  password!: string;
 
-  @ApiProperty({ example: ['TP.HCM'] })
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10) @IsString({ each: true }) @Length(1, 50, { each: true })
+  @ApiProperty({ enum: STAFF_REGIONS, isArray: true, example: ['Hà Nội'] })
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(3) @IsString({ each: true }) @IsIn(STAFF_REGIONS, { each: true })
   regions!: string[];
 }
 
-export class UpdateStaffDto extends PartialType(OmitType(CreateStaffDto, ['email'] as const)) {
+export class UpdateStaffDto extends PartialType(OmitType(CreateStaffDto, ['email', 'password'] as const)) {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
 }
 

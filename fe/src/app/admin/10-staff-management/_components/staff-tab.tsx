@@ -9,11 +9,7 @@ import { useAdminToast } from '@/components/admin/use-admin-toast';
 import { EmptyState } from '@/components/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import {
-  useResendInvite,
-  useStaffList,
-  useUpdateStaff,
-} from '@/hooks/admin/use-admin-staff';
+import { useStaffList, useUpdateStaff } from '@/hooks/admin/use-admin-staff';
 import { formatDateTime } from '@/lib/format';
 import type { AdminStaff } from '@/types/admin';
 import { StaffFormDialog } from './staff-form-dialog';
@@ -32,7 +28,6 @@ export function StaffTab() {
 
   const { data, isLoading } = useStaffList({ search: debounced, isActive, page });
   const update = useUpdateStaff();
-  const resend = useResendInvite();
   const toast = useAdminToast();
   const [formOpen, setFormOpen] = useState(false);
   const [editStaff, setEditStaff] = useState<AdminStaff | null>(null);
@@ -109,9 +104,6 @@ export function StaffTab() {
                         {!s.isActive && (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">Ngừng hoạt động</span>
                         )}
-                        {!s.passwordSet && (
-                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Chưa đặt mật khẩu</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -160,24 +152,6 @@ export function StaffTab() {
                   >
                     {s.isActive ? 'Tạm ngừng' : 'Kích hoạt'}
                   </button>
-                  {!s.passwordSet && (
-                    <button
-                      type="button"
-                      disabled={resend.isPending}
-                      onClick={() => {
-                        resend.mutate(s.id, {
-                          onSuccess: (r) => {
-                            if (r.emailSent) toast.success('Đã gửi lại email mời');
-                            else toast.error(new Error('Không gửi được email, kiểm tra cấu hình Resend'));
-                          },
-                          onError: toast.error,
-                        });
-                      }}
-                      className="w-full rounded-lg border border-blue-200 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                    >
-                      Gửi lại lời mời
-                    </button>
-                  )}
                 </div>
               </div>
             </Reveal>
