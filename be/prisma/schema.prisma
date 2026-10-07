@@ -42,13 +42,13 @@ enum KycDocumentType {
 }
 
 enum BookingStatus {
-  PENDING_PAYMENT   // vừa tạo, chưa thanh toán
-  PENDING_APPROVAL  // đã trả tiền, chờ provider duyệt
+  PENDING_PAYMENT // vừa tạo, chưa thanh toán
+  PENDING_APPROVAL // đã trả tiền, chờ provider duyệt
   CONFIRMED
-  IN_PROGRESS       // đang trong kỳ thuê
+  IN_PROGRESS // đang trong kỳ thuê
   COMPLETED
   CANCELLED
-  DISPUTED          // tranh chấp — listing bị lock
+  DISPUTED // tranh chấp — listing bị lock
   REFUNDING
   REFUNDED
 }
@@ -168,6 +168,12 @@ enum DisputePriority {
   CRITICAL
 }
 
+enum StaffMediationStatus {
+  OPEN
+  RESOLVED
+  ESCALATED
+}
+
 enum PayoutStatus {
   PENDING
   PAID
@@ -234,13 +240,13 @@ model User {
 
   // business domain
   listings            Listing[]
-  bookings            Booking[]            @relation("TravelerBookings")
+  bookings            Booking[]              @relation("TravelerBookings")
   cart                Cart?
   modifyRequests      BookingModifyRequest[]
-  sentMessages        Message[]            @relation("SentMessages")
+  sentMessages        Message[]              @relation("SentMessages")
   notifications       Notification[]
-  reviewsGiven        Review[]             @relation("ReviewsGiven")
-  reviewsReceived     Review[]             @relation("ReviewsReceived")
+  reviewsGiven        Review[]               @relation("ReviewsGiven")
+  reviewsReceived     Review[]               @relation("ReviewsReceived")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
 
@@ -256,6 +262,7 @@ model User {
   configUpdates    SystemConfig[]        @relation("ConfigUpdater")
   auditLogs        AuditLog[]            @relation("AuditActor")
   staffRules       StaffAssignmentRule[] @relation("StaffRules")
+  staffMediations  StaffMediation[]      @relation("StaffMediations")
 
   @@index([email])
 }
@@ -401,7 +408,7 @@ model Booking {
 
   // BOOK-01
   quantity        Int            @default(1)
-  depositAmount   Decimal        @db.Decimal(10, 2) @default(0)
+  depositAmount   Decimal        @default(0) @db.Decimal(10, 2)
   deliveryMethod  DeliveryMethod @default(PICKUP)
   deliveryAddress String?
 
@@ -414,19 +421,22 @@ model Booking {
   holdExpiresAt DateTime?
 
   // BOOK-08: check-in/out (deferred, schema sẵn)
-  checkedInAt  DateTime?
-  checkedOutAt DateTime?
+  checkedInAt       DateTime?
+  checkedOutAt      DateTime?
+  handoverCondition String?   @db.Text
+  returnCondition   String?   @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  traveler       User                  @relation("TravelerBookings", fields: [travelerId], references: [id])
-  listing        Listing               @relation(fields: [listingId], references: [id])
-  payment        Payment?
-  contract       Contract?
-  assignedStaff  User?                 @relation("StaffAssignedBookings", fields: [assignedStaffId], references: [id], onDelete: SetNull)
-  disputes       Dispute[]
-  modifyRequests BookingModifyRequest[]
+  traveler        User                   @relation("TravelerBookings", fields: [travelerId], references: [id])
+  listing         Listing                @relation(fields: [listingId], references: [id])
+  payment         Payment?
+  contract        Contract?
+  assignedStaff   User?                  @relation("StaffAssignedBookings", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  disputes        Dispute[]
+  modifyRequests  BookingModifyRequest[]
+  staffMediations StaffMediation[]
 
   @@index([travelerId])
   @@index([listingId])
@@ -454,10 +464,10 @@ model ListingAvailability {
 // ─── Cart ────────────────────────────────────────────────────────────────────
 
 model Cart {
-  id         String     @id @default(cuid())
-  travelerId String     @unique
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id         String   @id @default(cuid())
+  travelerId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   traveler User       @relation(fields: [travelerId], references: [id], onDelete: Cascade)
   items    CartItem[]
@@ -834,9 +844,10 @@ model Dispute {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  openedBy  User    @relation("DisputeOpener", fields: [openedById], references: [id])
-  handledBy User?   @relation("DisputeHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  openedBy       User            @relation("DisputeOpener", fields: [openedById], references: [id])
+  handledBy      User?           @relation("DisputeHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  staffMediation StaffMediation? @relation("MediationEscalation")
 
   @@index([status, createdAt])
   @@index([bookingId])
@@ -926,4 +937,27 @@ model StaffAssignmentRule {
   staff User @relation("StaffRules", fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([isActive, priority])
+}
+
+model StaffMediation {
+  id                 String               @id @default(cuid())
+  bookingId          String
+  staffId            String
+  status             StaffMediationStatus @default(OPEN)
+  issue              String               @db.Text
+  travelerStatement  String?              @db.Text
+  providerStatement  String?              @db.Text
+  resolution         String?              @db.Text
+  evidenceUrls       String[]             @default([])
+  escalatedDisputeId String?              @unique
+  resolvedAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  staff            User     @relation("StaffMediations", fields: [staffId], references: [id], onDelete: Restrict)
+  escalatedDispute Dispute? @relation("MediationEscalation", fields: [escalatedDisputeId], references: [id], onDelete: SetNull)
+
+  @@index([staffId, status, createdAt])
+  @@index([bookingId, createdAt])
 }

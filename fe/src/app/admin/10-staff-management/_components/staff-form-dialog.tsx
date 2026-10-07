@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCreateStaff, useUpdateStaff } from '@/hooks/admin/use-admin-staff';
-import { parseRegions, staffSchema, type StaffInput } from '@/lib/validators/admin.schema';
+import { STAFF_REGIONS, staffSchema, type StaffInput } from '@/lib/validators/admin.schema';
 import type { ApiError } from '@/lib/api/client';
 import type { AdminStaff } from '@/types/admin';
 
@@ -26,8 +26,8 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
   const editing = !!staff;
 
   const form = useForm<StaffInput>({
-    resolver: zodResolver(staffSchema),
-    defaultValues: { name: '', email: '', phone: '', employeeCode: '', regionsText: '' },
+    resolver: zodResolver(staffSchema(editing)),
+    defaultValues: { name: '', email: '', phone: '', password: '', regions: [] },
   });
 
   useEffect(() => {
@@ -37,24 +37,23 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
         name: staff.name,
         email: staff.email,
         phone: staff.phone ?? '',
-        employeeCode: staff.employeeCode,
-        regionsText: staff.regions.join(', '),
+        password: '',
+        regions: staff.regions.filter((region): region is StaffInput['regions'][number] =>
+          STAFF_REGIONS.includes(region as StaffInput['regions'][number])),
       });
     } else {
-      form.reset({ name: '', email: '', phone: '', employeeCode: '', regionsText: '' });
+      form.reset({ name: '', email: '', phone: '', password: '', regions: [] });
     }
   }, [open, staff, form]);
 
   const onSubmit = form.handleSubmit((values) => {
-    const regions = parseRegions(values.regionsText);
     if (editing && staff) {
       update.mutate(
         {
           id: staff.id,
           name: values.name,
           phone: values.phone || undefined,
-          employeeCode: values.employeeCode,
-          regions,
+          regions: values.regions,
         },
         {
           onSuccess: () => {
@@ -62,11 +61,6 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
             onOpenChange(false);
           },
           onError: (err) => {
-            const apiErr = err as ApiError;
-            if (apiErr.code === 'EMPLOYEE_CODE_TAKEN') {
-              form.setError('employeeCode', { message: apiErr.message });
-              return;
-            }
             onError(err);
           },
         },
@@ -79,26 +73,18 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
         name: values.name,
         email: values.email,
         phone: values.phone || undefined,
-        employeeCode: values.employeeCode,
-        regions,
+        password: values.password,
+        regions: values.regions,
       },
       {
-        onSuccess: (r) => {
-          onSuccess(
-            r.emailSent
-              ? 'Đã tạo và gửi email mời'
-              : 'Đã tạo nhưng chưa gửi được email — dùng "Gửi lại lời mời"',
-          );
+        onSuccess: () => {
+          onSuccess('Đã tạo tài khoản nhân viên');
           onOpenChange(false);
         },
         onError: (err) => {
           const apiErr = err as ApiError;
           if (apiErr.code === 'EMAIL_TAKEN') {
             form.setError('email', { message: apiErr.message });
-            return;
-          }
-          if (apiErr.code === 'EMPLOYEE_CODE_TAKEN') {
-            form.setError('employeeCode', { message: apiErr.message });
             return;
           }
           onError(err);
@@ -131,26 +117,28 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
             <Input id="staff-phone" {...form.register('phone')} />
             {form.formState.errors.phone && <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>}
           </div>
+          {!editing && (
+            <div className="space-y-2">
+              <Label htmlFor="staff-password">Mật khẩu</Label>
+              <Input id="staff-password" type="password" autoComplete="new-password" {...form.register('password')} />
+              <p className="text-xs text-slate-500">Tối thiểu 8 ký tự. Admin bàn giao mật khẩu trực tiếp cho nhân viên.</p>
+              {form.formState.errors.password && (
+                <p className="text-xs text-red-600">{form.formState.errors.password.message}</p>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="staff-code">Mã nhân viên</Label>
-            <Input
-              id="staff-code"
-              {...form.register('employeeCode', {
-                onChange: (e) => {
-                  e.target.value = e.target.value.toUpperCase();
-                },
-              })}
-            />
-            {form.formState.errors.employeeCode && (
-              <p className="text-xs text-red-600">{form.formState.errors.employeeCode.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="staff-regions">Khu vực</Label>
-            <Input id="staff-regions" {...form.register('regionsText')} />
-            <p className="text-xs text-slate-500">Phân cách bằng dấu phẩy, ví dụ: Hồ Chí Minh, Bình Dương</p>
-            {form.formState.errors.regionsText && (
-              <p className="text-xs text-red-600">{form.formState.errors.regionsText.message}</p>
+            <Label>Khu vực</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {STAFF_REGIONS.map((region) => (
+                <label key={region} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <input type="checkbox" value={region} {...form.register('regions')} />
+                  {region}
+                </label>
+              ))}
+            </div>
+            {form.formState.errors.regions && (
+              <p className="text-xs text-red-600">{form.formState.errors.regions.message}</p>
             )}
           </div>
           <DialogFooter>

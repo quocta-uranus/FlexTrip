@@ -20,6 +20,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { ModifyBookingModule } from './modules/modify-booking/modify-booking.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
@@ -51,7 +52,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ModifyBookingModule,
     AiChatModule,
     AdminModule,
-    NotificationsModule,
+    StaffModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -28,9 +28,6 @@ export function useUpdateStaff() {
     onSuccess: invalidate,
   });
 }
-export function useResendInvite() {
-  return useMutation({ mutationFn: adminApi.staff.resendInvite });
-}
 export function useStaffRules() {
   return useQuery({ queryKey: [...KEY, 'rules'], queryFn: adminApi.staff.rules });
 }
