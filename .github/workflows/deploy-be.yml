@@ -1,0 +1,55 @@
+name: Deploy BE to VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'be/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: be/package-lock.json
+
+      - name: Install dependencies
+        working-directory: be
+        run: npm ci
+
+      - name: Build
+        working-directory: be
+        run: npm run build
+
+      - name: Sync code to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "be/dist,be/package.json,be/package-lock.json,be/prisma"
+          target: /opt/flextrip
+          strip_components: 1
+
+      - name: Install production deps & restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/flextrip/be
+            npm ci --omit=dev
+            npx prisma migrate deploy
+            npx prisma generate
+            pm2 restart flextrip-be
+            pm2 status

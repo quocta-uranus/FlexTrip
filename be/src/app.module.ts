@@ -21,6 +21,7 @@ import { ModifyBookingModule } from './modules/modify-booking/modify-booking.mod
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { StaffModule } from './modules/staff/staff.module';
     AiChatModule,
     AdminModule,
     StaffModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],
