@@ -20,6 +20,7 @@ import { CartModule } from './modules/cart/cart.module';
 import { ModifyBookingModule } from './modules/modify-booking/modify-booking.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ModifyBookingModule,
     AiChatModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
