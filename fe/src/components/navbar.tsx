@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useLogout } from '@/hooks/useAuthMutations';
 import { useCart } from '@/hooks/useCart';
+import { NotificationBell } from '@/components/notification-bell';
 
 const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
@@ -116,6 +117,7 @@ export function Navbar() {
         {/* Right: user / auth */}
         <div className="flex items-center gap-2 shrink-0">
 
+          {isAuthenticated && user && <NotificationBell isProvider={isProvider} />}
           {isAuthenticated && <CartIcon />}
 
           {isAuthenticated && user ? (

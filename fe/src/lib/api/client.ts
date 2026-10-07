@@ -6,6 +6,7 @@ import type {
   TwoFactorSetup,
   TwoFactorEnableResult,
 } from '@/types/auth';
+import type { NotificationListResult, NotificationType } from '@/types/notification';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -731,4 +732,23 @@ export const messageApi = {
 
   markRead: (conversationId: string) =>
     api.post(`/messages/conversations/${conversationId}/read`, {}) as Promise<{ ok: boolean }>,
+};
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export const notificationApi = {
+  list: (params?: { limit?: number; unreadOnly?: boolean; type?: NotificationType }) => {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.unreadOnly) query.set('unreadOnly', 'true');
+    if (params?.type) query.set('type', params.type);
+    const suffix = query.toString();
+    return api.get(`/notifications${suffix ? `?${suffix}` : ''}`) as Promise<NotificationListResult>;
+  },
+  markRead: (id: string) =>
+    api.patch(`/notifications/${id}/read`, {}) as Promise<{ ok: boolean }>,
+  markAllRead: () =>
+    api.patch('/notifications/read-all', {}) as Promise<{ ok: boolean; updated: number }>,
+  remove: (id: string) =>
+    api.delete(`/notifications/${id}`) as Promise<{ ok: boolean }>,
 };
