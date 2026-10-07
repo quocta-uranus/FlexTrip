@@ -37,7 +37,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "be/dist,be/package.json,be/package-lock.json,be/prisma"
-          target: /opt/flextrip
+          target: /opt/flextrip/be
           strip_components: 1
 
       - name: Install production deps & restart
