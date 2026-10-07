@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useActiveStaffOptions, useSaveRule } from '@/hooks/admin/use-admin-staff';
-import { staffRuleSchema, type StaffRuleInput } from '@/lib/validators/admin.schema';
+import { STAFF_REGIONS, staffRuleSchema, type StaffRuleInput } from '@/lib/validators/admin.schema';
 import type { ApiError } from '@/lib/api/client';
 import type { StaffRule } from '@/types/admin';
 
@@ -79,10 +79,14 @@ export function RuleFormDialog({ open, onOpenChange, rule, onSuccess, onError }:
           </div>
           <div className="space-y-2">
             <Label htmlFor="rule-region">Khu vực</Label>
-            <Input id="rule-region" {...form.register('region')} />
-            <p className="text-xs text-slate-500">
-              So khớp không dấu với địa chỉ tin đăng. Viết đúng tên như trong địa chỉ, ví dụ &apos;Hồ Chí Minh&apos; (không dùng &apos;HCM&apos;)
-            </p>
+            <select
+              id="rule-region"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none"
+              {...form.register('region')}
+            >
+              <option value="">— Chọn —</option>
+              {STAFF_REGIONS.map((region) => <option key={region} value={region}>{region}</option>)}
+            </select>
             {form.formState.errors.region && <p className="text-xs text-red-600">{form.formState.errors.region.message}</p>}
           </div>
           <div className="space-y-2">

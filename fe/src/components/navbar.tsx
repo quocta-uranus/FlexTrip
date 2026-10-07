@@ -21,6 +21,11 @@ const PROVIDER_NAV_LINKS = [
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
 
+const STAFF_NAV_LINKS = [
+  { href: '/staff', label: 'Lịch vận hành', icon: '🗓️' },
+  { href: '/staff#mediations', label: 'Tranh chấp tại chỗ', icon: '⚖️' },
+];
+
 function CartIcon() {
   const { data: cart } = useCart();
   const count = cart?.items.length ?? 0;
@@ -52,7 +57,8 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isProvider = user?.roles?.includes('PROVIDER') ?? false;
-  const NAV_LINKS = isProvider ? PROVIDER_NAV_LINKS : BASE_NAV_LINKS;
+  const isStaff = user?.roles?.includes('STAFF') ?? false;
+  const NAV_LINKS = isStaff ? STAFF_NAV_LINKS : isProvider ? PROVIDER_NAV_LINKS : BASE_NAV_LINKS;
 
   // Hide on auth pages and landing page (LandingHeader handles those)
   if (pathname === '/' ||
@@ -118,8 +124,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 shrink-0">
 
           {isAuthenticated && user && <NotificationBell isProvider={isProvider} />}
-          {isAuthenticated && <CartIcon />}
-
+              {isAuthenticated && !isStaff && <CartIcon />}
           {isAuthenticated && user ? (
             <div className="relative">
               <button
@@ -160,6 +165,7 @@ export function Navbar() {
                       { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
                       { href: '/messages', label: 'Tin nhắn', icon: '💬' },
                       { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
+                      ...(isStaff ? [{ href: '/staff', label: 'Bảng điều phối', icon: '🗓️' }] : []),
                       ...(isProvider ? [
                         { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: '📦' },
                         { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },

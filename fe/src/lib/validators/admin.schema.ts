@@ -31,19 +31,28 @@ export const recordPayoutSchema = z.object({
 });
 export type RecordPayoutInput = z.infer<typeof recordPayoutSchema>;
 
-export const staffSchema = z.object({
+export const STAFF_REGIONS = ['Hà Nội', 'Đà Nẵng', 'Hồ Chí Minh'] as const;
+
+const staffFieldsSchema = z.object({
   name: z.string().trim().min(2, 'Tên tối thiểu 2 ký tự').max(100),
   email: z.string().trim().email('Email không hợp lệ'),
   phone: z.string().regex(/^[0-9+\s-]{8,20}$/, 'Số điện thoại không hợp lệ').optional().or(z.literal('')),
-  employeeCode: z.string().regex(/^[A-Z0-9-]{3,30}$/, 'Chỉ chữ in hoa, số và dấu gạch (3–30 ký tự)'),
-  regionsText: z.string().trim().min(1, 'Nhập ít nhất 1 khu vực'),
+  password: z.string().refine((value) => new TextEncoder().encode(value).length <= 72, 'Mật khẩu tối đa 72 byte'),
+  regions: z.array(z.enum(STAFF_REGIONS)).min(1, 'Chọn ít nhất 1 khu vực'),
 });
-export type StaffInput = z.infer<typeof staffSchema>;
-export const parseRegions = (s: string) => s.split(',').map((r) => r.trim()).filter(Boolean).slice(0, 10);
+export const staffSchema = (editing: boolean) => staffFieldsSchema.superRefine((data, ctx) => {
+  if (!editing && data.password.length < 8) {
+    ctx.addIssue({ code: 'custom', path: ['password'], message: 'Mật khẩu tối thiểu 8 ký tự' });
+  }
+});
+export type StaffInput = z.infer<typeof staffFieldsSchema>;
 
 export const staffRuleSchema = z.object({
   name: z.string().trim().min(1, 'Nhập tên rule').max(100),
-  region: z.string().trim().min(1, 'Nhập khu vực').max(50),
+  region: z.string().refine(
+    (value) => STAFF_REGIONS.includes(value as (typeof STAFF_REGIONS)[number]),
+    'Chọn khu vực',
+  ),
   staffId: z.string().min(1, 'Chọn nhân viên'),
   priority: z.number().int().min(0).max(100),
   isActive: z.boolean(),
