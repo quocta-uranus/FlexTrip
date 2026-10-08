@@ -6,6 +6,7 @@ import { Role } from '@prisma/client';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { DenyRoles } from '../../common/decorators/deny-roles.decorator';
 import { BookingService } from './booking.service';
 import {
   CancelBookingDto, ConfirmPaymentDto, CreateBookingDto,
@@ -14,7 +15,9 @@ import {
 
 @ApiTags('bookings')
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard)
+@UseGuards(AccessTokenGuard, RolesGuard)
+@Roles(Role.TRAVELER, Role.PROVIDER)
+@DenyRoles(Role.ADMIN)
 @Controller('bookings')
 export class BookingController {
   constructor(private readonly svc: BookingService) {}
@@ -22,8 +25,7 @@ export class BookingController {
   // ─── Traveler ─────────────────────────────────────────────────────────────
 
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(Role.TRAVELER)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-01: Tạo booking mới' })
   create(@Body() dto: CreateBookingDto, @Req() req: AuthenticatedRequest) {
     return this.svc.create(req.authUserId, dto);
@@ -31,8 +33,7 @@ export class BookingController {
 
   @Post(':id/confirm-payment')
   @HttpCode(200)
-  @UseGuards(RolesGuard)
-  @Roles(Role.TRAVELER)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-01: Xác nhận đã thanh toán → PENDING_APPROVAL' })
   confirmPayment(
     @Param('id') id: string,
@@ -71,7 +72,6 @@ export class BookingController {
 
   @Post(':id/approve')
   @HttpCode(200)
-  @UseGuards(RolesGuard)
   @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-04: Provider duyệt booking → CONFIRMED' })
   approve(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
@@ -80,7 +80,6 @@ export class BookingController {
 
   @Post(':id/decline')
   @HttpCode(200)
-  @UseGuards(RolesGuard)
   @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-04: Provider từ chối booking → CANCELLED + hoàn tiền' })
   decline(
@@ -93,7 +92,6 @@ export class BookingController {
 
   @Post(':id/start')
   @HttpCode(200)
-  @UseGuards(RolesGuard)
   @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-04: Provider bắt đầu cho thuê → IN_PROGRESS' })
   start(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
@@ -102,7 +100,6 @@ export class BookingController {
 
   @Post(':id/complete')
   @HttpCode(200)
-  @UseGuards(RolesGuard)
   @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'BOOK-04: Provider hoàn thành cho thuê → COMPLETED' })
   complete(@Param('id') id: string, @Req() req: AuthenticatedRequest) {

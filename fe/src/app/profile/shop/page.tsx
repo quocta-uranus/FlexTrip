@@ -38,6 +38,8 @@ import { useSetAvatar } from "@/hooks/useSetAvatar";
 import { useQueryClient } from "@tanstack/react-query";
 import { Toast } from "@/components/ui/toast";
 import type { ProviderProfile } from "@/lib/api/client";
+import { ReputationProgressCard } from "@/components/reputation/reputation-badge";
+import { useMyReputation } from "@/hooks/useReputation";
 
 interface ShopProfile {
   shopName: string;
@@ -129,6 +131,7 @@ const CATEGORY_REVERSE: Record<string, string> = Object.fromEntries(
 export default function ShopProfilePage() {
   const router = useRouter();
   const { data: me } = useMe();
+  const { data: reputation } = useMyReputation();
   const { data: apiData, isLoading, error } = useProvidersProfile();
   // Bảo vệ route: chỉ PROVIDER mới được vào /profile/shop
   useEffect(() => {
@@ -164,6 +167,9 @@ export default function ShopProfilePage() {
   }, [apiData, setP]);
 
   const completion = computeCompletion(p);
+  const providerReputation = reputation?.badges.find(
+    (badge) => badge.code === 'TRUSTED_PROVIDER',
+  );
 
   function update<K extends keyof ShopProfile>(k: K, v: ShopProfile[K]) {
     setP((s) => ({ ...s, [k]: v }));
@@ -340,6 +346,14 @@ export default function ShopProfilePage() {
         </Reveal>
       </section>
 
+      {providerReputation && (
+        <section className="mx-auto mt-4 max-w-6xl px-6">
+          <Reveal>
+            <ReputationProgressCard badge={providerReputation} />
+          </Reveal>
+        </section>
+      )}
+
       <section className="mx-auto mt-4 max-w-6xl px-6">
         <Reveal>
           <div className="flex flex-wrap gap-3 mb-2">
@@ -410,7 +424,7 @@ export default function ShopProfilePage() {
       </section>
 
       <section className="mx-auto mt-4 grid max-w-6xl gap-6 px-6 lg:grid-cols-3">
-        <Card title="Thông tin shop" subtitle="PROF-01 (Provider)" className="lg:col-span-2">
+        <Card title="Thông tin shop" subtitle="Hồ sơ Provider" className="lg:col-span-2">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Tên shop" required>
               <Input value={p.shopName} onChange={(v) => update("shopName", v)} disabled={!editing} />
@@ -467,7 +481,7 @@ export default function ShopProfilePage() {
           </div>
         </Card>
 
-        <Card title="Xác minh (KYC)" subtitle="AUTH-05 — cần hoàn tất để rút tiền" accent>
+        <Card title="Xác minh (KYC)" subtitle="Cần hoàn tất để rút tiền" accent>
           <VerifyItem label="CCCD / CMND" done />
           <VerifyItem label="Xác minh khuôn mặt" done />
           <VerifyItem label="Số tài khoản ngân hàng" />

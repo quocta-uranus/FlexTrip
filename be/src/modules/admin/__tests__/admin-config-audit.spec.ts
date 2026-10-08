@@ -11,7 +11,7 @@ describe('ADMIN-08 config & ADMIN-09 audit logs', () => {
     const admin = await createAdmin(h);
     const api = http(h, admin.accessToken);
     const get = await api.get('/admin/config');
-    expect(get.body).toHaveLength(4);
+    expect(get.body).toHaveLength(5);
     const put = await api.put('/admin/config', { values: { platform_fee: 12.5, cancel_window: 5 } });
     expect(put.status).toBe(200);
     const items = put.body.flatMap((g: { items: { key: string; value: number; updatedBy: { id: string } | null }[] }) => g.items);

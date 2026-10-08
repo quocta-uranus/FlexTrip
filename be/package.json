@@ -17,7 +17,10 @@
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "seed:review-bookings": "node --env-file=.env --require ts-node/register/transpile-only prisma/seed-review-bookings.ts",
+    "cleanup:review-bookings": "node --env-file=.env --require ts-node/register/transpile-only prisma/cleanup-review-bookings.ts",
+    "eval:reviews": "ts-node --project evals/reviews/tsconfig.json --transpile-only evals/reviews/runner/review-eval.runner.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

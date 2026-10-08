@@ -29,7 +29,6 @@ export default function AIForecastPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">ADMIN-07</span>
             <LiveDot label="AI ACTIVE" tone="blue" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>AI Revenue Forecast</h1>
@@ -90,14 +89,14 @@ export default function AIForecastPage() {
         </div>
         <div className="flex items-end gap-4" style={{ height: "280px" }}>
           {/* Historical bars */}
-          {historicalData.map((d, i) => (
+          {historicalData.map((d) => (
             <div key={`h-${d.month}`} className="relative flex flex-1 flex-col items-center">
               <div className="w-full rounded-t-lg bg-gradient-to-t from-[#2a7bd9] to-[#93c5fd]" style={{ height: `${(d.revenue / maxForecast) * 100}%` }} />
               <div className="mt-2 text-[10px] font-medium" style={{ color: "#5a6b85" }}>{d.month}</div>
             </div>
           ))}
           {/* Forecast bars */}
-          {forecastData.map((d, i) => (
+          {forecastData.map((d) => (
             <div key={`f-${d.month}`} className="relative flex flex-1 flex-col items-center">
               {/* Confidence range */}
               <div className="absolute bottom-8 w-full rounded-t-lg opacity-20" style={{ height: `${((d.upper - d.lower) / maxForecast) * 100}%`, background: "#92eee8" }} />

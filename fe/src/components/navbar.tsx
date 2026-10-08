@@ -18,6 +18,7 @@ const PROVIDER_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/dashboard/bookings', label: 'Đơn thuê', icon: '📋' },
   { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' },
+  { href: '/dashboard/reviews', label: 'Đánh giá', icon: '⭐' },
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
 
@@ -58,10 +59,17 @@ export function Navbar() {
 
   const isProvider = user?.roles?.includes('PROVIDER') ?? false;
   const isStaff = user?.roles?.includes('STAFF') ?? false;
-  const NAV_LINKS = isStaff ? STAFF_NAV_LINKS : isProvider ? PROVIDER_NAV_LINKS : BASE_NAV_LINKS;
+  const isAdmin = user?.roles?.includes('ADMIN') ?? false;
+  const NAV_LINKS = isAdmin
+    ? [{ href: '/search', label: 'Xem marketplace', icon: '🔍' }]
+    : isStaff
+      ? STAFF_NAV_LINKS
+      : isProvider
+        ? PROVIDER_NAV_LINKS
+        : BASE_NAV_LINKS;
 
   // Hide on auth pages and landing page (LandingHeader handles those)
-  if (pathname === '/' ||
+  if (pathname === '/' || pathname.startsWith('/admin') ||
       pathname.startsWith('/login') || pathname.startsWith('/register') ||
       pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password') ||
       pathname.startsWith('/2fa-challenge')) {
@@ -124,7 +132,7 @@ export function Navbar() {
         <div className="flex items-center gap-2 shrink-0">
 
           {isAuthenticated && user && <NotificationBell isProvider={isProvider} />}
-              {isAuthenticated && !isStaff && <CartIcon />}
+          {isAuthenticated && !isAdmin && !isStaff && <CartIcon />}
           {isAuthenticated && user ? (
             <div className="relative">
               <button
@@ -161,13 +169,21 @@ export function Navbar() {
                       <p className="text-xs truncate" style={{ color: '#8694ad' }}>{user.email}</p>
                     </div>
                     {[
-                      { href: '/profile', label: 'Hồ sơ', icon: '👤' },
-                      { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
-                      { href: '/messages', label: 'Tin nhắn', icon: '💬' },
-                      { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
-                      ...(isStaff ? [{ href: '/staff', label: 'Bảng điều phối', icon: '🗓️' }] : []),
-                      ...(isProvider ? [
+                      ...(isAdmin ? [
+                        { href: '/admin', label: 'Bảng điều khiển Admin', icon: '🛡️' },
+                        { href: '/profile', label: 'Hồ sơ & bảo mật', icon: '👤' },
+                      ] : [
+                        { href: '/profile', label: 'Hồ sơ', icon: '👤' },
+                        { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
+                        { href: '/messages', label: 'Tin nhắn', icon: '💬' },
+                        { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
+                      ]),
+                      ...(!isAdmin && isStaff
+                        ? [{ href: '/staff', label: 'Bảng điều phối', icon: '🗓️' }]
+                        : []),
+                      ...(!isAdmin && isProvider ? [
                         { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: '📦' },
+                        { href: '/dashboard/reviews', label: 'Quản lý đánh giá', icon: '⭐' },
                         { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
                       ] : []),
                     ].map((item) => (

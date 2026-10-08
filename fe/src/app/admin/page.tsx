@@ -13,6 +13,7 @@ const QUICK_ACTIONS = [
   { title: "Giao dịch", desc: "Đối soát thanh toán", icon: "💰", href: "/admin/05-transactions", color: "#7c3aed" },
   { title: "Thống kê", desc: "Chỉ số nền tảng", icon: "📊", href: "/admin/06-analytics", color: "#2a7bd9" },
   { title: "Đăng ký Provider", desc: "Duyệt hồ sơ Provider mới", icon: "🏪", href: "/admin/02-provider-registration", color: "#16a34a" },
+  { title: "Kiểm duyệt đánh giá", desc: "Xử lý đánh giá do AI hoặc hệ thống gắn cờ", icon: "⭐", href: "/admin/reviews", color: "#7c3aed" },
   { title: "Nhật ký", desc: "Lịch sử hoạt động hệ thống", icon: "📜", href: "/admin/09-audit-log", color: "#f59e0b" },
   { title: "Nhân sự", desc: "Phân công & quản lý staff", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
 ];
@@ -26,7 +27,31 @@ const MODULE_LABEL: Record<string, string> = {
   STAFF: "Nhân sự",
   KYC: "KYC",
   PROVIDER: "Provider",
+  REVIEW: "Đánh giá",
 };
+
+const ACTION_LABEL: Record<string, string> = {
+  REVIEW_RESPONSE_CREATED: "Provider đã phản hồi đánh giá",
+  REVIEW_RESPONSE_UPDATED: "Provider đã cập nhật phản hồi",
+  REVIEW_REANALYZED: "Đã yêu cầu AI phân tích lại đánh giá",
+  REVIEW_REJECTED: "Đánh giá đã bị từ chối",
+  REVIEW_APPROVED: "Đánh giá đã được công khai",
+};
+
+function activityHref(module: string) {
+  const routes: Record<string, string> = {
+    USER: "/admin/01-user-accounts",
+    MODERATION: "/admin/03-moderate-listings",
+    DISPUTE: "/admin/04-disputes-refunds",
+    FINANCE: "/admin/05-transactions",
+    CONFIG: "/admin/08-ai-config",
+    STAFF: "/admin/10-staff-management",
+    KYC: "/admin/02-provider-registration",
+    PROVIDER: "/admin/02-provider-registration",
+    REVIEW: "/admin/reviews",
+  };
+  return routes[module] ?? "/admin/09-audit-log";
+}
 
 const MODULE_COLOR: Record<string, string> = {
   USER: "#ca8a04",
@@ -46,7 +71,7 @@ export default function AdminDashboardPage() {
   const stats = [
     { label: "Tranh chấp đang mở", value: data?.openDisputes ?? 0, color: "#ca8a04", icon: "⚖️", href: "/admin/04-disputes-refunds" },
     { label: "Nội dung bị báo cáo", value: data?.openFlags ?? 0, color: "#dc2626", icon: "🚩", href: "/admin/03-moderate-listings" },
-    { label: "KYC chờ duyệt", value: data?.pendingKyc ?? 0, color: "#7c3aed", icon: "🪪", href: "/admin/01-user-accounts" },
+    { label: "KYC chờ duyệt", value: data?.pendingKyc ?? 0, color: "#7c3aed", icon: "🪪", href: "/admin/02-provider-registration" },
     { label: "Xử lý hôm nay", value: data?.resolvedToday ?? 0, color: "#16a34a", icon: "✅", href: "/admin/09-audit-log" },
   ];
 
@@ -176,8 +201,9 @@ export default function AdminDashboardPage() {
                     const color = MODULE_COLOR[activity.module] ?? "#2a7bd9";
                     const label = MODULE_LABEL[activity.module] ?? activity.module;
                     return (
-                      <div
+                      <Link
                         key={activity.id}
+                        href={activityHref(activity.module)}
                         className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[#f6fbfe]"
                         style={{ borderColor: i === 0 ? "transparent" : "#f1f5fa" }}
                       >
@@ -187,7 +213,7 @@ export default function AdminDashboardPage() {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium" style={{ color: "#0f1729" }}>
-                            {activity.action}
+                            {ACTION_LABEL[activity.action] ?? activity.action.replaceAll("_", " ").toLocaleLowerCase("vi")}
                           </p>
                           <p className="text-xs" style={{ color: "#8694ad" }}>
                             {activity.actor?.name ?? "Hệ thống"}
@@ -204,7 +230,7 @@ export default function AdminDashboardPage() {
                             {formatDateTime(activity.createdAt)}
                           </p>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
