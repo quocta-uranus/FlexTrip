@@ -11,6 +11,14 @@ Thumbs.db
 # Local database backups
 *.dump
 
+# Generated AI evaluation results and checkpoints
+/be/evals/reviews/results/
+
+# Local AI evaluation data
+/be/evals/reviews/dataset/review-eval-dataset.json
+/be/evals/reviews/baseline/*.json
+/be/evals/reviews/baseline/*-report.md
+
 # Editor
 .vscode/
 .idea/

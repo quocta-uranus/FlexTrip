@@ -424,7 +424,7 @@ export default function ShopProfilePage() {
       </section>
 
       <section className="mx-auto mt-4 grid max-w-6xl gap-6 px-6 lg:grid-cols-3">
-        <Card title="Thông tin shop" subtitle="PROF-01 (Provider)" className="lg:col-span-2">
+        <Card title="Thông tin shop" subtitle="Hồ sơ Provider" className="lg:col-span-2">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Tên shop" required>
               <Input value={p.shopName} onChange={(v) => update("shopName", v)} disabled={!editing} />
@@ -481,7 +481,7 @@ export default function ShopProfilePage() {
           </div>
         </Card>
 
-        <Card title="Xác minh (KYC)" subtitle="AUTH-05 — cần hoàn tất để rút tiền" accent>
+        <Card title="Xác minh (KYC)" subtitle="Cần hoàn tất để rút tiền" accent>
           <VerifyItem label="CCCD / CMND" done />
           <VerifyItem label="Xác minh khuôn mặt" done />
           <VerifyItem label="Số tài khoản ngân hàng" />

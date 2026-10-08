@@ -1,0 +1,61 @@
+{
+  "datasetVersion": "1.0.0-example",
+  "cases": [
+    {
+      "id": "example-safe-001",
+      "comment": "Sản phẩm đúng mô tả và được giao đúng giờ.",
+      "rating": 5,
+      "expected": {
+        "sentiment": "POSITIVE",
+        "spam": false,
+        "toxic": false,
+        "suspicious": false
+      },
+      "tags": ["safe", "positive"],
+      "modes": ["smoke", "quick", "full"],
+      "labelNotes": "Case minh họa cấu trúc, không phải evaluation dataset hoàn chỉnh."
+    },
+    {
+      "id": "example-spam-001",
+      "comment": "MUA NGAY MUA NGAY MUA NGAY, nhắn tin để nhận ưu đãi!",
+      "rating": 5,
+      "expected": {
+        "sentiment": "NEUTRAL",
+        "spam": true,
+        "toxic": false,
+        "suspicious": true
+      },
+      "tags": ["spam", "advertising"],
+      "modes": ["smoke", "quick", "full"],
+      "labelNotes": "Case minh họa cấu trúc, không phải evaluation dataset hoàn chỉnh."
+    },
+    {
+      "id": "example-toxic-001",
+      "comment": "Chủ cho thuê là đồ ngu và phục vụ như rác.",
+      "rating": 1,
+      "expected": {
+        "sentiment": "NEGATIVE",
+        "spam": false,
+        "toxic": true,
+        "suspicious": false
+      },
+      "tags": ["toxic", "insult"],
+      "modes": ["smoke", "quick", "full"],
+      "labelNotes": "Case minh họa cấu trúc, không phải evaluation dataset hoàn chỉnh."
+    },
+    {
+      "id": "example-suspicious-001",
+      "comment": "Năm sao nhưng sản phẩm hỏng hoàn toàn và không sử dụng được.",
+      "rating": 5,
+      "expected": {
+        "sentiment": "NEGATIVE",
+        "spam": false,
+        "toxic": false,
+        "suspicious": true
+      },
+      "tags": ["suspicious", "rating-conflict"],
+      "modes": ["smoke", "quick", "full"],
+      "labelNotes": "Case minh họa cấu trúc, không phải evaluation dataset hoàn chỉnh."
+    }
+  ]
+}

@@ -23,7 +23,7 @@ export interface ListingProvider {
   avatarUrl?: string | null;
   providerProfile?: {
     shopName: string;
-    ratingAvg: number;
+    ratingAvg: number | string;
     reviewsCount: number;
     responseHours: string;
   } | null;

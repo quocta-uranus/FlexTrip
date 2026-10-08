@@ -7,7 +7,7 @@ import type {
   TwoFactorEnableResult,
 } from '@/types/auth';
 import type { NotificationListResult, NotificationType } from '@/types/notification';
-import type { CreateReviewPayload, Review } from '@/types/review';
+import type { CreateReviewPayload, Review, SentimentDashboardData, SentimentRange } from '@/types/review';
 import type { MyReputation, PublicReputationBadge } from '@/types/reputation';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
@@ -645,6 +645,8 @@ export const reviewApi = {
   respond: (reviewId: string, response: string) =>
     api.put(`/reviews/${reviewId}/response`, { response }) as Promise<Review>,
   forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
+  sentiment: (range: SentimentRange) =>
+    api.get(`/reviews/sentiment?range=${range}`) as Promise<SentimentDashboardData>,
 };
 
 // ─── Reputation ──────────────────────────────────────────────────────────────

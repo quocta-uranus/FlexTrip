@@ -115,6 +115,12 @@ enum ReviewSentiment {
   UNKNOWN
 }
 
+enum ReviewModerationSource {
+  RULE
+  AI
+  ADMIN
+}
+
 enum PaymentMethodType {
   CARD
   E_WALLET
@@ -651,25 +657,27 @@ model Notification {
 // ─── Review ──────────────────────────────────────────────────────────────────
 
 model Review {
-  id             String          @id @default(cuid())
-  rating         Int
-  comment        String?         @db.Text
-  authorId       String
-  targetId       String
-  listingId      String?
-  bookingId      String?         @unique
-  status         ReviewStatus    @default(PENDING)
-  sentiment      ReviewSentiment @default(UNKNOWN)
-  spamScore      Int?
-  toxicityScore  Int?
-  suspicionScore Int?
-  response       String?         @db.Text
-  respondedAt    DateTime?
-  moderatedAt    DateTime?
-  moderatedById  String?
-  moderationNote String?         @db.Text
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id               String                  @id @default(cuid())
+  rating           Int
+  comment          String?                 @db.Text
+  authorId         String
+  targetId         String
+  listingId        String?
+  bookingId        String?                 @unique
+  status           ReviewStatus            @default(PENDING)
+  sentiment        ReviewSentiment         @default(UNKNOWN)
+  spamScore        Int?
+  toxicityScore    Int?
+  suspicionScore   Int?
+  moderationSource ReviewModerationSource?
+  analysisReasons  Json?
+  response         String?                 @db.Text
+  respondedAt      DateTime?
+  moderatedAt      DateTime?
+  moderatedById    String?
+  moderationNote   String?                 @db.Text
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
   author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
   target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])

@@ -117,7 +117,7 @@ export default function AdminProfilePage() {
   const recentActions = [
     { date: "10:42 hôm nay", title: "Approve KYC — Nguyễn Văn X", subtitle: "Trust & Safety · review CCCD + selfie", badge: "KYC" },
     { date: "09:15 hôm nay", title: "Đóng ticket #SUP-1934", subtitle: "Refund 50% do lỗi listing", badge: "Ticket" },
-    { date: "08:50 hôm nay", title: "Cập nhật SYSTEM_CONFIG: BOOK-07 cancel window", subtitle: "5 → 7 ngày trước check-in", badge: "Config" },
+    { date: "08:50 hôm nay", title: "Cập nhật thời hạn hủy đơn", subtitle: "5 → 7 ngày trước ngày nhận", badge: "Cấu hình" },
     { date: "Hôm qua 17:20", title: "Suspend listing #LST-882 (fake flag)", subtitle: "Đã thông báo provider", badge: "Trust" },
     { date: "Hôm qua 14:05", title: "Bulk assign 12 ticket cho Support L1", subtitle: "Round-robin theo shift", badge: "Ticket" },
   ];
@@ -253,7 +253,7 @@ export default function AdminProfilePage() {
       </section>
 
       <section className="mx-auto mt-12 grid max-w-6xl gap-6 px-6 lg:grid-cols-3">
-        <Card title="Thông tin admin" subtitle="PROF-01 (Admin)" className="lg:col-span-2">
+        <Card title="Thông tin admin" subtitle="Hồ sơ quản trị" className="lg:col-span-2">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Họ và tên" required>
               <Input value={p.fullName} onChange={(v) => update("fullName", v)} disabled={!editing} />
@@ -443,20 +443,19 @@ export default function AdminProfilePage() {
           <p className="mb-5 text-sm" style={{ color: "#5a6b85" }}>Truy cập module quản trị thường dùng</p>
           <div className="grid gap-3 sm:grid-cols-4">
             {[
-              { code: "ADMIN-09", title: "Action log" },
-              { code: "SUPPORT-01", title: "Ticket queue" },
-              { code: "TRUST-01", title: "Fraud review" },
-              { code: "REPORT-01", title: "Export report" },
+              { title: "Nhật ký hoạt động" },
+              { title: "Hàng đợi hỗ trợ" },
+              { title: "Kiểm tra gian lận" },
+              { title: "Xuất báo cáo" },
             ].map((q) => (
               <Link
-                key={q.code}
+                key={q.title}
                 href="/profile"
                 className="group flex items-center justify-between rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
                 style={{ borderColor: "#e2e8f3", background: "#f1f5fa" }}
               >
                 <div>
-                  <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}>{q.code}</span>
-                  <div className="mt-2 text-sm font-semibold">{q.title}</div>
+                  <div className="text-sm font-semibold">{q.title}</div>
                 </div>
                 <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

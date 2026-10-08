@@ -7,6 +7,7 @@ export interface Review {
   rating: number;
   comment: string | null;
   status: ReviewStatus;
+  rejectionReason?: string | null;
   bookingId: string | null;
   listingId: string | null;
   response?: string | null;
@@ -29,4 +30,28 @@ export interface CreateReviewPayload {
 export interface RespondToReviewPayload {
   reviewId: string;
   response: string;
+}
+
+export type SentimentRange = 30 | 90 | 365;
+
+export interface SentimentDashboardData {
+  provider: { id: string; name: string };
+  rangeDays: SentimentRange;
+  granularity: 'DAY' | 'WEEK' | 'MONTH';
+  from: string;
+  to: string;
+  totalReviews: number;
+  analyzedReviews: number;
+  unknownReviews: number;
+  sentiment: {
+    positive: { count: number; percentage: number };
+    neutral: { count: number; percentage: number };
+    negative: { count: number; percentage: number };
+  };
+  trend: Array<{
+    start: string;
+    positive: number;
+    neutral: number;
+    negative: number;
+  }>;
 }

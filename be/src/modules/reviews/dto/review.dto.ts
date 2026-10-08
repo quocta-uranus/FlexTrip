@@ -1,7 +1,9 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Max,
   MaxLength,
@@ -42,4 +44,20 @@ export class RespondToReviewDto {
   @MinLength(1)
   @MaxLength(2000)
   response!: string;
+}
+
+export class ReviewSentimentQueryDto {
+  @ApiProperty({ enum: ['30', '90', '365'], default: '30' })
+  @IsOptional()
+  @IsIn(['30', '90', '365'])
+  range: '30' | '90' | '365' = '30';
+
+  @ApiProperty({
+    required: false,
+    description: 'Bắt buộc khi Admin xem dashboard của Provider',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  providerId?: string;
 }

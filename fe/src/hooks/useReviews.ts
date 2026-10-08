@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewApi } from '@/lib/api/client';
-import type { CreateReviewPayload, RespondToReviewPayload } from '@/types/review';
+import type { CreateReviewPayload, RespondToReviewPayload, SentimentRange } from '@/types/review';
 
 export function useListingReviews(listingId: string) {
   return useQuery({
@@ -34,6 +34,13 @@ export function useReceivedReviews() {
   return useQuery({
     queryKey: ['reviews', 'received'],
     queryFn: reviewApi.received,
+  });
+}
+
+export function useSentimentDashboard(range: SentimentRange) {
+  return useQuery({
+    queryKey: ['reviews', 'sentiment', range],
+    queryFn: () => reviewApi.sentiment(range),
   });
 }
 

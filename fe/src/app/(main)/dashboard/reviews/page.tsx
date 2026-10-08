@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useReceivedReviews, useRespondToReview } from '@/hooks/useReviews';
-import type { Review } from '@/types/review';
+import { useReceivedReviews, useRespondToReview, useSentimentDashboard } from '@/hooks/useReviews';
+import type { Review, SentimentRange } from '@/types/review';
 import { ReputationBadge } from '@/components/reputation/reputation-badge';
+import { SentimentDashboard } from '@/components/reviews/sentiment-dashboard';
 
 function ResponseEditor({ review }: { review: Review }) {
   const [response, setResponse] = useState(review.response ?? '');
@@ -94,6 +95,8 @@ export default function ProviderReviewsPage() {
   const { data: reviews = [], isLoading, error } = useReceivedReviews();
   const [listingId, setListingId] = useState('ALL');
   const [rating, setRating] = useState('ALL');
+  const [sentimentRange, setSentimentRange] = useState<SentimentRange>(30);
+  const sentiment = useSentimentDashboard(sentimentRange);
 
   const listings = useMemo(() => {
     const map = new Map<string, string>();
@@ -126,6 +129,26 @@ export default function ProviderReviewsPage() {
             </div>
           </div>
         </div>
+
+        <div className="mb-3 flex justify-end">
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+            Khoảng phân tích
+            <select
+              value={sentimentRange}
+              onChange={(event) => setSentimentRange(Number(event.target.value) as SentimentRange)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"
+            >
+              <option value={30}>30 ngày</option>
+              <option value={90}>90 ngày</option>
+              <option value={365}>365 ngày</option>
+            </select>
+          </label>
+        </div>
+        {sentiment.isLoading && <div className="mb-6 h-72 animate-pulse rounded-2xl bg-slate-200" />}
+        {sentiment.error && (
+          <div className="mb-6 rounded-2xl bg-red-50 p-5 text-sm text-red-700">{sentiment.error.message}</div>
+        )}
+        {sentiment.data && <SentimentDashboard data={sentiment.data} />}
 
         <div className="mb-6 grid gap-3 rounded-2xl border border-[#DCEFFB] bg-white p-4 sm:grid-cols-2">
           <label className="text-sm font-medium text-slate-700">

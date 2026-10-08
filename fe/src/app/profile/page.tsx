@@ -18,12 +18,12 @@ export default function ProfileHubPage() {
   useEffect(() => {
     if (!me) return;
     const roles = (me.roles ?? []) as string[];
-    if (roles.includes('PROVIDER')) {
+    if (roles.includes('ADMIN')) {
+      router.replace('/profile/admin');
+    } else if (roles.includes('PROVIDER')) {
       router.replace('/profile/shop');
     } else if (roles.includes('TRAVELER')) {
       router.replace('/profile/travel');
-    } else if (roles.includes('ADMIN')) {
-      router.replace('/profile/admin');
     } else {
       router.replace('/profile/travel');
     }

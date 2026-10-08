@@ -1,10 +1,11 @@
 "use client";
 
-import { type ReactElement } from "react";
+import { type ReactElement, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/hooks/useAuthMutations";
+import { Menu, X } from "lucide-react";
 
 const ADMIN_NAV = [
   {
@@ -18,6 +19,7 @@ const ADMIN_NAV = [
     items: [
       { id: "02", title: "Đăng ký Provider", href: "/admin/02-provider-registration", icon: "badge-check" },
       { id: "03", title: "Tin đăng vi phạm", href: "/admin/03-moderate-listings", icon: "shield" },
+      { id: "RV", title: "Kiểm duyệt đánh giá", href: "/admin/reviews", icon: "shield" },
     ],
   },
   {
@@ -101,14 +103,33 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const me = useAuthStore((s) => s.user);
   const logout = useLogout();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside
-      className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r bg-white"
-      style={{ borderColor: "#DCEFFB" }}
-    >
+    <>
+      <button
+        type="button"
+        aria-label={mobileOpen ? "Đóng menu quản trị" : "Mở menu quản trị"}
+        onClick={() => setMobileOpen((open) => !open)}
+        className="fixed left-4 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-xl border bg-white shadow-sm lg:hidden"
+        style={{ borderColor: "#DCEFFB", color: "#2a7bd9" }}
+      >
+        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Đóng menu quản trị"
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/30 lg:hidden"
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-0 z-40 flex h-[100dvh] w-64 flex-col border-r bg-white transition-transform duration-200 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ borderColor: "#DCEFFB" }}
+      >
       {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b px-5" style={{ borderColor: "#DCEFFB" }}>
+      <Link href="/admin" onClick={() => setMobileOpen(false)} className="flex h-16 shrink-0 items-center gap-3 border-b px-5" style={{ borderColor: "#DCEFFB" }}>
         <div
           className="flex h-8 w-8 items-center justify-center rounded-lg"
           style={{ background: "linear-gradient(135deg, #2a7bd9 0%, #92eee8 100%)" }}
@@ -123,7 +144,7 @@ export function AdminSidebar() {
             Quản trị
           </p>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -142,6 +163,7 @@ export function AdminSidebar() {
                   <Link
                     key={item.id}
                     href={item.href}
+                    onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
                     style={
                       active
@@ -175,7 +197,15 @@ export function AdminSidebar() {
 
       {/* User footer */}
       <div className="shrink-0 border-t p-4" style={{ borderColor: "#DCEFFB" }}>
-        <div className="mb-3 flex items-center gap-3 min-w-0">
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <Link href="/search" onClick={() => setMobileOpen(false)} className="rounded-lg border px-2 py-2 text-center text-xs font-semibold hover:bg-[#f6fbfe]" style={{ borderColor: "#DCEFFB", color: "#2a7bd9" }}>
+            Xem marketplace
+          </Link>
+          <Link href="/profile/admin" onClick={() => setMobileOpen(false)} className="rounded-lg border px-2 py-2 text-center text-xs font-semibold hover:bg-[#f6fbfe]" style={{ borderColor: "#DCEFFB", color: "#2a7bd9" }}>
+            Hồ sơ Admin
+          </Link>
+        </div>
+        <Link href="/profile/admin" onClick={() => setMobileOpen(false)} className="mb-3 flex min-w-0 items-center gap-3 rounded-xl p-1 hover:bg-[#f6fbfe]">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
             style={{ background: "linear-gradient(135deg, #2a7bd9, #92eee8)" }}
@@ -190,7 +220,7 @@ export function AdminSidebar() {
               {me?.email}
             </p>
           </div>
-        </div>
+        </Link>
         <button
           type="button"
           onClick={() => logout.mutate()}
@@ -204,6 +234,7 @@ export function AdminSidebar() {
           {logout.isPending ? "Đang đăng xuất…" : "Đăng xuất"}
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

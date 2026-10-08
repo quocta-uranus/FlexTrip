@@ -22,9 +22,12 @@ import { AdminStaffRulesController } from './staff/admin-staff-rules.controller'
 import { AdminStaffRulesService } from './staff/admin-staff-rules.service';
 import { AdminStaffBookingsController } from './staff/admin-staff-bookings.controller';
 import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service';
+import { ReviewsModule } from '../reviews/reviews.module';
+import { AdminReviewsController } from './reviews/admin-reviews.controller';
+import { AdminReviewsService } from './reviews/admin-reviews.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ReviewsModule],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -36,6 +39,7 @@ import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service'
     AdminStaffController,
     AdminStaffRulesController,
     AdminStaffBookingsController,
+    AdminReviewsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -50,6 +54,7 @@ import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service'
     AdminStaffService,
     AdminStaffRulesService,
     AdminStaffBookingsService,
+    AdminReviewsService,
   ],
 })
 export class AdminModule {}

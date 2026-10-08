@@ -119,7 +119,7 @@ export default function AdminProviderApprovalPage() {
   return (
     <div className="pb-20">
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <SectionTitle eyebrow="ADMIN-02" title="Duyệt đăng ký Provider" desc="Phê duyệt hoặc từ chối hồ sơ Provider mới" />
+        <SectionTitle eyebrow="Quản lý hồ sơ" title="Duyệt đăng ký Provider" desc="Phê duyệt hoặc từ chối hồ sơ Provider mới" />
 
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-3">

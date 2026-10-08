@@ -599,7 +599,6 @@ export default function TravelProfilePage() {
                 </Link>
                 <Link href="/profile/preferences" className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div>
-                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color: "#8b5cf6" }}>PROF-02</span>
                     <div className="mt-1 text-sm font-medium" style={{ color: "#0f1729" }}>Tùy chọn du lịch</div>
                   </div>
                   <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>

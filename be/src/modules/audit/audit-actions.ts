@@ -47,6 +47,9 @@ export const AUDIT_ACTIONS = {
   PROVIDER_APPLICATION_REJECTED: 'PROVIDER',
   REVIEW_RESPONSE_CREATED: 'REVIEW',
   REVIEW_RESPONSE_UPDATED: 'REVIEW',
+  REVIEW_APPROVED: 'REVIEW',
+  REVIEW_REJECTED: 'REVIEW',
+  REVIEW_REANALYZED: 'REVIEW',
 } as const satisfies Record<string, AuditModuleName>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

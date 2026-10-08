@@ -49,6 +49,15 @@ export default function MyReviewsPage() {
               </span>
             </div>
             <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{review.comment}</p>
+            {review.status === 'REJECTED' && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-semibold text-red-700">Đánh giá không được công khai</p>
+                <p className="mt-1 text-sm leading-6 text-red-600">
+                  Lý do: {review.rejectionReason ?? 'Đánh giá không đáp ứng chính sách nội dung.'}
+                </p>
+                <p className="mt-1 text-xs text-red-500">Nội dung này chỉ bạn và quản trị viên nhìn thấy.</p>
+              </div>
+            )}
             {review.response && (
               <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
                 <div className="flex flex-wrap items-center gap-2">

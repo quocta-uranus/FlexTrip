@@ -73,7 +73,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
         <div className="flex items-center justify-between border-b px-6 py-4" style={{ borderColor: '#e2e8f3' }}>
           <div>
             <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
-              AUTH-04
+              Bảo mật hai lớp
             </div>
             <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>
               {step === 'recovery' ? 'Mã khôi phục' : 'Bật xác thực 2 bước'}

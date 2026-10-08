@@ -1,4 +1,5 @@
 import { BookingStatus, Role, ShopCategory } from '@prisma/client';
+import { jest } from '@jest/globals';
 import {
   AuthHarness,
   resetDatabase,
@@ -9,11 +10,16 @@ import {
   createUser,
   http,
 } from '../../admin/__tests__/support/admin-fixtures';
+import { ReviewModerationService } from '../review-moderation.service';
 
 describe('REVIEW-01 submit rating and review', () => {
   const h = new AuthHarness();
+  let moderation: ReviewModerationService;
 
-  beforeAll(() => h.open());
+  beforeAll(async () => {
+    await h.open();
+    moderation = h.app.get(ReviewModerationService);
+  });
   afterAll(() => h.close());
   beforeEach(async () => {
     await resetDatabase(h.prisma);
@@ -42,7 +48,7 @@ describe('REVIEW-01 submit rating and review', () => {
     return { provider, traveler, stranger, listing, booking };
   }
 
-  it('derives provider/listing from a completed booking and refreshes public rating', async () => {
+  it('derives provider/listing, commits PENDING, then enqueues moderation', async () => {
     const { provider, traveler, listing, booking } = await setup();
     const result = await http(h, traveler.accessToken).post('/reviews', {
       bookingId: booking.id,
@@ -55,7 +61,7 @@ describe('REVIEW-01 submit rating and review', () => {
       bookingId: booking.id,
       listingId: listing.id,
       rating: 5,
-      status: 'PUBLISHED',
+      status: 'PENDING',
     });
     expect(result.body).not.toHaveProperty('moderationNote');
 
@@ -66,8 +72,8 @@ describe('REVIEW-01 submit rating and review', () => {
     const profile = await h.prisma.providerProfile.findUniqueOrThrow({
       where: { userId: provider.id },
     });
-    expect(Number(profile.ratingAvg)).toBe(5);
-    expect(profile.reviewsCount).toBe(1);
+    expect(Number(profile.ratingAvg)).toBe(0);
+    expect(profile.reviewsCount).toBe(0);
   });
 
   it('rejects non-owner and non-completed bookings', async () => {
@@ -109,6 +115,47 @@ describe('REVIEW-01 submit rating and review', () => {
     expect(profile.reviewsCount).toBe(0);
   });
 
+  it('stores the toxicity floor even when enqueueing AI fails', async () => {
+    const { traveler, booking } = await setup();
+    jest.spyOn(moderation, 'enqueue').mockResolvedValueOnce(false);
+    const result = await http(h, traveler.accessToken).post('/reviews', {
+      bookingId: booking.id,
+      rating: 1,
+      comment: 'shop như cặc, đụ mẹ',
+    });
+
+    expect(result.body.status).toBe('FLAGGED');
+    const stored = await h.prisma.review.findUniqueOrThrow({
+      where: { bookingId: booking.id },
+    });
+    expect(stored).toMatchObject({
+      status: 'FLAGGED',
+      spamScore: 0,
+      toxicityScore: 80,
+      moderationSource: 'RULE',
+    });
+  });
+
+  it('stores the spam floor even when enqueueing AI fails', async () => {
+    const { traveler, booking } = await setup();
+    jest.spyOn(moderation, 'enqueue').mockResolvedValueOnce(false);
+    const result = await http(h, traveler.accessToken).post('/reviews', {
+      bookingId: booking.id,
+      rating: 5,
+      comment: 'aaaaaaaaaaaaaaaaaaaa đây là nội dung spam thử nghiệm',
+    });
+
+    expect(result.body.status).toBe('FLAGGED');
+    const stored = await h.prisma.review.findUniqueOrThrow({
+      where: { bookingId: booking.id },
+    });
+    expect(stored).toMatchObject({
+      status: 'FLAGGED',
+      spamScore: 80,
+      moderationSource: 'RULE',
+    });
+  });
+
   it('allows only one review when submissions race', async () => {
     const { traveler, booking } = await setup();
     const payload = {
@@ -138,5 +185,20 @@ describe('REVIEW-01 submit rating and review', () => {
         })
       ).status,
     ).toBe(400);
+  });
+
+  it('keeps the committed review pending when enqueue fails', async () => {
+    const { traveler, booking } = await setup();
+    jest.spyOn(moderation, 'enqueue').mockResolvedValueOnce(false);
+    const result = await http(h, traveler.accessToken).post('/reviews', {
+      bookingId: booking.id,
+      rating: 4,
+      comment: 'Đánh giá hợp lệ nhưng Redis đang tạm thời bị lỗi.',
+    });
+    expect(result.status).toBe(201);
+    expect(result.body.status).toBe('PENDING');
+    expect(
+      await h.prisma.review.count({ where: { bookingId: booking.id } }),
+    ).toBe(1);
   });
 });

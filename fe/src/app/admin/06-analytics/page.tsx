@@ -63,7 +63,6 @@ export default function AnalyticsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">ADMIN-06</span>
             <LiveDot label="LIVE" tone="blue" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>Platform Analytics</h1>

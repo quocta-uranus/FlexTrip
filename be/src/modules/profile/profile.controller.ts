@@ -15,6 +15,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { DenyRoles } from '../../common/decorators/deny-roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import {
   AccessTokenGuard,
   AuthenticatedRequest,
@@ -34,18 +38,27 @@ export class ProfileController {
   constructor(private readonly svc: ProfileService) {}
 
   @Get('preferences')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
+  @DenyRoles(Role.ADMIN)
   @ApiOperation({ summary: 'PROF-02: Danh sách travel preferences' })
   list(@Req() req: AuthenticatedRequest) {
     return this.svc.listPreferences(req.authUserId);
   }
 
   @Post('preferences')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
+  @DenyRoles(Role.ADMIN)
   @ApiOperation({ summary: 'PROF-02: Thêm travel preference' })
   add(@Req() req: AuthenticatedRequest, @Body() dto: CreatePreferenceDto) {
     return this.svc.addPreference(req.authUserId, dto);
   }
 
   @Patch('preferences/:id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
+  @DenyRoles(Role.ADMIN)
   @ApiOperation({ summary: 'PROF-02: Sửa preference' })
   update(
     @Req() req: AuthenticatedRequest,
@@ -56,6 +69,9 @@ export class ProfileController {
   }
 
   @Delete('preferences/:id')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAVELER, Role.PROVIDER)
+  @DenyRoles(Role.ADMIN)
   @ApiOperation({ summary: 'PROF-02: Xoá preference' })
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.svc.deletePreference(req.authUserId, id);
