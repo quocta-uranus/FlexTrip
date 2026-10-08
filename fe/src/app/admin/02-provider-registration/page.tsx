@@ -61,7 +61,7 @@ export default function ProviderRegistrationPage() {
         <div>
           <div className="mb-1 flex items-center gap-3">
             <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              Hồ sơ Provider
+              Hồ sơ Provider 
             </span>
             <LiveDot label="ĐANG DUYỆT" tone="blue" />
           </div>
@@ -113,7 +113,7 @@ export default function ProviderRegistrationPage() {
           className="rounded-2xl border bg-white py-16 text-center text-sm"
           style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
         >
-          Không có đơn đăng ký nào.
+          Không có đơn đăng ký nào
         </div>
       ) : (
         <div className="space-y-4">
