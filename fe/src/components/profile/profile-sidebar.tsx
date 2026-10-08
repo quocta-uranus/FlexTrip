@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, History, LogOut, ShieldCheck, User, Wallet } from 'lucide-react';
+import { Bell, History, LogOut, ShieldCheck, Star, User, Wallet } from 'lucide-react';
 import { cn } from 'cn';
 import { useAuthStore } from '@/store/auth.store';
 import { useLogout } from '@/hooks/useAuthMutations';
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/profile/security', label: 'Bảo mật', icon: ShieldCheck, roles: ['TRAVELER', 'PROVIDER', 'ADMIN'] },
   { href: '/profile/payments', label: 'Thanh toán & Ví', icon: Wallet, roles: ['TRAVELER', 'PROVIDER', 'ADMIN'] },
   { href: '/profile/history', label: 'Lịch sử thuê / cho thuê', icon: History, roles: ['TRAVELER', 'PROVIDER'] },
+  { href: '/profile/reviews', label: 'Đánh giá của tôi', icon: Star, roles: ['TRAVELER'] },
   { href: '/profile/notifications', label: 'Thông báo', icon: Bell, roles: ['TRAVELER', 'PROVIDER', 'ADMIN'] },
 ] as const;
 
@@ -23,6 +24,7 @@ const AVAILABLE_ROUTES = new Set([
   '/profile/shop',
   '/profile/payments',
   '/profile/history',
+  '/profile/reviews',
 ]);
 
 const ROLE_LABELS: Record<string, string> = {

@@ -212,6 +212,8 @@ export class CartService {
     for (const item of cart.items) {
       if (item.listing.status !== 'ACTIVE')
         throw new BadRequestException(`Listing "${item.listing.title}" không còn hoạt động`);
+      if (item.listing.providerId === travelerId)
+        throw new BadRequestException(`Không thể thuê listing "${item.listing.title}" của chính mình`);
 
       const check = await this.availabilitySvc.checkAvailability(
         item.listingId,
