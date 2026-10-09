@@ -33,6 +33,7 @@ export function LandingHeader() {
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : 'U';
+  const profileHref = user?.roles.includes('STAFF') ? '/staff/complete-profile' : '/profile';
 
   const headerBgClass = scrolled
     ? 'bg-white/85 backdrop-blur-xl border-b border-[#DCEFFB]/80 shadow-[0_4px_20px_-4px_rgba(2,50,90,0.07)]'
@@ -152,7 +153,7 @@ export function LandingHeader() {
                     <p className="text-xs text-[#5B7A93] truncate">{user?.email}</p>
                   </div>
                   <Link
-                    href="/profile"
+                    href={profileHref}
                     className="block px-4 py-2 text-sm text-[#0E2233] hover:bg-[#F1FAFF] rounded-lg mx-1 transition-colors"
                     onClick={() => setUserMenuOpen(false)}
                   >

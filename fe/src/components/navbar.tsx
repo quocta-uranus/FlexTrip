@@ -173,7 +173,7 @@ export function Navbar() {
                         { href: '/admin', label: 'Bảng điều khiển Admin', icon: '🛡️' },
                         { href: '/profile', label: 'Hồ sơ & bảo mật', icon: '👤' },
                       ] : [
-                        { href: '/profile', label: 'Hồ sơ', icon: '👤' },
+                        { href: isStaff ? '/staff/complete-profile' : '/profile', label: 'Hồ sơ', icon: '👤' },
                         { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
                         { href: '/messages', label: 'Tin nhắn', icon: '💬' },
                         { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
