@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card } from "@/components/profile/ui";
 import { Reveal, LiveDot } from "@/components/profile/wow";
 import { providerApplicationApi, type ProviderApplication } from "@/lib/api/client";
 
@@ -62,12 +61,12 @@ export default function ProviderRegistrationPage() {
         <div>
           <div className="mb-1 flex items-center gap-3">
             <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              ADMIN-02
+              Hồ sơ Provider 
             </span>
-            <LiveDot label="REVIEWING" tone="blue" />
+            <LiveDot label="ĐANG DUYỆT" tone="blue" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>
-            Provider Registration
+            Đăng ký Provider
           </h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>
             Duyệt hoặc từ chối hồ sơ đăng ký Provider mới
@@ -114,7 +113,7 @@ export default function ProviderRegistrationPage() {
           className="rounded-2xl border bg-white py-16 text-center text-sm"
           style={{ borderColor: "#e2e8f3", color: "#5a6b85" }}
         >
-          Không có đơn đăng ký nào.
+          Không có đơn đăng ký nào
         </div>
       ) : (
         <div className="space-y-4">

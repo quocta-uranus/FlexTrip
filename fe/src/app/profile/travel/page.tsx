@@ -36,6 +36,8 @@ import {
 } from "@/components/profile/wow";
 import { useEditingProfile } from "@/hooks/useEditingProfile";
 import { Toast } from "@/components/ui/toast";
+import { ReputationProgressCard } from "@/components/reputation/reputation-badge";
+import { useMyReputation } from "@/hooks/useReputation";
 
 const LANG_CODE_TO_LABEL: Record<string, string> = {
   vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
@@ -142,6 +144,7 @@ export default function TravelProfilePage() {
   const confetti = useConfetti(36);
   const [show2faModal, setShow2faModal] = useState(false);
   const { data: me } = useMe();
+  const { data: reputation } = useMyReputation();
   const { mutateAsync: uploadAvatar, isPending: avatarUploading } = useSetAvatar();
   const qc = useQueryClient();
   // Bảo vệ route: chỉ TRAVELER mới được vào /profile/travel
@@ -222,12 +225,9 @@ export default function TravelProfilePage() {
     { date: "T2/2026", title: "City tour Đà Nẵng", subtitle: "FlexTrip Verified · nửa ngày", badge: "City" },
   ];
 
-  const trips = p.tripsCount;
-  const badges = [
-    { name: "Newbie Trekker", desc: "Hoàn thành 1–3 chuyến thuê", level: trips >= 1 ? ("done" as const) : ("locked" as const) },
-    { name: "Explorer", desc: "Hoàn thành 4–9 chuyến thuê", level: trips >= 4 ? ("done" as const) : trips >= 1 ? ("current" as const) : ("locked" as const) },
-    { name: "Pro Trekker", desc: "Hoàn thành 10+ chuyến thuê", level: trips >= 10 ? ("done" as const) : trips >= 4 ? ("current" as const) : ("locked" as const) },
-  ];
+  const travelerReputation = reputation?.badges.find(
+    (badge) => badge.code === 'RELIABLE_TRAVELER',
+  );
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%)" }}>
@@ -338,12 +338,35 @@ export default function TravelProfilePage() {
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Chuyến thuê", value: p.tripsCount, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
-            { label: "Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-            { label: "Reviews", value: p.reviewsGiven, icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-            { label: "Ngân sách", value: formatVndRange(p.budgetMin, p.budgetMax), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+            { label: "Chuyến thuê", value: p.tripsCount, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)", href: undefined },
+            { label: "Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", href: undefined },
+            { label: "Đánh giá của tôi", value: p.reviewsGiven, icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color: "#10b981", bg: "rgba(16,185,129,0.1)", href: "/profile/reviews" },
+            { label: "Ngân sách", value: formatVndRange(p.budgetMin, p.budgetMax), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", href: undefined },
           ].map((k, i) => (
-            <div key={k.label} className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${i * 100}ms` }}>
+            <div key={k.label} className="contents">
+              {k.href ? (
+                <Link
+                  href={k.href}
+                  aria-label="Xem các đánh giá của tôi"
+                  className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: k.color }} />
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wider" style={{ color: k.color }}>{k.label}</div>
+                      <div className="mt-2 text-2xl font-bold" style={{ color: "#0f1729" }}>{k.value}</div>
+                      <div className="mt-2 text-xs font-semibold" style={{ color: k.color }}>Xem chi tiết →</div>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-sm" style={{ background: k.bg, color: k.color }}>
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={k.icon} />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: k.color }} />
               <div className="flex items-start justify-between">
                 <div>
@@ -356,9 +379,17 @@ export default function TravelProfilePage() {
                   </svg>
                 </div>
               </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
+
+        {travelerReputation && (
+          <div className="mb-8">
+            <ReputationProgressCard badge={travelerReputation} />
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
@@ -568,7 +599,6 @@ export default function TravelProfilePage() {
                 </Link>
                 <Link href="/profile/preferences" className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div>
-                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color: "#8b5cf6" }}>PROF-02</span>
                     <div className="mt-1 text-sm font-medium" style={{ color: "#0f1729" }}>Tùy chọn du lịch</div>
                   </div>
                   <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>

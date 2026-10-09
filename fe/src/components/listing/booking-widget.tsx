@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { availabilityApi } from '@/lib/api/client';
 import { useAddToCart } from '@/hooks/useCart';
 import type { Listing } from '@/types/listing';
+import { useAuthStore } from '@/store/auth.store';
+import Link from 'next/link';
 
 interface Props {
   listing: Listing;
@@ -13,6 +15,9 @@ interface Props {
 export function BookingWidget({ listing }: Props) {
   const router = useRouter();
   const addToCart = useAddToCart();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.roles?.includes('ADMIN') ?? false;
+  const isOwner = Boolean(user && listing.providerId === user.id);
 
   const price = typeof listing.price === 'number' ? listing.price : Number(listing.price);
   const depositRate = listing.depositRate ? parseFloat(String(listing.depositRate)) : 0.2;
@@ -35,8 +40,7 @@ export function BookingWidget({ listing }: Props) {
 
   // Check availability when dates/qty change
   useEffect(() => {
-    if (!startDate || !endDate || rentalDays <= 0) { setAvailCheck('idle'); return; }
-    setAvailCheck('checking');
+    if (!startDate || !endDate || rentalDays <= 0) return;
     availabilityApi
       .get(listing.id, startDate, endDate)
       .then((data) => {
@@ -45,7 +49,37 @@ export function BookingWidget({ listing }: Props) {
         setAvailCheck(isBlocked || hasFullDays ? 'unavailable' : 'ok');
       })
       .catch(() => setAvailCheck('idle'));
-  }, [listing.id, startDate, endDate, quantity]);
+  }, [listing.id, startDate, endDate, quantity, rentalDays]);
+
+  if (isAdmin || isOwner) {
+    return (
+      <div
+        className="sticky top-24 rounded-2xl border bg-white p-6 shadow-lg"
+        style={{ borderColor: '#DCEFFB', boxShadow: '0 20px 60px -15px rgba(42,123,217,0.15)' }}
+      >
+        <div className="mb-5">
+          <span className="text-3xl font-bold" style={{ color: '#2a7bd9' }}>
+            {price.toLocaleString('vi-VN')}
+          </span>
+          <span className="text-sm" style={{ color: '#8694ad' }}>
+            {' '}{listing.currency ?? 'VND'}/ngày
+          </span>
+        </div>
+        <div className="rounded-xl bg-[#f6fbfe] p-4 text-sm text-[#5a6b85]">
+          {isAdmin
+            ? 'Tài khoản Admin chỉ xem thông tin marketplace và không thể tạo giao dịch.'
+            : 'Đây là sản phẩm của bạn. Bạn không thể tự đặt thuê sản phẩm này.'}
+        </div>
+        <Link
+          href={isAdmin ? '/admin' : '/dashboard/listings'}
+          className="mt-4 block w-full rounded-xl py-3 text-center text-sm font-semibold text-white"
+          style={{ background: '#2a7bd9' }}
+        >
+          {isAdmin ? 'Quay về trang quản trị' : 'Quản lý sản phẩm'}
+        </Link>
+      </div>
+    );
+  }
 
   function canProceed() {
     if (!startDate || !endDate || rentalDays <= 0) return false;

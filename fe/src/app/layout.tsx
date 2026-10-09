@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { Navbar } from "@/components/navbar";
 import { AiChatLauncher } from "@/components/ai-chat-launcher";
+import { MarketplaceAccessBoundary } from "@/components/marketplace-access-boundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -56,7 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Providers>
             <AuthBootstrap />
             <Navbar />
-            {children}
+            <MarketplaceAccessBoundary>{children}</MarketplaceAccessBoundary>
             <AiChatLauncher />
           </Providers>
         </div>

@@ -7,7 +7,7 @@ export default function ProfilePreferencesPage() {
             style={{ borderColor: "rgba(146,238,232,0.4)", color: "#2a7bd9" }}
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#92eee8" }} />
-            PROF-02 · Tùy chọn
+            Tùy chọn du lịch
           </span>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
             <span className="text-brand-gradient">Tùy chọn du lịch</span>

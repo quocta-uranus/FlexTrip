@@ -63,7 +63,7 @@ describe('ADMIN-10 rules & assignment', () => {
     expect(ok.body.assignedStaff).toMatchObject({ id: hcm1.id, name: 'HCM Một' });
 
     expect((await api.get('/admin/bookings?assigned=true')).body.total).toBe(1);
-    expect((await api.get('/admin/bookings?assigned=false&status=PENDING')).body.total).toBe(1);
+    expect((await api.get('/admin/bookings?assigned=false&status=PENDING_APPROVAL')).body.total).toBe(1);
     expect((await api.get(`/admin/bookings?search=${encodeURIComponent('Lâm')}`)).body.total).toBe(1);
 
     expect((await api.delete(`/admin/bookings/${hcmBooking.id}/assign`)).body.assignedStaff).toBeNull();

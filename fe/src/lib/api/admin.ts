@@ -22,6 +22,13 @@ export const adminApi = {
       api.patch(`/admin/listings/${id}/moderate`, note ? { action, note } : { action }) as Promise<{ id: string; status: string; flagsUpdated: number }>,
   },
 
+  reviews: {
+    list: (q: Q) => api.get(`/admin/reviews${toQuery(q)}`) as Promise<T.Paginated<T.AdminReview>>,
+    moderate: (id: string, decision: 'APPROVE' | 'REJECT', note?: string) =>
+      api.patch(`/admin/reviews/${id}/moderate`, note ? { decision, note } : { decision }) as Promise<T.AdminReview>,
+    reanalyze: (id: string) => api.post(`/admin/reviews/${id}/reanalyze`, {}) as Promise<{ id: string; status: 'PENDING'; queued: boolean }>,
+  },
+
   disputes: {
     list: (q: Q) => api.get(`/admin/disputes${toQuery(q)}`) as Promise<T.Paginated<T.AdminDispute>>,
     stats: () => api.get('/admin/disputes/stats') as Promise<T.DisputeStats>,

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "incremental": false,
+    "noEmit": true
+  },
+  "include": [
+    "runner/**/*.ts",
+    "../../src/modules/reviews/review-ai-analyzer.service.ts"
+  ]
+}

@@ -1,3 +1,5 @@
+import type { PublicReputationBadge } from './reputation';
+
 export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 export type ListingCategory =
@@ -21,7 +23,7 @@ export interface ListingProvider {
   avatarUrl?: string | null;
   providerProfile?: {
     shopName: string;
-    ratingAvg: number;
+    ratingAvg: number | string;
     reviewsCount: number;
     responseHours: string;
   } | null;
@@ -31,6 +33,10 @@ export interface ListingReview {
   id: string;
   rating: number;
   comment?: string | null;
+  response?: string | null;
+  respondedAt?: string | null;
+  authorBadges?: PublicReputationBadge[];
+  targetBadges?: PublicReputationBadge[];
   createdAt: string;
   author: { id: string; name: string; avatarUrl?: string | null };
 }

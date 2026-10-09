@@ -7,6 +7,8 @@ import type {
   TwoFactorEnableResult,
 } from '@/types/auth';
 import type { NotificationListResult, NotificationType } from '@/types/notification';
+import type { CreateReviewPayload, Review, SentimentDashboardData, SentimentRange } from '@/types/review';
+import type { MyReputation, PublicReputationBadge } from '@/types/reputation';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -632,6 +634,30 @@ export const bookingApi = {
     return api.get(`/bookings?${q.toString()}`)
       .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
+};
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+export const reviewApi = {
+  create: (data: CreateReviewPayload) => api.post('/reviews', data) as Promise<Review>,
+  mine: () => api.get('/reviews/mine') as Promise<Review[]>,
+  received: () => api.get('/reviews/received') as Promise<Review[]>,
+  respond: (reviewId: string, response: string) =>
+    api.put(`/reviews/${reviewId}/response`, { response }) as Promise<Review>,
+  forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
+  sentiment: (range: SentimentRange) =>
+    api.get(`/reviews/sentiment?range=${range}`) as Promise<SentimentDashboardData>,
+};
+
+// ─── Reputation ──────────────────────────────────────────────────────────────
+
+export const reputationApi = {
+  mine: () => api.get('/reputation/me') as Promise<MyReputation>,
+  publicForUser: (userId: string) =>
+    api.get(`/reputation/users/${userId}`) as Promise<{
+      userId: string;
+      badges: PublicReputationBadge[];
+    }>,
 };
 
 // ─── Cart ─────────────────────────────────────────────────────────────────────

@@ -2,13 +2,19 @@ import {
   Body, Controller, Get, Param, Post, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { DenyRoles } from '../../common/decorators/deny-roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { ModifyBookingService } from './modify-booking.service';
 import { CreateModifyRequestDto, RespondModifyRequestDto } from './dto/modify-booking.dto';
 
 @ApiTags('Booking — Modify Requests')
 @ApiBearerAuth()
-@UseGuards(AccessTokenGuard)
+@UseGuards(AccessTokenGuard, RolesGuard)
+@Roles(Role.TRAVELER, Role.PROVIDER)
+@DenyRoles(Role.ADMIN)
 @Controller('bookings/:bookingId/modify-requests')
 export class ModifyBookingController {
   constructor(private readonly svc: ModifyBookingService) {}
