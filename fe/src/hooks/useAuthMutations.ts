@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 import { authApi, userApi } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth.store';
 import { isTwoFactorChallenge } from '@/types/auth';
-import { getRefreshToken, setAccessToken } from '@/lib/api/token';
+import { getRefreshToken } from '@/lib/api/token';
+import { isStaffProfileComplete, STAFF_PROFILE_PATH } from '@/lib/staff-profile';
 
 export function useRegister() {
   return useMutation({
@@ -37,7 +38,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (data: { email: string; password: string; deviceName?: string }) =>
       authApi.login(data),
-    onSuccess: async (result, _vars, _ctx) => {
+    onSuccess: async (result) => {
       if (isTwoFactorChallenge(result)) {
         router.push(`/2fa-challenge?token=${encodeURIComponent(result.challengeToken)}`);
         return;
@@ -52,12 +53,14 @@ export function useLogin() {
         ? new URLSearchParams(window.location.search).get('redirect')
         : null;
 
-      if (redirectParam) {
+      if (roles.includes('STAFF') && !isStaffProfileComplete(user)) {
+        router.replace(STAFF_PROFILE_PATH);
+      } else if (redirectParam) {
         router.push(redirectParam);
       } else if (roles.includes('ADMIN')) {
         router.push('/admin');
       } else if (roles.includes('STAFF')) {
-        router.push('/staff');
+        router.push(isStaffProfileComplete(user) ? '/staff' : STAFF_PROFILE_PATH);
       } else if (roles.includes('PROVIDER')) {
         router.push('/dashboard');
       } else {

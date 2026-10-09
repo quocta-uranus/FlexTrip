@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Users } from 'lucide-react';
 import { Reveal } from '@/components/profile/wow';
 import { Pagination } from '@/components/admin/pagination';
-import { ConfirmDialog } from '@/components/admin/confirm-dialog';
 import { useAdminToast } from '@/components/admin/use-admin-toast';
 import { EmptyState } from '@/components/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +12,7 @@ import { useStaffList, useUpdateStaff } from '@/hooks/admin/use-admin-staff';
 import { formatDateTime } from '@/lib/format';
 import type { AdminStaff } from '@/types/admin';
 import { StaffFormDialog } from './staff-form-dialog';
+import { StaffStatusDialog } from './staff-status-dialog';
 
 export function StaffTab() {
   const [search, setSearch] = useState('');
@@ -171,12 +171,9 @@ export function StaffTab() {
         onSuccess={toast.success}
         onError={toast.error}
       />
-      <ConfirmDialog
-        open={toggleTarget !== null}
+      <StaffStatusDialog
+        staff={toggleTarget}
         onOpenChange={(o) => !o && setToggleTarget(null)}
-        title={toggleTarget?.isActive ? `Tạm ngừng ${toggleTarget.name}?` : `Kích hoạt ${toggleTarget?.name}?`}
-        confirmLabel={toggleTarget?.isActive ? 'Tạm ngừng' : 'Kích hoạt'}
-        tone={toggleTarget?.isActive ? 'danger' : 'default'}
         pending={update.isPending}
         onConfirm={() => {
           if (!toggleTarget) return;

@@ -161,7 +161,7 @@ export function Navbar() {
                       <p className="text-xs truncate" style={{ color: '#8694ad' }}>{user.email}</p>
                     </div>
                     {[
-                      { href: '/profile', label: 'Hồ sơ', icon: '👤' },
+                      { href: isStaff ? '/staff/complete-profile' : '/profile', label: 'Hồ sơ', icon: '👤' },
                       { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
                       { href: '/messages', label: 'Tin nhắn', icon: '💬' },
                       { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },

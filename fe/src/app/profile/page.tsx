@@ -6,6 +6,7 @@ import { useMe } from '@/hooks/useSession';
 
 /**
  * /profile — redirect tự động theo role:
+ *   STAFF     → /staff/complete-profile
  *   PROVIDER  → /profile/shop
  *   TRAVELER  → /profile/travel
  *   ADMIN     → /profile/admin
@@ -18,7 +19,9 @@ export default function ProfileHubPage() {
   useEffect(() => {
     if (!me) return;
     const roles = (me.roles ?? []) as string[];
-    if (roles.includes('PROVIDER')) {
+    if (roles.includes('STAFF')) {
+      router.replace('/staff/complete-profile');
+    } else if (roles.includes('PROVIDER')) {
       router.replace('/profile/shop');
     } else if (roles.includes('TRAVELER')) {
       router.replace('/profile/travel');
