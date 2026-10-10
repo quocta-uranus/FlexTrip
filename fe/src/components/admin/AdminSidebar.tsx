@@ -197,14 +197,6 @@ export function AdminSidebar() {
 
       {/* User footer */}
       <div className="shrink-0 border-t p-4" style={{ borderColor: "#DCEFFB" }}>
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <Link href="/search" onClick={() => setMobileOpen(false)} className="rounded-lg border px-2 py-2 text-center text-xs font-semibold hover:bg-[#f6fbfe]" style={{ borderColor: "#DCEFFB", color: "#2a7bd9" }}>
-            Xem marketplace
-          </Link>
-          <Link href="/profile/admin" onClick={() => setMobileOpen(false)} className="rounded-lg border px-2 py-2 text-center text-xs font-semibold hover:bg-[#f6fbfe]" style={{ borderColor: "#DCEFFB", color: "#2a7bd9" }}>
-            Hồ sơ Admin
-          </Link>
-        </div>
         <Link href="/profile/admin" onClick={() => setMobileOpen(false)} className="mb-3 flex min-w-0 items-center gap-3 rounded-xl p-1 hover:bg-[#f6fbfe]">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"

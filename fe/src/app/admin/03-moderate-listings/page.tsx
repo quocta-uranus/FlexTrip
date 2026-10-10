@@ -8,6 +8,7 @@ import { useAdminToast } from "@/components/admin/use-admin-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { CATEGORY_ICONS } from "@/constants/categories";
 import {
   useAdminListings,
   useListingFlags,
@@ -25,12 +26,7 @@ const statusStyles: Record<string, { label: string; color: string; bg: string }>
   DRAFT: { label: "Draft", color: "#8694ad", bg: "rgba(134,148,173,0.15)" },
 };
 
-const categoryEmoji: Record<string, string> = {
-  CAMPING_TREKKING: "⛺",
-  VEHICLE: "🚗",
-  STAY: "🏨",
-  EXPERIENCE: "🎯",
-};
+const categoryEmoji: Record<string, string> = CATEGORY_ICONS as Record<string, string>;
 
 const TABS: ListingTab[] = ["FLAGGED", "ACTIVE", "SUSPENDED", "REMOVED", "ALL"];
 

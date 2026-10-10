@@ -1,21 +1,11 @@
 import type { PublicReputationBadge } from './reputation';
+import type { ListingCategory } from '@/constants/categories';
 
 export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
-export type ListingCategory =
-  | 'CAMPING_TREKKING'
-  | 'VEHICLE'
-  | 'STAY'
-  | 'EXPERIENCE'
-  | 'OTHER';
-
-export const CATEGORY_LABELS: Record<ListingCategory, string> = {
-  CAMPING_TREKKING: 'Cắm trại & Trekking',
-  VEHICLE: 'Phương tiện',
-  STAY: 'Chỗ ở',
-  EXPERIENCE: 'Trải nghiệm',
-  OTHER: 'Khác',
-};
+// Single source of truth — edit src/constants/categories.ts
+export type { ListingCategory };
+export { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META, LISTING_CATEGORIES, CATEGORY_VALUES } from '@/constants/categories';
 
 export interface ListingProvider {
   id: string;

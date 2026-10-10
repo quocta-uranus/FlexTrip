@@ -6,11 +6,12 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 
 export enum ListingCategoryDto {
-  CAMPING_TREKKING = 'CAMPING_TREKKING',
-  VEHICLE = 'VEHICLE',
-  STAY = 'STAY',
-  EXPERIENCE = 'EXPERIENCE',
-  OTHER = 'OTHER',
+  CAMERA_GEAR = 'CAMERA_GEAR',
+  CAMPING = 'CAMPING',
+  TREKKING = 'TREKKING',
+  BEACH = 'BEACH',
+  TRAVEL_ESSENTIALS = 'TRAVEL_ESSENTIALS',
+  FAMILY = 'FAMILY',
 }
 
 export class CreateListingDto {

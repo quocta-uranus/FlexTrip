@@ -9,16 +9,7 @@ import { listingSchema, type ListingInput } from '@/lib/validators/listing.schem
 import { useListing, useUpdateListing } from '@/hooks/useListings';
 import { listingApi } from '@/lib/api/client';
 import { ImageUploader } from '@/components/listing/image-uploader';
-import type { ListingCategory } from '@/types/listing';
-import { CATEGORY_LABELS } from '@/types/listing';
-
-const CATEGORIES: Array<{ value: ListingCategory; label: string; icon: string }> = [
-  { value: 'CAMPING_TREKKING', label: 'Cắm trại & Trekking', icon: '⛺' },
-  { value: 'VEHICLE', label: 'Phương tiện', icon: '🚵' },
-  { value: 'STAY', label: 'Chỗ ở', icon: '🏡' },
-  { value: 'EXPERIENCE', label: 'Trải nghiệm', icon: '🌄' },
-  { value: 'OTHER', label: 'Khác', icon: '📦' },
-];
+import { LISTING_CATEGORIES } from '@/constants/categories';
 
 const COMMON_AMENITIES = [
   'Lều', 'Túi ngủ', 'Đèn pin', 'Bếp dã ngoại', 'Nồi/Chảo', 'Bộ dụng cụ sơ cứu',
@@ -267,13 +258,13 @@ export default function EditListingPage() {
 
             <Field label="Danh mục" error={errors.category?.message} required>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => {
+                {LISTING_CATEGORIES.map((cat) => {
                   const active = selectedCategory === cat.value;
                   return (
                     <button key={cat.value} type="button" onClick={() => setValue('category', cat.value)}
                       className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
-                      style={{ borderColor: active ? '#2a7bd9' : '#DCEFFB', background: active ? 'rgba(42,123,217,0.08)' : '#fff', color: active ? '#2a7bd9' : '#5a6b85' }}>
-                      <span>{cat.icon}</span>{cat.label}
+                      style={{ borderColor: active ? cat.color : '#DCEFFB', background: active ? `${cat.color}14` : '#fff', color: active ? cat.color : '#5a6b85' }}>
+                      <span>{cat.emoji}</span>{cat.label}
                     </button>
                   );
                 })}

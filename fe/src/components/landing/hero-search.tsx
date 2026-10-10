@@ -5,21 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, Tag } from 'lucide-react';
 import { useSearchStore } from '@/store/search.store';
 import type { ListingCategory } from '@/types/listing';
+import { LISTING_CATEGORIES } from '@/constants/categories';
 
 const CATEGORIES: Array<{ value: '' | ListingCategory; label: string }> = [
   { value: '', label: 'Tất cả' },
-  { value: 'CAMPING_TREKKING', label: 'Cắm trại & Trekking' },
-  { value: 'VEHICLE', label: 'Phương tiện' },
-  { value: 'STAY', label: 'Chỗ ở' },
-  { value: 'EXPERIENCE', label: 'Trải nghiệm' },
-  { value: 'OTHER', label: 'Khác' },
+  ...LISTING_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
 ];
 
 const QUICK_PICKS: Array<{ label: string; keyword: string; category?: ListingCategory }> = [
-  { label: 'Lều cắm trại', keyword: 'lều cắm trại', category: 'CAMPING_TREKKING' },
-  { label: 'Xe đạp leo núi', keyword: 'xe đạp', category: 'VEHICLE' },
-  { label: 'Kayak', keyword: 'kayak' },
-  { label: 'Máy ảnh DSLR', keyword: 'máy ảnh' },
+  { label: 'Lều cắm trại', keyword: 'lều cắm trại', category: 'CAMPING' },
+  { label: 'Máy ảnh DSLR', keyword: 'máy ảnh', category: 'CAMERA_GEAR' },
+  { label: 'Kayak', keyword: 'kayak', category: 'BEACH' },
+  { label: 'Ba lô trekking', keyword: 'ba lô', category: 'TREKKING' },
 ];
 
 export function HeroSearch() {

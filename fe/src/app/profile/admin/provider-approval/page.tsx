@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SectionTitle } from "@/components/profile/ui";
+import { LISTING_CATEGORIES } from "@/constants/categories";
 
 /**
  * ADMIN-02 — Approve/Reject Provider Registration
@@ -75,11 +76,10 @@ const mockApplications: ProviderApplication[] = [
 ];
 
 const categoryLabels: Record<string, string> = {
-  CAMPING_TREKKING: "🏕️ Camping & Trekking",
-  VEHICLE: "🚗 Vehicle",
-  STAY: "🏨 Stay",
-  EXPERIENCE: "🎯 Experience",
-  OTHER: "📦 Other",
+  ...Object.fromEntries(LISTING_CATEGORIES.map((c) => [c.value, `${c.emoji} ${c.label}`])),
+  // legacy values
+  CAMPING_TREKKING: "🏕️ Camping & Trekking", VEHICLE: "🚗 Phương tiện",
+  STAY: "🏨 Lưu trú", EXPERIENCE: "🎯 Trải nghiệm", OTHER: "📦 Khác",
 };
 
 const statusConfig = {
