@@ -1,25 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { Heart, MapPin, Star } from 'lucide-react';
 import type { Listing } from '@/types/listing';
-import { CATEGORY_LABELS } from '@/types/listing';
+import { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META } from '@/types/listing';
 
 interface ListingCardProps {
   listing: Listing;
   href?: string;
-}
-
-function StarRating({ rating, count }: { rating: number | string; count?: number }) {
-  const numericRating = Number(rating);
-  const displayRating = Number.isFinite(numericRating) ? numericRating : 0;
-
-  return (
-    <span className="flex items-center gap-1 text-xs">
-      <svg className="h-3.5 w-3.5" fill="#f59e0b" viewBox="0 0 20 20">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-      <span style={{ color: '#0f1729' }} className="font-semibold">{displayRating.toFixed(1)}</span>
-      {count != null && <span style={{ color: '#8694ad' }}>({count})</span>}
-    </span>
-  );
 }
 
 export function ListingCard({ listing, href }: ListingCardProps) {
@@ -27,20 +15,24 @@ export function ListingCard({ listing, href }: ListingCardProps) {
   const price = typeof listing.price === 'number' ? listing.price : Number(listing.price);
   const reviewCount = listing._count?.reviews ?? listing.reviews?.length ?? 0;
   const providerRating = Number(listing.provider?.providerProfile?.ratingAvg);
-  const avgRating = Number.isFinite(providerRating)
+  const avgRating = Number.isFinite(providerRating) && providerRating > 0
     ? providerRating
     : listing.reviews?.length
       ? listing.reviews.reduce((s, r) => s + r.rating, 0) / listing.reviews.length
       : 0;
 
+  const meta = CATEGORY_META[listing.category];
+  const catColor = meta?.color ?? '#2a7bd9';
+  const catBg = meta?.bg ?? '#eff6ff';
+
   return (
     <Link
       href={dest}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-all hover:-translate-y-1 hover:shadow-xl"
-      style={{ borderColor: '#DCEFFB' }}
+      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white transition-all duration-300 hover:-translate-y-1"
+      style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
     >
-      {/* Image */}
-      <div className="relative h-48 overflow-hidden bg-[#f1f5fa]">
+      {/* ── Image ── */}
+      <div className="relative overflow-hidden" style={{ height: 210 }}>
         {listing.imageUrls?.[0] ? (
           <img
             src={listing.imageUrls[0]}
@@ -48,74 +40,87 @@ export function ListingCard({ listing, href }: ListingCardProps) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-5xl">
-            {listing.category === 'CAMPING_TREKKING' ? '⛺' :
-             listing.category === 'VEHICLE' ? '🚵' :
-             listing.category === 'STAY' ? '🏡' :
-             listing.category === 'EXPERIENCE' ? '🌄' : '📦'}
+          <div className="flex h-full w-full items-center justify-center text-6xl" style={{ background: catBg }}>
+            {CATEGORY_ICONS[listing.category] ?? '📦'}
           </div>
         )}
 
-        {/* Category badge */}
+        {/* gradient overlay */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 55%)' }} />
+
+        {/* category pill */}
         <span
-          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm"
-          style={{ background: 'rgba(255,255,255,0.9)', color: '#2a7bd9' }}
+          className="absolute left-3 top-3 flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
+          style={{ background: 'rgba(255,255,255,0.92)', color: catColor, backdropFilter: 'blur(8px)' }}
         >
+          <span>{CATEGORY_ICONS[listing.category]}</span>
           {CATEGORY_LABELS[listing.category] ?? listing.category}
         </span>
 
-        {/* Status badge for non-active */}
+        {/* heart button */}
+        <button
+          onClick={(e) => e.preventDefault()}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110"
+          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
+        >
+          <Heart className="h-4 w-4" style={{ color: '#94a3b8' }} />
+        </button>
+
+        {/* price on image */}
+        <div className="absolute bottom-3 left-3">
+          <span className="text-xl font-extrabold text-white" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
+            {price.toLocaleString('vi-VN')}
+          </span>
+          <span className="ml-1 text-xs font-medium text-white/80">₫/ngày</span>
+        </div>
+
         {listing.status !== 'ACTIVE' && (
           <span
-            className="absolute right-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
-            style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+            className="absolute bottom-3 right-3 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+            style={{ background: 'rgba(0,0,0,0.6)', color: '#fff' }}
           >
             {listing.status === 'DRAFT' ? 'Bản nháp' : listing.status}
           </span>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col p-4">
-        <div className="mb-1 flex items-start justify-between gap-2">
-          <h3
-            className="line-clamp-2 text-sm font-semibold leading-snug flex-1"
-            style={{ color: '#0f1729' }}
-          >
-            {listing.title}
-          </h3>
+      {/* ── Body ── */}
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug" style={{ color: '#0f1729' }}>
+          {listing.title}
+        </h3>
+
+        <div className="flex items-center gap-1 text-xs" style={{ color: '#8694ad' }}>
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{listing.location}</span>
         </div>
 
-        <p className="mb-3 flex items-center gap-1 text-xs" style={{ color: '#8694ad' }}>
-          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="truncate">{listing.location}</span>
-        </p>
-
-        {avgRating > 0 && (
-          <div className="mb-3">
-            <StarRating rating={avgRating} count={reviewCount} />
-          </div>
-        )}
-
-        <div className="mt-auto flex items-end justify-between">
-          <div>
-            <span className="text-lg font-bold" style={{ color: '#2a7bd9' }}>
-              {price.toLocaleString('vi-VN')}
+        <div className="mt-auto flex items-center justify-between pt-2" style={{ borderTop: '1px solid #f1f5f9' }}>
+          {avgRating > 0 ? (
+            <span className="flex items-center gap-1 text-xs">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span className="font-semibold" style={{ color: '#0f1729' }}>{avgRating.toFixed(1)}</span>
+              <span style={{ color: '#94a3b8' }}>({reviewCount})</span>
             </span>
-            <span className="ml-1 text-xs" style={{ color: '#8694ad' }}>
-              {listing.currency ?? 'VND'}/ngày
-            </span>
-          </div>
+          ) : (
+            <span className="text-xs" style={{ color: '#94a3b8' }}>Chưa có đánh giá</span>
+          )}
 
-          {listing.provider?.providerProfile?.shopName && (
-            <span className="text-[11px] truncate max-w-[120px]" style={{ color: '#8694ad' }}>
-              {listing.provider.providerProfile.shopName}
+          {listing.amenities?.length > 0 && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ background: catBg, color: catColor }}
+            >
+              {listing.amenities.length} tiện ích
             </span>
           )}
         </div>
+
+        {listing.provider?.providerProfile?.shopName && (
+          <p className="truncate text-[11px]" style={{ color: '#94a3b8' }}>
+            🏪 {listing.provider.providerProfile.shopName}
+          </p>
+        )}
       </div>
     </Link>
   );

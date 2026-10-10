@@ -4,14 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { LandingHeader } from '@/components/layout/landing-header';
 import { providerApplicationApi } from '@/lib/api/client';
+import { LISTING_CATEGORIES } from '@/constants/categories';
 
-const CATEGORIES = [
-  { value: 'CAMPING_TREKKING', label: 'Cắm trại & Trekking', icon: '⛺' },
-  { value: 'VEHICLE', label: 'Phương tiện', icon: '🚵' },
-  { value: 'STAY', label: 'Lưu trú', icon: '🏡' },
-  { value: 'EXPERIENCE', label: 'Trải nghiệm', icon: '🌄' },
-  { value: 'OTHER', label: 'Khác', icon: '📦' },
-];
+const CATEGORIES = LISTING_CATEGORIES.map((c) => ({ value: c.value, label: c.label, icon: c.emoji }));
 
 const CITIES = [
   'TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Đà Lạt', 'Nha Trang',

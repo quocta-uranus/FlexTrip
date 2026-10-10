@@ -231,7 +231,7 @@ Sản phẩm: "${dto.title}"
 ${dto.description ? `Mô tả: "${dto.description}"` : ''}
 
 Hãy gợi ý:
-1. Danh mục phù hợp nhất (chỉ chọn 1 trong: CAMPING_TREKKING, VEHICLE, STAY, EXPERIENCE, OTHER)
+1. Danh mục phù hợp nhất (chỉ chọn 1 trong: CAMERA_GEAR, CAMPING, TREKKING, BEACH, TRAVEL_ESSENTIALS, FAMILY)
 2. 3-5 thẻ tag ngắn gọn (tiếng Việt)
 3. Một câu giải thích ngắn tại sao
 
@@ -242,7 +242,7 @@ Trả lời dưới dạng JSON thuần (không markdown): {"category": "...", "
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       return JSON.parse(jsonMatch?.[0] ?? '{}');
     } catch {
-      return { category: 'OTHER', tags: [], reason: text };
+      return { category: 'CAMPING', tags: [], reason: text };
     }
   }
 
