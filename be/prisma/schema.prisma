@@ -87,6 +87,7 @@ enum ListingStatus {
 
 enum ContractStatus {
   PENDING
+  TRAVELER_SIGNED
   SIGNED
   ACTIVE
   CLOSED
@@ -401,6 +402,14 @@ model Listing {
   quantity      Int     @default(1)
   depositRate   Decimal @default(0.30) @db.Decimal(3, 2)
 
+  // CONTR-02: điều khoản hợp đồng
+  penaltyRules  Json?
+  conditionNote String?  @db.Text
+
+  // CONTR-05: giá trị cao
+  marketValue   Decimal? @db.Decimal(12, 2)
+  isHighValue   Boolean  @default(false)
+
   provider     User                  @relation(fields: [providerId], references: [id])
   bookings     Booking[]
   reviews      Review[]
@@ -559,15 +568,23 @@ model Payment {
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 model Contract {
-  id            String         @id @default(cuid())
-  terms         String         @db.Text
-  status        ContractStatus @default(PENDING)
-  signedAt      DateTime?
-  checkInPhoto  String?
-  checkOutPhoto String?
-  bookingId     String         @unique
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  bookingId            String         @unique
+  templateType         String         @default("STANDARD")
+  terms                String         @db.Text
+  penaltyRules         Json?
+  productConditionNote String?        @db.Text
+  status               ContractStatus @default(PENDING)
+  travelerSignedAt     DateTime?
+  providerSignedAt     DateTime?
+  checkInPhotos        String[]       @default([])
+  checkOutPhotos       Json?
+  idDocumentUrl        String?
+  idDocumentType       String?
+  insuranceOptIn       Boolean        @default(false)
+  insuranceRef         String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   booking Booking @relation(fields: [bookingId], references: [id])
 }

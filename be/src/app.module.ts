@@ -24,6 +24,7 @@ import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { ReputationModule } from './modules/reputation/reputation.module';
     NotificationsModule,
     ReviewsModule,
     ReputationModule,
+    ContractsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

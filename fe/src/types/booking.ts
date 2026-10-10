@@ -1,4 +1,5 @@
 import type { Listing } from './listing';
+import type { ContractStatus } from './contract';
 
 export type BookingStatus =
   | 'PENDING_PAYMENT'
@@ -66,6 +67,12 @@ export interface Booking {
     status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
     method: string;
     transactionId?: string | null;
+  } | null;
+  contract?: {
+    id: string;
+    status: ContractStatus;
+    travelerSignedAt?: string | null;
+    providerSignedAt?: string | null;
   } | null;
 }
 

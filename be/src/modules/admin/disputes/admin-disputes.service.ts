@@ -89,7 +89,7 @@ export class AdminDisputesService {
       include: {
         listing: { select: { id: true, title: true, location: true } },
         payment: true,
-        contract: { select: { status: true, signedAt: true, checkInPhoto: true, checkOutPhoto: true } },
+        contract: { select: { status: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
       },
     });
     const history = await this.prisma.auditLog.findMany({
