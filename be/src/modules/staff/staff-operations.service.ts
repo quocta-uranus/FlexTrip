@@ -17,7 +17,7 @@ import {
 const DETAIL_INCLUDE = {
   listing: { select: { id: true, title: true, location: true, imageUrls: true, provider: { select: { id: true, name: true, phone: true } } } },
   traveler: { select: { id: true, name: true, phone: true, email: true } },
-  contract: { select: { status: true, checkInPhoto: true, checkOutPhoto: true } },
+  contract: { select: { status: true, checkInPhotos: true, checkOutPhotos: true } },
   staffMediations: { orderBy: { createdAt: 'desc' as const } },
 } satisfies Prisma.BookingInclude;
 
@@ -95,9 +95,12 @@ export class StaffOperationsService {
           bookingId,
           terms: `Biên bản giao nhận cho booking ${bookingId}`,
           status: ContractStatus.ACTIVE,
-          checkInPhoto: dto.photoUrl,
+          checkInPhotos: dto.photoUrl ? [dto.photoUrl] : [],
         },
-        update: { status: ContractStatus.ACTIVE, checkInPhoto: dto.photoUrl },
+        update: {
+          status: ContractStatus.ACTIVE,
+          checkInPhotos: dto.photoUrl ? [dto.photoUrl] : [],
+        },
       });
       await this.audit.log(tx, ctx, {
         action: 'STAFF_HANDOVER_CONFIRMED', entityType: 'Booking', entityId: bookingId,
@@ -129,9 +132,12 @@ export class StaffOperationsService {
           bookingId,
           terms: `Biên bản giao nhận cho booking ${bookingId}`,
           status: contractStatus,
-          checkOutPhoto: dto.photoUrl,
+          checkOutPhotos: dto.photoUrl ? [dto.photoUrl] : [],
         },
-        update: { status: contractStatus, checkOutPhoto: dto.photoUrl },
+        update: {
+          status: contractStatus,
+          checkOutPhotos: dto.photoUrl ? { push: dto.photoUrl } : undefined,
+        },
       });
       await this.audit.log(tx, ctx, {
         action: 'STAFF_RETURN_CONFIRMED', entityType: 'Booking', entityId: bookingId,

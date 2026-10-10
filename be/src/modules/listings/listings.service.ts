@@ -13,6 +13,7 @@ import {
 } from './listings.dto';
 
 const ADMIN_LOCKED: ListingStatus[] = [ListingStatus.SUSPENDED, ListingStatus.REMOVED];
+const HIGH_VALUE_THRESHOLD = 5_000_000;
 
 @Injectable()
 export class ListingsService {
@@ -37,12 +38,17 @@ export class ListingsService {
   // ─── CRUD ─────────────────────────────────────────────────────────────────
 
   async create(providerId: string, dto: CreateListingDto) {
+    const isHighValue = dto.marketValue != null && dto.marketValue >= HIGH_VALUE_THRESHOLD;
+    const { penaltyRules, marketValue, ...rest } = dto;
     return this.prisma.listing.create({
       data: {
-        ...dto,
-        currency: dto.currency ?? 'VND',
-        amenities: dto.amenities ?? [],
-        price: new Prisma.Decimal(dto.price),
+        ...rest,
+        currency: rest.currency ?? 'VND',
+        amenities: rest.amenities ?? [],
+        price: new Prisma.Decimal(rest.price),
+        marketValue: marketValue != null ? new Prisma.Decimal(marketValue) : null,
+        penaltyRules: ((penaltyRules ?? null) as unknown) as Prisma.InputJsonValue,
+        isHighValue,
         status: ListingStatus.DRAFT,
         providerId,
       },
@@ -142,8 +148,16 @@ export class ListingsService {
 
   async update(id: string, providerId: string, dto: UpdateListingDto) {
     await this.assertOwner(id, providerId);
-    const data: Prisma.ListingUpdateInput = { ...dto };
-    if (dto.price !== undefined) data.price = new Prisma.Decimal(dto.price);
+    const { penaltyRules, marketValue, price, ...rest } = dto;
+    const data: Prisma.ListingUpdateInput = { ...rest };
+    if (price !== undefined) data.price = new Prisma.Decimal(price);
+    if (marketValue !== undefined) {
+      data.marketValue = marketValue != null ? new Prisma.Decimal(marketValue) : null;
+      data.isHighValue = marketValue != null && marketValue >= HIGH_VALUE_THRESHOLD;
+    }
+    if (penaltyRules !== undefined) {
+      data.penaltyRules = ((penaltyRules ?? null) as unknown) as Prisma.InputJsonValue;
+    }
     return this.prisma.listing.update({ where: { id }, data });
   }
 
@@ -206,18 +220,23 @@ export class ListingsService {
 
   async bulkCreate(providerId: string, rows: CreateListingDto[]) {
     const created = await this.prisma.$transaction(
-      rows.map((dto) =>
-        this.prisma.listing.create({
+      rows.map((dto) => {
+        const { penaltyRules, marketValue, price, ...rest } = dto;
+        const isHighValue = marketValue != null && marketValue >= HIGH_VALUE_THRESHOLD;
+        return this.prisma.listing.create({
           data: {
-            ...dto,
-            currency: dto.currency ?? 'VND',
-            amenities: dto.amenities ?? [],
-            price: new Prisma.Decimal(dto.price),
+            ...rest,
+            currency: rest.currency ?? 'VND',
+            amenities: rest.amenities ?? [],
+            price: new Prisma.Decimal(price),
+            marketValue: marketValue != null ? new Prisma.Decimal(marketValue) : null,
+            penaltyRules: ((penaltyRules ?? null) as unknown) as Prisma.InputJsonValue,
+            isHighValue,
             status: ListingStatus.DRAFT,
             providerId,
           },
-        }),
-      ),
+        });
+      }),
     );
     return { created: created.length, ids: created.map((l) => l.id) };
   }

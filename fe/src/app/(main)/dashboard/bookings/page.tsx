@@ -240,22 +240,27 @@ export default function ProviderBookingsPage() {
                     </Link>
 
                     {isPending && (
-                      <div className="ml-auto flex gap-2">
+                      <div className="ml-auto flex items-center gap-2">
+                        <span
+                          className="rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                          style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                        >
+                          ⚠ Chờ ký hợp đồng
+                        </span>
                         <button
                           onClick={() => setDeclineTarget(booking.id)}
-                          className="rounded-lg border px-4 py-1.5 text-xs font-semibold transition hover:bg-red-50"
+                          className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition hover:bg-red-50"
                           style={{ borderColor: '#fca5a5', color: '#dc2626' }}
                         >
                           Từ chối
                         </button>
-                        <button
-                          onClick={() => approve.mutate(booking.id)}
-                          disabled={isApproving}
-                          className="rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                        <Link
+                          href={`/bookings/${booking.id}/contract`}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
                           style={{ background: '#2a7bd9' }}
                         >
-                          {isApproving ? 'Đang duyệt…' : '✓ Duyệt đơn'}
-                        </button>
+                          📜 Xem & ký hợp đồng
+                        </Link>
                       </div>
                     )}
 

@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useListing } from '@/hooks/useListings';
 import { useCreateBooking, useConfirmPayment } from '@/hooks/useBookings';
+import { useContractPreview } from '@/hooks/useContracts';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { ContractViewer } from '@/components/contracts/ContractViewer';
+import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
 
 const PAYMENT_METHODS = [
   { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng', icon: '🏦' },
@@ -31,11 +34,17 @@ function BookingCheckoutForm() {
   const confirmPayment = useConfirmPayment();
 
   const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1); // 1=info+payment, 2=contract
+  const [contractAgreed, setContractAgreed] = useState(false);
   const [step, setStep] = useState<'form' | 'processing' | 'done'>('form');
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [holdExpiry, setHoldExpiry] = useState<Date | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [fatalError, setFatalError] = useState<string | null>(null);
+
+  // Preview contract — cần bookingId tạm (dùng listingId làm key preview trước khi có bookingId)
+  // Preview được fetch sau khi tạo booking (bookingId có)
+  const { data: contractPreview } = useContractPreview(bookingId ?? '', !!bookingId);
 
   const price = listing ? (typeof listing.price === 'number' ? listing.price : Number(listing.price)) : 0;
   const depositRate = listing ? parseFloat(String((listing as { depositRate?: string }).depositRate ?? '0.2')) : 0.2;
@@ -56,13 +65,10 @@ function BookingCheckoutForm() {
     return () => clearInterval(tick);
   }, [holdExpiry]);
 
-  async function handleSubmit() {
+  async function handleCreateBooking() {
     if (!listingId || !from || !to) return;
-    setStep('processing');
     setFatalError(null);
-
     try {
-      // Step 1: create booking → PENDING_PAYMENT + 15 min hold
       const booking = await createBooking.mutateAsync({
         listingId,
         startDate: from,
@@ -73,15 +79,23 @@ function BookingCheckoutForm() {
       });
       setBookingId(booking.id);
       if (booking.holdExpiresAt) setHoldExpiry(new Date(booking.holdExpiresAt));
+      setCheckoutStep(2); // chuyển sang bước xem hợp đồng
+    } catch (err) {
+      setFatalError((err as Error).message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.');
+    }
+  }
 
-      // Step 2: confirm payment → PENDING_APPROVAL
+  async function handleConfirmAndPay() {
+    if (!bookingId || !contractAgreed) return;
+    setStep('processing');
+    setFatalError(null);
+    try {
       await confirmPayment.mutateAsync({
-        id: booking.id,
+        id: bookingId,
         data: { method: paymentMethod },
       });
-
       setStep('done');
-      setTimeout(() => router.push(`/bookings/${booking.id}?created=1`), 1500);
+      setTimeout(() => router.push(`/bookings/${bookingId}?created=1`), 1500);
     } catch (err) {
       setFatalError((err as Error).message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.');
       setStep('form');
@@ -132,9 +146,30 @@ function BookingCheckoutForm() {
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Left: details */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Trip summary */}
-            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
+          {/* Step indicator */}
+          <div className="lg:col-span-3 mb-2">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                  style={{ background: checkoutStep >= 1 ? '#2a7bd9' : '#e2e8f3', color: checkoutStep >= 1 ? '#fff' : '#8694ad' }}
+                >1</div>
+                <span style={{ color: checkoutStep === 1 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 1 ? 600 : 400 }}>Thông tin & thanh toán</span>
+              </div>
+              <div className="h-px flex-1" style={{ background: '#DCEFFB' }} />
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                  style={{ background: checkoutStep >= 2 ? '#2a7bd9' : '#e2e8f3', color: checkoutStep >= 2 ? '#fff' : '#8694ad' }}
+                >2</div>
+                <span style={{ color: checkoutStep === 2 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 2 ? 600 : 400 }}>Xem & ký hợp đồng</span>
+              </div>
+            </div>
+          </div>
+
+        <div className="lg:col-span-2 space-y-5">
+            {/* Step 1: trip info + payment */}
+            {checkoutStep === 1 && <><div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
               <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin chuyến thuê</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -205,7 +240,29 @@ function BookingCheckoutForm() {
               <p style={{ color: '#5a6b85' }}>
                 Huỷ trước 3 ngày: hoàn tiền đặt cọc. Huỷ sau 3 ngày hoặc khi đang thuê: mất cọc.
               </p>
-            </div>
+            </div></>}
+
+            {/* Step 2: Contract review */}
+            {checkoutStep === 2 && (
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Hợp đồng thuê thiết bị</h2>
+                {contractPreview ? (
+                  <ContractViewer
+                    terms={contractPreview.terms}
+                    penaltyRules={contractPreview.penaltyRules}
+                    conditionNote={contractPreview.productConditionNote}
+                    isHighValue={contractPreview.isHighValue}
+                    collapsible
+                  />
+                ) : (
+                  <div className="h-40 animate-pulse rounded-2xl bg-[#e2e8f3]" />
+                )}
+                <SignatureCheckbox
+                  checked={contractAgreed}
+                  onChange={setContractAgreed}
+                />
+              </div>
+            )}
 
             {/* Error */}
             {fatalError && (
@@ -270,25 +327,46 @@ function BookingCheckoutForm() {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={step === 'processing' || !listing}
-                  className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: '#2a7bd9', boxShadow: '0 8px 24px -6px rgba(42,123,217,0.4)' }}
-                >
-                  {step === 'processing' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Đang xử lý…
-                    </span>
-                  ) : 'Xác nhận & Thanh toán'}
-                </button>
+                {checkoutStep === 1 ? (
+                  <button
+                    onClick={handleCreateBooking}
+                    disabled={createBooking.isPending || !listing}
+                    className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: '#2a7bd9', boxShadow: '0 8px 24px -6px rgba(42,123,217,0.4)' }}
+                  >
+                    {createBooking.isPending ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Đang xử lý…
+                      </span>
+                    ) : 'Tiếp tục xem hợp đồng →'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleConfirmAndPay}
+                    disabled={step === 'processing' || !contractAgreed}
+                    className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: contractAgreed ? '#2a7bd9' : '#94a3b8', boxShadow: contractAgreed ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none' }}
+                  >
+                    {step === 'processing' ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Đang xử lý…
+                      </span>
+                    ) : 'Xác nhận & Ký hợp đồng'}
+                  </button>
+                )}
 
                 <p className="mt-2 text-center text-xs" style={{ color: '#8694ad' }}>
-                  Giữ chỗ 15 phút sau khi đặt. Provider xác nhận trong 24h.
+                  {checkoutStep === 1
+                    ? 'Giữ chỗ 15 phút sau khi đặt. Provider xác nhận trong 24h.'
+                    : 'Ký điện tử có giá trị pháp lý theo Luật Giao dịch điện tử Việt Nam.'}
                 </p>
               </div>
 
