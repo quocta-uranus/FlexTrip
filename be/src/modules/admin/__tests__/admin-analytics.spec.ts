@@ -15,8 +15,8 @@ describe('ADMIN-06 analytics', () => {
     const provider = await createUser(h, { roles: [Role.PROVIDER], createdAt: at('2026-01-01') });
     const t1 = await createUser(h, { createdAt: at('2026-09-02') });
     const t2 = await createUser(h, { createdAt: at('2026-01-01') });
-    const stay = await createListing(h, provider.id, { category: 'STAY' });
-    const car = await createListing(h, provider.id, { category: 'VEHICLE' });
+    const stay = await createListing(h, provider.id, { category: 'BEACH' });
+    const car = await createListing(h, provider.id, { category: 'TREKKING' });
     // September: t1 books twice (repeat), one cancelled
     await createBooking(h, { travelerId: t1.id, listingId: stay.id, totalPrice: 3_000_000, createdAt: at('2026-09-05'), payment: { createdAt: at('2026-09-05') } });
     await createBooking(h, { travelerId: t1.id, listingId: car.id, totalPrice: 1_000_000, createdAt: at('2026-09-20'), payment: { createdAt: at('2026-09-20') } });
@@ -35,8 +35,8 @@ describe('ADMIN-06 analytics', () => {
     expect(res.body.kpis.cancellationRate.value).toBe(33.3);
     expect(res.body.topMetrics).toMatchObject({ totalBookings: 3, avgBookingValue: 2_000_000, providerCount: 1, listingCount: 2 });
     expect(res.body.revenueByCategory).toEqual([
-      { category: 'STAY', revenue: 3_000_000, percent: 75 },
-      { category: 'VEHICLE', revenue: 1_000_000, percent: 25 },
+      { category: 'BEACH', revenue: 3_000_000, percent: 75 },
+      { category: 'TREKKING', revenue: 1_000_000, percent: 25 },
     ]);
     expect(res.body.userGrowth.newTravelers.value).toBe(1);
     expect(res.body.userGrowth.repeatBookers.value).toBe(1);

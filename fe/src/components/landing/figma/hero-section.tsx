@@ -3,10 +3,11 @@
 import { FormEvent, PointerEvent as ReactPointerEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Search, Calendar } from "lucide-react";
+import { LISTING_CATEGORIES } from "@/constants/categories";
 export function HeroSection() {
   const router = useRouter();
   const [location, setLocation] = useState("Đà Lạt");
-  const [category, setCategory] = useState("CAMPING_TREKKING");
+  const [category, setCategory] = useState("CAMPING");
   const [dateRange, setDateRange] = useState("12/10 — 15/10");
   const heroRef = useRef<HTMLElement>(null);
 
@@ -187,11 +188,9 @@ export function HeroSection() {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="CAMPING_TREKKING">Cắm trại</option>
-              <option value="TREKKING">Trekking & Leo núi</option>
-              <option value="STAY">Máy ảnh & GoPro</option>
-              <option value="EXPERIENCE">Thể thao dưới nước</option>
-              <option value="VEHICLE">Bếp dã ngoại</option>
+              {LISTING_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+              ))}
             </select>
           </span>
         </label>

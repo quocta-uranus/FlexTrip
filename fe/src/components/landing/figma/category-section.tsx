@@ -2,43 +2,14 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+
 const categories = [
-  {
-    name: "Lều & cắm trại",
-    image: "/assets/camping.jpg",
-    note: "Cho những đêm giữa thiên nhiên",
-    cat: "CAMPING_TREKKING",
-  },
-  {
-    name: "Trekking",
-    image: "/assets/backpack.jpg",
-    note: "Balo, gậy và phụ kiện đường dài",
-    cat: "CAMPING_TREKKING",
-  },
-  {
-    name: "Máy ảnh & GoPro",
-    image: "/assets/camera.jpg",
-    note: "Giữ trọn mọi khoảnh khắc",
-    cat: "STAY",
-  },
-  {
-    name: "Kayak & dưới nước",
-    image: "/assets/kayak.jpg",
-    note: "Thiết bị cho hành trình trên nước",
-    cat: "EXPERIENCE",
-  },
-  {
-    name: "Bếp & dã ngoại",
-    image: "/assets/gear.jpg",
-    note: "Bữa ăn ngon giữa trời rộng",
-    cat: "CAMPING_TREKKING",
-  },
-  {
-    name: "Phụ kiện du lịch",
-    image: "/assets/travel-kit.jpg",
-    note: "Mọi thứ nhỏ nhưng cần thiết",
-    cat: "OTHER",
-  },
+  { name: "Lều & cắm trại", image: "/assets/camping.jpg", note: "Cho những đêm giữa thiên nhiên", cat: "CAMPING" },
+  { name: "Trekking", image: "/assets/backpack.jpg", note: "Balo, gậy và phụ kiện đường dài", cat: "TREKKING" },
+  { name: "Máy ảnh & GoPro", image: "/assets/camera.jpg", note: "Giữ trọn mọi khoảnh khắc", cat: "CAMERA_GEAR" },
+  { name: "Kayak & dưới nước", image: "/assets/kayak.jpg", note: "Thiết bị cho hành trình trên nước", cat: "BEACH" },
+  { name: "Vali & tiện ích", image: "/assets/gear.jpg", note: "Mọi thứ cần cho chuyến đi", cat: "TRAVEL_ESSENTIALS" },
+  { name: "Gia đình", image: "/assets/travel-kit.jpg", note: "An toàn và tiện lợi cho bé", cat: "FAMILY" },
 ];
 
 export function CategorySection() {

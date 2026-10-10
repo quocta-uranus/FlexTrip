@@ -64,10 +64,10 @@ export function FinalCtaFooter() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
               <div className="flex flex-col gap-3 text-xs">
                 <strong className="text-[#92eee8] font-bold uppercase tracking-wider mb-2">Khám phá</strong>
-                <Link href="/search?category=CAMPING_TREKKING" className="text-white/70 hover:text-white transition-colors">Cắm trại</Link>
-                <Link href="/search?category=CAMPING_TREKKING" className="text-white/70 hover:text-white transition-colors">Trekking</Link>
-                <Link href="/search?category=STAY" className="text-white/70 hover:text-white transition-colors">Camera & GoPro</Link>
-                <Link href="/search?category=EXPERIENCE" className="text-white/70 hover:text-white transition-colors">Thể thao dưới nước</Link>
+                <Link href="/search?category=CAMPING" className="text-white/70 hover:text-white transition-colors">Cắm trại</Link>
+                <Link href="/search?category=TREKKING" className="text-white/70 hover:text-white transition-colors">Trekking</Link>
+                <Link href="/search?category=CAMERA_GEAR" className="text-white/70 hover:text-white transition-colors">Camera & GoPro</Link>
+                <Link href="/search?category=BEACH" className="text-white/70 hover:text-white transition-colors">Du lịch biển</Link>
               </div>
 
               <div className="flex flex-col gap-3 text-xs">

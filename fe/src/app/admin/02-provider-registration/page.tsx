@@ -5,12 +5,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Reveal, LiveDot } from "@/components/profile/wow";
 import { providerApplicationApi, type ProviderApplication } from "@/lib/api/client";
 
+import { CATEGORY_ICONS } from "@/constants/categories";
+
 const categoryIcons: Record<string, string> = {
-  CAMPING_TREKKING: "⛺",
-  VEHICLE: "🚗",
-  STAY: "🏨",
-  EXPERIENCE: "🎯",
-  OTHER: "📦",
+  ...CATEGORY_ICONS,
+  // legacy values
+  CAMPING_TREKKING: "⛺", VEHICLE: "🚗", STAY: "🏨", EXPERIENCE: "🎯", OTHER: "📦",
 };
 
 type FilterTab = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
