@@ -1,6 +1,6 @@
 import {
   IsString, IsNumber, IsPositive, IsEnum, IsArray,
-  IsOptional, IsUrl, IsNotEmpty, MinLength, MaxLength, Min, ArrayMinSize,
+  IsOptional, IsUrl, IsNotEmpty, MinLength, MaxLength, Min, ArrayMinSize, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
@@ -14,6 +14,13 @@ export enum ListingCategoryDto {
   FAMILY = 'FAMILY',
 }
 
+export class PenaltyRuleDto {
+  @ApiProperty() @IsString() item: string;
+  @ApiProperty() @IsString() description: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) minAmount: number;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) maxAmount: number;
+}
+
 export class CreateListingDto {
   @ApiProperty() @IsString() @MinLength(5) @MaxLength(120) title: string;
   @ApiProperty() @IsString() @MinLength(20) description: string;
@@ -25,6 +32,20 @@ export class CreateListingDto {
   @ApiProperty({ enum: ListingCategoryDto }) @IsEnum(ListingCategoryDto) category: ListingCategoryDto;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @IsString({ each: true }) amenities?: string[];
   @ApiProperty({ type: [String] }) @IsArray() @IsString({ each: true }) @ArrayMinSize(1) imageUrls: string[];
+
+  // CONTR-02: điều khoản hợp đồng
+  @ApiPropertyOptional({ type: [PenaltyRuleDto] })
+  @IsOptional() @IsArray() @Type(() => PenaltyRuleDto)
+  penaltyRules?: PenaltyRuleDto[];
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString() @MaxLength(1000)
+  conditionNote?: string;
+
+  // CONTR-05: giá trị cao
+  @ApiPropertyOptional()
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0)
+  marketValue?: number;
 }
 
 export class UpdateListingDto extends PartialType(CreateListingDto) {}

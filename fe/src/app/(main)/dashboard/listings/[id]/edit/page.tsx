@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { listingSchema, type ListingInput } from '@/lib/validators/listing.schema';
 import { useListing, useUpdateListing } from '@/hooks/useListings';
@@ -177,9 +177,14 @@ export default function EditListingPage() {
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
   const [aiImprovements, setAiImprovements] = useState<string[]>([]);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ListingInput>({
+  const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<ListingInput>({
     resolver: zodResolver(listingSchema) as any,
-    defaultValues: { currency: 'VND', amenities: [], imageUrls: [] },
+    defaultValues: { currency: 'VND', amenities: [], imageUrls: [], penaltyRules: [] },
+  });
+
+  const { fields: penaltyFields, append: appendPenalty, remove: removePenalty } = useFieldArray({
+    control,
+    name: 'penaltyRules',
   });
 
   const selectedCategory = watch('category');
@@ -201,6 +206,9 @@ export default function EditListingPage() {
       imageUrls: listing.imageUrls,
       latitude: listing.latitude ?? undefined,
       longitude: listing.longitude ?? undefined,
+      penaltyRules: (listing.penaltyRules as ListingInput['penaltyRules']) ?? [],
+      conditionNote: listing.conditionNote ?? '',
+      marketValue: listing.marketValue ?? undefined,
     });
     setAmenities(listing.amenities);
     setImageUrls(listing.imageUrls.length ? listing.imageUrls : ['']);
@@ -325,6 +333,124 @@ export default function EditListingPage() {
               urls={imageUrls.filter(Boolean)}
               onChange={(urls) => { setImageUrls(urls); setValue('imageUrls', urls); }}
             />
+          </div>
+
+          {/* Điều khoản & Mức phạt */}
+          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚖️</span>
+              <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Điều khoản & Mức phạt</h2>
+            </div>
+
+            <p className="text-xs" style={{ color: '#8694ad' }}>
+              Khai báo tình trạng sản phẩm và các mức bồi thường thiệt hại. Thông tin này được in vào hợp đồng thuê.
+            </p>
+
+            {/* conditionNote */}
+            <Field label="Tình trạng sản phẩm hiện tại">
+              <textarea
+                {...register('conditionNote')}
+                rows={3}
+                placeholder="VD: Lều còn tốt, thanh nhôm có xước nhỏ ở cọc số 3. Khoá kéo hoạt động bình thường."
+                className={`${inputCls} resize-none`}
+                style={inputStyle}
+              />
+            </Field>
+
+            {/* marketValue */}
+            <Field label="Giá trị thị trường (VND)" error={(errors as Record<string, { message?: string }>).marketValue?.message}>
+              <input
+                type="number"
+                min={0}
+                {...register('marketValue')}
+                placeholder="VD: 3500000"
+                className={inputCls}
+                style={inputStyle}
+              />
+              <p className="mt-1 text-xs" style={{ color: '#8694ad' }}>
+                Nếu ≥ 5.000.000 ₫, hợp đồng sẽ được đánh dấu <strong>Giá trị cao</strong> và thêm điều khoản bảo hiểm.
+              </p>
+            </Field>
+
+            {/* Penalty rules table */}
+            <div>
+              <p className="mb-3 text-sm font-medium" style={{ color: '#0f1729' }}>Bảng mức phạt</p>
+              {penaltyFields.length === 0 && (
+                <p className="mb-3 text-xs" style={{ color: '#8694ad' }}>
+                  Chưa có mức phạt nào. Nếu để trống, hai bên tự thỏa thuận khi phát sinh thiệt hại.
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {penaltyFields.map((field, i) => (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-start gap-2 rounded-xl border p-4"
+                    style={{ borderColor: '#DCEFFB' }}
+                  >
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Loại thiệt hại</label>
+                      <input
+                        {...register(`penaltyRules.${i}.item`)}
+                        placeholder="VD: Mất cọc lều"
+                        className={inputCls}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Mô tả</label>
+                      <input
+                        {...register(`penaltyRules.${i}.description`)}
+                        placeholder="VD: Mất 1 cọc lều"
+                        className={inputCls}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối thiểu (₫)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        {...register(`penaltyRules.${i}.minAmount`)}
+                        placeholder="50000"
+                        className={inputCls}
+                        style={{ ...inputStyle, width: '100px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối đa (₫)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        {...register(`penaltyRules.${i}.maxAmount`)}
+                        placeholder="200000"
+                        className={inputCls}
+                        style={{ ...inputStyle, width: '100px' }}
+                      />
+                    </div>
+                    <div className="pt-5">
+                      <button
+                        type="button"
+                        onClick={() => removePenalty(i)}
+                        className="rounded-lg border px-2.5 py-2 text-xs font-semibold transition hover:bg-red-50"
+                        style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => appendPenalty({ item: '', description: '', minAmount: 0, maxAmount: 0 })}
+                className="mt-3 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition hover:bg-[#f6fbfe]"
+                style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
+              >
+                + Thêm mức phạt
+              </button>
+            </div>
           </div>
 
           {/* AI Panel */}

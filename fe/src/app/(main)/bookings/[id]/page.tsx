@@ -3,7 +3,7 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useBooking, useCancelBooking, useApproveBooking, useDeclineBooking, useStartBooking, useCompleteBooking } from '@/hooks/useBookings';
+import { useBooking, useCancelBooking, useDeclineBooking, useStartBooking, useCompleteBooking } from '@/hooks/useBookings';
 import { useModifyRequests, useCreateModifyRequest, useAcceptModifyRequest, useRejectModifyRequest } from '@/hooks/useModifyBooking';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus, ModifyRequestStatus } from '@/types/booking';
@@ -11,6 +11,11 @@ import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
 import { ReviewForm } from '@/components/reviews/review-form';
 import { useMyReviews } from '@/hooks/useReviews';
+import { useContract } from '@/hooks/useContracts';
+import { ContractViewer } from '@/components/contracts/ContractViewer';
+import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
+import type { ContractStatus } from '@/types/contract';
+import { printContract } from '@/lib/printContract';
 
 const STATUS_STEPS: BookingStatus[] = ['PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -22,12 +27,12 @@ function BookingDetailContent() {
   const { data: myReviews } = useMyReviews(user?.roles.includes('TRAVELER') ?? false);
   const { data: booking, isLoading, error } = useBooking(id);
   const { mutateAsync: cancelBookingAsync, isPending: cancelling } = useCancelBooking();
-  const approve = useApproveBooking();
   const startBooking = useStartBooking();
   const completeBooking = useCompleteBooking();
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const decline = useDeclineBooking();
+  const { data: contract } = useContract(id);
   const { data: modifyRequests } = useModifyRequests(id);
   const createModify = useCreateModifyRequest(id);
   const acceptModify = useAcceptModifyRequest(id);
@@ -246,17 +251,25 @@ function BookingDetailContent() {
           <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: '#DCEFFB' }}>
             <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Hành động</h2>
 
-            {/* Provider: approve / decline */}
+            {/* Provider: sign contract / decline */}
             {isProvider && isPendingApproval && (
               <>
-                <button
-                  onClick={() => approve.mutate(booking.id)}
-                  disabled={approve.isPending}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-50"
+                <div
+                  className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm"
+                  style={{ borderColor: '#bfdbfe', background: '#eff6ff' }}
+                >
+                  <span className="text-base">📜</span>
+                  <p className="text-xs leading-snug" style={{ color: '#1d4ed8' }}>
+                    <strong>Khách đã ký hợp đồng.</strong> Bạn cần đọc và ký để xác nhận đơn.
+                  </p>
+                </div>
+                <Link
+                  href={`/bookings/${booking.id}/contract`}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition"
                   style={{ background: '#2a7bd9' }}
                 >
-                  {approve.isPending ? 'Đang duyệt…' : '✓ Duyệt đơn'}
-                </button>
+                  ✍️ Xem & ký hợp đồng
+                </Link>
                 <button
                   onClick={() => setShowDeclineModal(true)}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition hover:bg-red-50"
@@ -566,6 +579,74 @@ function BookingDetailContent() {
           )}
         </div>
       </div>
+
+      {/* Contract section — visible throughout rental */}
+      {contract && (
+        <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: '#DCEFFB' }}>
+          <div className="flex items-center justify-between px-5 py-4" style={{ background: '#f6fbfe', borderBottom: '1px solid #DCEFFB' }}>
+            <div className="flex items-center gap-2.5">
+              <span className="text-base">📄</span>
+              <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Hợp đồng thuê thiết bị</span>
+              {(() => {
+                const cfg = CONTRACT_STATUS_COLOR[contract.status as ContractStatus];
+                return (
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-[10px] font-bold"
+                    style={{ background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}` }}
+                  >
+                    {CONTRACT_STATUS_LABEL[contract.status as ContractStatus]}
+                  </span>
+                );
+              })()}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() =>
+                  printContract(
+                    contract,
+                    booking.traveler?.name ?? 'Khách thuê',
+                    booking.listing?.title ?? 'Người cho thuê',
+                  )
+                }
+                className="text-xs font-medium"
+                style={{ color: '#5a6b85' }}
+              >
+                🖨️ Xuất PDF
+              </button>
+              <Link
+                href={`/bookings/${booking.id}/contract`}
+                className="text-xs font-medium"
+                style={{ color: '#2a7bd9' }}
+              >
+                Xem đầy đủ →
+              </Link>
+            </div>
+          </div>
+          <div className="px-5 py-4">
+            <ContractViewer
+              terms={contract.terms}
+              penaltyRules={contract.penaltyRules ?? undefined}
+              conditionNote={contract.productConditionNote}
+              isHighValue={contract.isHighValue}
+              collapsible
+            />
+            <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-lg px-3 py-2.5" style={{ background: '#f6fbfe' }}>
+                <p className="font-bold uppercase tracking-wide mb-0.5" style={{ color: '#8694ad' }}>Khách thuê</p>
+                {contract.travelerSignedAt
+                  ? <p style={{ color: '#15803d' }}>✓ Đã ký {new Date(contract.travelerSignedAt).toLocaleString('vi-VN')}</p>
+                  : <p style={{ color: '#f59e0b' }}>⏳ Chưa ký</p>}
+              </div>
+              <div className="rounded-lg px-3 py-2.5" style={{ background: '#f6fbfe' }}>
+                <p className="font-bold uppercase tracking-wide mb-0.5" style={{ color: '#8694ad' }}>Người cho thuê</p>
+                {contract.providerSignedAt
+                  ? <p style={{ color: '#15803d' }}>✓ Đã ký {new Date(contract.providerSignedAt).toLocaleString('vi-VN')}</p>
+                  : <p style={{ color: '#f59e0b' }}>⏳ Chưa ký</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isProvider && booking.status === 'COMPLETED' && !currentReview && (
         <ReviewForm bookingId={booking.id} />

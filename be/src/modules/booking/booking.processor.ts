@@ -26,6 +26,9 @@ export class BookingProcessor extends WorkerHost {
       case BookingJob.REMINDER:
         await this.handleReminder(bookingId);
         break;
+      case BookingJob.CONTRACT_SIGN_REMINDER:
+        await this.handleContractSignReminder(bookingId);
+        break;
       default:
         this.logger.warn(`Unknown job: ${job.name}`);
     }
@@ -127,6 +130,31 @@ export class BookingProcessor extends WorkerHost {
     ]);
 
     this.logger.log(`Reminder sent: ${bookingId}`);
+  }
+
+  // ─── Contract sign reminder: nhắc provider sau 24h chưa ký ─────────────────
+
+  private async handleContractSignReminder(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        status: true,
+        listing: { select: { providerId: true, title: true } },
+        contract: { select: { status: true } },
+      },
+    });
+    if (!booking || booking.status !== 'PENDING_APPROVAL') return;
+    if (booking.contract?.status !== 'TRAVELER_SIGNED') return;
+
+    await this.notify(
+      booking.listing.providerId,
+      NotificationType.BOOKING,
+      'Nhắc nhở: hợp đồng chờ ký',
+      `Đơn thuê "${booking.listing.title}" đang chờ bạn ký hợp đồng để xác nhận.`,
+      { bookingId },
+    );
+
+    this.logger.log(`Contract sign reminder sent: ${bookingId}`);
   }
 
   private notify(

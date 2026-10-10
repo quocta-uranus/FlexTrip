@@ -6,6 +6,7 @@ import { BookingStatus, CancelledBy, DeliveryMethod, NotificationType, Prisma } 
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AvailabilityService } from '../availability/availability.service';
+import { ContractsService } from '../contracts/contracts.service';
 import { paginate, skipTake } from '../../common/dto/pagination.dto';
 import {
   CancelBookingDto, ConfirmPaymentDto, CreateBookingDto,
@@ -30,6 +31,7 @@ export class BookingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availabilitySvc: AvailabilityService,
+    private readonly contractsSvc: ContractsService,
     @InjectQueue(BOOKING_QUEUE) private readonly bookingQueue: Queue,
   ) {}
 
@@ -153,6 +155,9 @@ export class BookingService {
       ),
     ]);
 
+    // Auto-generate contract + traveler signs (atomic với payment confirmation)
+    await this.contractsSvc.generate(bookingId);
+
     return updated;
   }
 
@@ -186,7 +191,7 @@ export class BookingService {
         ...BOOKING_INCLUDE,
         modifyRequests: { orderBy: { createdAt: 'desc' }, take: 5 },
         disputes: { select: { id: true, status: true, type: true, createdAt: true } },
-        contract: { select: { id: true, status: true, signedAt: true } },
+        contract: { select: { id: true, status: true, travelerSignedAt: true, providerSignedAt: true } },
       },
     });
     if (!booking) throw new NotFoundException('Booking không tồn tại');
@@ -198,7 +203,7 @@ export class BookingService {
     return booking;
   }
 
-  // ─── BOOK-04: Provider approve → CONFIRMED ───────────────────────────────
+  // ─── BOOK-04: Provider approve → ký hợp đồng → CONFIRMED ───────────────────
 
   async approve(bookingId: string, providerId: string) {
     const booking = await this.assertProviderOwns(bookingId, providerId);
@@ -206,32 +211,13 @@ export class BookingService {
     if (booking.status !== BookingStatus.PENDING_APPROVAL)
       throw new BadRequestException('Chỉ có thể duyệt booking đang chờ xác nhận');
 
-    const updated = await this.prisma.booking.update({
+    // Ký hợp đồng + chuyển booking sang CONFIRMED (trong 1 transaction ở contractsSvc)
+    await this.contractsSvc.providerSign(bookingId, providerId);
+
+    return this.prisma.booking.findUnique({
       where: { id: bookingId },
-      data: { status: BookingStatus.CONFIRMED },
       include: BOOKING_INCLUDE,
     });
-
-    // Schedule reminder 3 ngày trước startDate nếu còn kịp
-    const msUntilStart = new Date(booking.startDate).getTime() - Date.now();
-    const msUntilReminder = msUntilStart - REMINDER_DAYS_BEFORE * 86_400_000;
-    if (msUntilReminder > 0) {
-      await this.bookingQueue.add(
-        BookingJob.REMINDER,
-        { bookingId },
-        { delay: msUntilReminder, jobId: `reminder-${bookingId}`, removeOnComplete: true },
-      );
-    }
-
-    await this.notify(
-      booking.travelerId,
-      NotificationType.BOOKING,
-      'Đặt chỗ đã được xác nhận!',
-      `Provider đã duyệt đơn thuê "${booking.listing.title}". Chúc bạn có chuyến đi vui vẻ!`,
-      { bookingId },
-    );
-
-    return updated;
   }
 
   // ─── BOOK-04: Provider decline → CANCELLED + hoàn tiền ───────────────────

@@ -52,6 +52,11 @@ export interface Listing {
   minRentalDays?: number;
   maxRentalDays?: number | null;
   depositRate?: string | number;
+  // contract-related fields
+  penaltyRules?: Array<{ item: string; description: string; minAmount: number; maxAmount: number }> | null;
+  conditionNote?: string | null;
+  marketValue?: number | null;
+  isHighValue?: boolean;
   provider?: ListingProvider;
   reviews?: ListingReview[];
   _count?: { reviews: number; bookings: number };
