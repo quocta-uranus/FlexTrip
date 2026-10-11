@@ -1,34 +1,108 @@
+'use client';
+
+import * as React from 'react';
+
 export function PromiseStrip() {
-  const promises = [
-    { title: "Gần nơi bạn đến", desc: "Tìm thiết bị tại điểm khởi hành" },
-    { title: "Linh hoạt theo ngày", desc: "Chỉ thuê trong thời gian bạn cần" },
-    { title: "Thông tin rõ ràng", desc: "Ảnh thật, giá thuê và đánh giá" },
-    { title: "Kết nối cộng đồng", desc: "Traveler gặp Provider địa phương" },
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+
+  React.useEffect(() => {
+    // If user prefers reduced motion, reveal all text immediately without scroll animation
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mediaQuery.matches) {
+      setScrollProgress(1);
+      return;
+    }
+
+    const handleScroll = () => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      // Start revealing when top is at 85% of window, fully revealed when top is at 25% of window
+      const start = windowHeight * 0.85;
+      const end = windowHeight * 0.25;
+
+      const progress = Math.max(0, Math.min(1, (start - rect.top) / (start - end)));
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const promiseWords = [
+    { text: 'Không', highlight: false },
+    { text: 'cần', highlight: false },
+    { text: 'mua', highlight: false },
+    { text: 'sắm', highlight: false },
+    { text: 'tốn', highlight: false },
+    { text: 'kém.', highlight: false, breakAfter: true },
+    { text: 'Không', highlight: false },
+    { text: 'lo', highlight: false },
+    { text: 'cất', highlight: false },
+    { text: 'giữ', highlight: false },
+    { text: 'chật', highlight: false },
+    { text: 'nhà.', highlight: false, breakAfter: true },
+    { text: 'Luôn', highlight: false },
+    { text: 'sẵn', highlight: false },
+    { text: 'sàng', highlight: false },
+    { text: 'thiết', highlight: true },
+    { text: 'bị', highlight: true },
+    { text: 'chuẩn', highlight: true },
+    { text: 'kiểm', highlight: true },
+    { text: 'định', highlight: true },
+    { text: 'cho', highlight: false },
+    { text: 'mọi', highlight: false },
+    { text: 'chuyến', highlight: false },
+    { text: 'đi.', highlight: false },
   ];
 
   return (
     <section
-      className="bg-[#097dae] text-white py-8 px-6 sm:px-12 border-t border-sky-400/20 transition-colors duration-300"
-      aria-label="Lợi ích FlexTrip"
+      ref={containerRef}
+      className="w-full bg-[#F1FAFF] pt-12 sm:pt-16 lg:pt-[84px] pb-4 sm:pb-6 lg:pb-8 transition-colors duration-300"
+      aria-label="Cam kết dịch vụ"
     >
-      <div className="mx-auto max-w-7xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {promises.map((item, idx) => (
-          <div
-            key={item.title}
-            className={`flex flex-col gap-1 px-4 sm:px-6 ${
-              idx < promises.length - 1
-                ? "border-b sm:border-b-0 sm:border-r border-white/15 pb-4 sm:pb-0"
-                : ""
-            }`}
-          >
-            <strong className="text-base sm:text-lg font-bold text-white tracking-tight">
-              {item.title}
-            </strong>
-            <span className="text-xs text-white/75">
-              {item.desc}
-            </span>
-          </div>
-        ))}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="p-2 sm:p-4 max-w-4xl xl:max-w-5xl text-left">
+          {/* ── 1. Top-Left Label (Aligned precisely with StorySection) ── */}
+          <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] text-[#00A3FF] mb-4 sm:mb-6 flex items-center gap-2">
+            <span className="h-px w-6 bg-[#00A3FF]" />
+            CAM KẾT DỊCH VỤ
+          </p>
+
+          {/* ── 2. Wayfare Editorial Text Reveal Headline ── */}
+          <h2 className="text-2xl sm:text-4xl lg:text-[44px] xl:text-[48px] font-extrabold tracking-tight leading-[1.3] select-none text-left text-[#0A1C2A]">
+            {promiseWords.map((item, idx) => {
+              const wordThreshold = (idx + 1) / promiseWords.length;
+              const isWordActive = scrollProgress >= wordThreshold * 0.9;
+
+              return (
+                <React.Fragment key={idx}>
+                  <span
+                    className="inline-block mr-2 sm:mr-3 transition-colors duration-200"
+                    style={{
+                      color: isWordActive
+                        ? item.highlight
+                          ? '#00A3FF'
+                          : '#0A1C2A'
+                        : item.highlight
+                        ? 'rgba(0, 163, 255, 0.28)'
+                        : 'rgba(10, 28, 42, 0.22)',
+                    }}
+                  >
+                    {item.text}
+                  </span>
+                  {item.breakAfter && <br className="hidden sm:inline" />}
+                </React.Fragment>
+              );
+            })}
+          </h2>
+        </div>
       </div>
     </section>
   );
