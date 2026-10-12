@@ -435,7 +435,7 @@ export const paymentMethodApi = {
 
 // ─── Listings ────────────────────────────────────────────────────────────────
 
-import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/types/listing';
+import type { Listing, SearchFilters, ListingCategory } from '@/types/listing';
 import type { Booking, Cart, CartItem, CreateBookingPayload, ModifyRequest } from '@/types/booking';
 import type { Conversation, Message } from '@/types/message';
 
@@ -448,14 +448,18 @@ export interface ListingPage {
 }
 
 export const listingApi = {
-  list: (params?: { status?: string; page?: number; limit?: number; category?: string; keyword?: string; location?: string }) => {
+  list: (params?: Pick<SearchFilters, 'page' | 'limit' | 'category' | 'keyword' | 'location' | 'minPrice' | 'maxPrice' | 'sort' | 'dateFrom' | 'dateTo'>) => {
     const q = new URLSearchParams();
-    if (params?.status) q.set('status', params.status);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.category) q.set('category', params.category);
     if (params?.keyword) q.set('keyword', params.keyword);
     if (params?.location) q.set('location', params.location);
+    if (params?.minPrice != null) q.set('minPrice', String(params.minPrice));
+    if (params?.maxPrice != null) q.set('maxPrice', String(params.maxPrice));
+    if (params?.sort) q.set('sort', params.sort);
+    if (params?.dateFrom) q.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) q.set('dateTo', params.dateTo);
     const qs = q.toString();
     return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<ListingPage>;
   },
@@ -570,25 +574,6 @@ export const availabilityApi = {
   }) => api.patch(`/listings/${listingId}/rental-config`, data) as Promise<{
     id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
   }>,
-};
-
-// ─── Search ──────────────────────────────────────────────────────────────────
-
-export const searchApi = {
-  search: (filters: SearchFilters) => {
-    const q = new URLSearchParams();
-    if (filters.keyword) q.set('q', filters.keyword);
-    if (filters.category) q.set('category', filters.category);
-    if (filters.location) q.set('location', filters.location);
-    if (filters.dateFrom) q.set('dateFrom', filters.dateFrom);
-    if (filters.dateTo) q.set('dateTo', filters.dateTo);
-    if (filters.priceMin != null) q.set('priceMin', String(filters.priceMin));
-    if (filters.priceMax != null) q.set('priceMax', String(filters.priceMax));
-    if (filters.sortBy) q.set('sortBy', filters.sortBy);
-    if (filters.page) q.set('page', String(filters.page));
-    if (filters.limit) q.set('limit', String(filters.limit));
-    return api.get(`/search?${q.toString()}`) as Promise<SearchResult>;
-  },
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────

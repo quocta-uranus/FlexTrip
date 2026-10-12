@@ -1,14 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, MapPin, ChevronLeft, ChevronRight, X, ChevronDown } from 'lucide-react';
 import { listingApi } from '@/lib/api/client';
 import { useSearchStore } from '@/store/search.store';
 import { ListingCard } from '@/components/listing-card';
 import type { SearchFilters, ListingCategory } from '@/types/listing';
 import { LISTING_CATEGORIES, CATEGORY_META } from '@/constants/categories';
+import {
+  paginationItems,
+  parseSearchFilters,
+  serializeSearchFilters,
+} from '@/lib/search-query';
 
 const CATEGORIES: Array<{ value: '' | ListingCategory; label: string; icon: string }> = [
   { value: '', label: 'Tất cả', icon: '🌟' },
@@ -28,30 +33,6 @@ const PRICE_PRESETS = [
   { label: '300k – 500k', min: 300_000, max: 500_000 },
   { label: 'Trên 500k', min: 500_000, max: undefined },
 ];
-
-function UrlParamSync() {
-  const searchParams = useSearchParams();
-  const { setFilters } = useSearchStore();
-  useEffect(() => {
-    const cat = searchParams.get('category') as ListingCategory | null;
-    const kw = searchParams.get('keyword');
-    const loc = searchParams.get('location');
-    const df = searchParams.get('dateFrom');
-    const dt = searchParams.get('dateTo');
-    if (cat || kw || loc || df || dt) {
-      setFilters({
-        ...(cat ? { category: cat } : {}),
-        ...(kw ? { keyword: kw } : {}),
-        ...(loc ? { location: loc } : {}),
-        ...(df ? { dateFrom: df } : {}),
-        ...(dt ? { dateTo: dt } : {}),
-        page: 1,
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return null;
-}
 
 function SkeletonCard() {
   return (
@@ -78,16 +59,37 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
   );
 }
 
-function FilterDropdown({
-  filters, setFilters, resetFilters, onClose,
-}: {
+interface FilterDropdownProps {
   filters: SearchFilters;
-  setFilters: (f: Partial<SearchFilters>) => void;
-  resetFilters: () => void;
+  onApply: (draft: Partial<SearchFilters>) => void;
+  onReset: () => void;
   onClose: () => void;
-}) {
+}
+
+function FilterDropdown({
+  filters,
+  onApply,
+  onReset,
+  onClose,
+}: FilterDropdownProps) {
+  const [draft, setDraft] = useState<{
+    location: string;
+    dateFrom: string;
+    dateTo: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort: NonNullable<SearchFilters['sort']>;
+  }>({
+    location: filters.location ?? '',
+    dateFrom: filters.dateFrom ?? '',
+    dateTo: filters.dateTo ?? '',
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    sort: filters.sort ?? 'newest',
+  });
+
   const activePreset = PRICE_PRESETS.find(
-    (p) => p.min === (filters.priceMin ?? 0) && p.max === filters.priceMax,
+    (p) => p.min === (draft.minPrice ?? 0) && p.max === draft.maxPrice,
   );
 
   return (
@@ -99,7 +101,21 @@ function FilterDropdown({
       <div className="flex items-center justify-between border-b px-5 py-3.5" style={{ borderColor: '#f1f5f9' }}>
         <span className="text-sm font-bold" style={{ color: '#0f1729' }}>Bộ lọc</span>
         <div className="flex items-center gap-4">
-          <button onClick={() => { resetFilters(); }} className="text-xs font-semibold" style={{ color: '#2a7bd9' }}>
+          <button
+            onClick={() => {
+              setDraft({
+                location: '',
+                dateFrom: '',
+                dateTo: '',
+                minPrice: undefined,
+                maxPrice: undefined,
+                sort: 'newest',
+              });
+              onReset();
+            }}
+            className="text-xs font-semibold"
+            style={{ color: '#2a7bd9' }}
+          >
             Xóa tất cả
           </button>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-slate-100 transition-colors">
@@ -123,8 +139,8 @@ function FilterDropdown({
                 <input
                   type="text"
                   placeholder="Đà Lạt, Hội An…"
-                  value={filters.location ?? ''}
-                  onChange={(e) => setFilters({ location: e.target.value, page: 1 })}
+                  value={draft.location}
+                  onChange={(e) => setDraft((d) => ({ ...d, location: e.target.value }))}
                   className="w-full rounded-xl border py-2.5 pl-9 pr-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/25"
                   style={{ borderColor: '#e2e8f0', color: '#0f1729' }}
                 />
@@ -139,19 +155,22 @@ function FilterDropdown({
               <div className="space-y-2">
                 <input
                   type="date"
-                  value={filters.dateFrom ?? ''}
-                  onChange={(e) => setFilters({ dateFrom: e.target.value, page: 1 })}
+                  value={draft.dateFrom}
+                  onChange={(e) => setDraft((d) => ({ ...d, dateFrom: e.target.value }))}
                   className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/25"
-                  style={{ borderColor: '#e2e8f0', color: filters.dateFrom ? '#0f1729' : '#94a3b8' }}
+                  style={{ borderColor: '#e2e8f0', color: draft.dateFrom ? '#0f1729' : '#94a3b8' }}
                 />
                 <input
                   type="date"
-                  value={filters.dateTo ?? ''}
-                  onChange={(e) => setFilters({ dateTo: e.target.value, page: 1 })}
+                  value={draft.dateTo}
+                  onChange={(e) => setDraft((d) => ({ ...d, dateTo: e.target.value }))}
                   className="w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/25"
-                  style={{ borderColor: '#e2e8f0', color: filters.dateTo ? '#0f1729' : '#94a3b8' }}
+                  style={{ borderColor: '#e2e8f0', color: draft.dateTo ? '#0f1729' : '#94a3b8' }}
                 />
               </div>
+              <p className="mt-2 text-[11px] leading-relaxed" style={{ color: '#8694ad' }}>
+                Khả dụng theo ngày sẽ được xác nhận khi bạn đặt thuê.
+              </p>
             </div>
           </div>
 
@@ -169,8 +188,8 @@ function FilterDropdown({
                     <button
                       key={p.label}
                       onClick={() => active
-                        ? setFilters({ priceMin: undefined, priceMax: undefined, page: 1 })
-                        : setFilters({ priceMin: p.min || undefined, priceMax: p.max, page: 1 })
+                        ? setDraft((d) => ({ ...d, minPrice: undefined, maxPrice: undefined }))
+                        : setDraft((d) => ({ ...d, minPrice: p.min || undefined, maxPrice: p.max }))
                       }
                       className="rounded-xl border px-2.5 py-2 text-xs font-medium transition-all"
                       style={{
@@ -188,8 +207,9 @@ function FilterDropdown({
                 <input
                   type="number"
                   placeholder="Từ"
-                  value={filters.priceMin ?? ''}
-                  onChange={(e) => setFilters({ priceMin: e.target.value ? Number(e.target.value) : undefined, page: 1 })}
+                  min={0}
+                  value={draft.minPrice ?? ''}
+                  onChange={(e) => setDraft((d) => ({ ...d, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
                   className="w-full rounded-xl border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#2a7bd9]/25"
                   style={{ borderColor: '#e2e8f0', color: '#0f1729' }}
                 />
@@ -197,8 +217,9 @@ function FilterDropdown({
                 <input
                   type="number"
                   placeholder="Đến"
-                  value={filters.priceMax ?? ''}
-                  onChange={(e) => setFilters({ priceMax: e.target.value ? Number(e.target.value) : undefined, page: 1 })}
+                  min={0}
+                  value={draft.maxPrice ?? ''}
+                  onChange={(e) => setDraft((d) => ({ ...d, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
                   className="w-full rounded-xl border px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#2a7bd9]/25"
                   style={{ borderColor: '#e2e8f0', color: '#0f1729' }}
                 />
@@ -212,11 +233,11 @@ function FilterDropdown({
               </label>
               <div className="space-y-0.5">
                 {SORT_OPTIONS.map((o) => {
-                  const active = (filters.sortBy ?? 'newest') === o.value;
+                  const active = (draft.sort ?? 'newest') === o.value;
                   return (
                     <button
                       key={o.value}
-                      onClick={() => setFilters({ sortBy: o.value as SearchFilters['sortBy'], page: 1 })}
+                      onClick={() => setDraft((d) => ({ ...d, sort: o.value as NonNullable<SearchFilters['sort']> }))}
                       className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all"
                       style={{
                         background: active ? 'rgba(42,123,217,0.07)' : 'transparent',
@@ -237,7 +258,18 @@ function FilterDropdown({
       {/* Footer apply button */}
       <div className="border-t p-4" style={{ borderColor: '#f1f5f9' }}>
         <button
-          onClick={onClose}
+          id="apply-filter-button"
+          onClick={() => {
+            onApply({
+              location: draft.location,
+              dateFrom: draft.dateFrom,
+              dateTo: draft.dateTo,
+              minPrice: draft.minPrice,
+              maxPrice: draft.maxPrice,
+              sort: draft.sort,
+            });
+            onClose();
+          }}
           className="w-full rounded-2xl py-3 text-sm font-bold text-white transition-all hover:brightness-110"
           style={{ background: '#2a7bd9' }}
         >
@@ -249,33 +281,96 @@ function FilterDropdown({
 }
 
 function SearchPageInner() {
-  const { filters, setFilters, resetFilters } = useSearchStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchString = searchParams.toString();
+  const [filters, setFilters] = useState<SearchFilters>(() => parseSearchFilters(searchString));
+  const { replaceFilters, resetFilters: resetStoreFilters } = useSearchStore();
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const { data: searchData, isLoading } = useQuery({
-    queryKey: ['search', filters],
-    queryFn: () =>
-      listingApi.list({
-        status: 'ACTIVE',
-        page: filters.page ?? 1,
-        limit: filters.limit ?? 12,
-        category: filters.category || undefined,
-        keyword: filters.keyword || undefined,
-        location: filters.location || undefined,
-      }),
-    placeholderData: (prev) => prev,
+  useEffect(() => {
+    const parsed = parseSearchFilters(searchString);
+    setFilters(parsed);
+    replaceFilters(parsed);
+    setLocalKeyword(parsed.keyword ?? '');
+  }, [searchString, replaceFilters]);
+
+  const updateFilters = useCallback(
+    (partial: Partial<SearchFilters>, historyMode: 'push' | 'replace' = 'push') => {
+      setFilters((prev) => {
+        const next = { ...prev, ...partial, page: partial.page ?? 1 };
+        replaceFilters(next);
+        const query = serializeSearchFilters(next);
+        const url = query ? `/search?${query}` : '/search';
+        if (historyMode === 'replace') {
+          router.replace(url, { scroll: false });
+        } else {
+          router.push(url, { scroll: false });
+        }
+        return next;
+      });
+    },
+    [replaceFilters, router],
+  );
+
+  const resetFilters = useCallback(() => {
+    resetStoreFilters();
+    setFilters({});
+    setLocalKeyword('');
+    router.push('/search', { scroll: false });
+  }, [resetStoreFilters, router]);
+
+  const apiFilters = useMemo(
+    () => ({
+      page: filters.page ?? 1,
+      limit: filters.limit ?? 12,
+      category: filters.category || undefined,
+      keyword: filters.keyword || undefined,
+      location: filters.location || undefined,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+      sort: filters.sort ?? 'newest',
+      dateFrom: filters.dateFrom || undefined,
+      dateTo: filters.dateTo || undefined,
+    }),
+    [
+      filters.category,
+      filters.dateFrom,
+      filters.dateTo,
+      filters.keyword,
+      filters.limit,
+      filters.location,
+      filters.maxPrice,
+      filters.minPrice,
+      filters.page,
+      filters.sort,
+    ],
+  );
+
+  const {
+    data: searchData,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['search', apiFilters],
+    queryFn: () => listingApi.list(apiFilters),
   });
 
   const handleSearch = useCallback(() => {
-    setFilters({ keyword: localKeyword, page: 1 });
-  }, [localKeyword, setFilters]);
+    updateFilters({ keyword: localKeyword, page: 1 });
+  }, [localKeyword, updateFilters]);
 
   useEffect(() => {
-    const t = setTimeout(() => setFilters({ keyword: localKeyword, page: 1 }), 500);
+    if (localKeyword === (filters.keyword ?? '')) return;
+    const t = setTimeout(
+      () => updateFilters({ keyword: localKeyword, page: 1 }, 'replace'),
+      500,
+    );
     return () => clearTimeout(t);
-  }, [localKeyword, setFilters]);
+  }, [filters.keyword, localKeyword, updateFilters]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -295,8 +390,8 @@ function SearchPageInner() {
 
   const activeFiltersCount = [
     filters.location,
-    filters.priceMin,
-    filters.priceMax,
+    filters.minPrice,
+    filters.maxPrice,
     filters.dateFrom,
     filters.dateTo,
   ].filter(Boolean).length;
@@ -357,8 +452,8 @@ function SearchPageInner() {
               {filterOpen && (
                 <FilterDropdown
                   filters={filters}
-                  setFilters={setFilters}
-                  resetFilters={resetFilters}
+                  onApply={(draft) => updateFilters(draft)}
+                  onReset={resetFilters}
                   onClose={() => setFilterOpen(false)}
                 />
               )}
@@ -374,7 +469,7 @@ function SearchPageInner() {
                 <button
                   key={cat.value}
                   id={`category-filter-${cat.value || 'all'}`}
-                  onClick={() => setFilters({ category: cat.value, page: 1 })}
+                  onClick={() => updateFilters({ category: cat.value, page: 1 })}
                   className="flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all"
                   style={{
                     borderColor: active ? (meta?.color ?? '#2a7bd9') : '#e2e8f0',
@@ -418,24 +513,24 @@ function SearchPageInner() {
 
             {/* Active filter chips */}
             {filters.location && (
-              <FilterChip label={`📍 ${filters.location}`} onRemove={() => setFilters({ location: '', page: 1 })} />
+              <FilterChip label={`📍 ${filters.location}`} onRemove={() => updateFilters({ location: '', page: 1 })} />
             )}
-            {(filters.priceMin || filters.priceMax) && (
+            {(filters.minPrice != null || filters.maxPrice != null) && (
               <FilterChip
-                label={`💰 ${filters.priceMin ? filters.priceMin.toLocaleString('vi-VN') : '0'}₫ – ${filters.priceMax ? filters.priceMax.toLocaleString('vi-VN') : '∞'}₫`}
-                onRemove={() => setFilters({ priceMin: undefined, priceMax: undefined, page: 1 })}
+                label={`💰 ${filters.minPrice != null ? filters.minPrice.toLocaleString('vi-VN') : '0'}₫ – ${filters.maxPrice != null ? filters.maxPrice.toLocaleString('vi-VN') : '∞'}₫`}
+                onRemove={() => updateFilters({ minPrice: undefined, maxPrice: undefined, page: 1 })}
               />
             )}
             {filters.dateFrom && (
               <FilterChip label={`📅 ${filters.dateFrom}${filters.dateTo ? ` → ${filters.dateTo}` : ''}`}
-                onRemove={() => setFilters({ dateFrom: '', dateTo: '', page: 1 })} />
+                onRemove={() => updateFilters({ dateFrom: '', dateTo: '', page: 1 })} />
             )}
           </div>
 
           <select
             id="sort-select"
-            value={filters.sortBy ?? 'newest'}
-            onChange={(e) => setFilters({ sortBy: e.target.value as SearchFilters['sortBy'], page: 1 })}
+            value={filters.sort ?? 'newest'}
+            onChange={(e) => updateFilters({ sort: e.target.value as SearchFilters['sort'], page: 1 })}
             className="shrink-0 rounded-xl border px-3 py-2 text-xs font-medium outline-none cursor-pointer"
             style={{ borderColor: '#e2e8f0', color: '#5a6b85', background: '#fff' }}
           >
@@ -449,6 +544,18 @@ function SearchPageInner() {
         {isLoading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : isError ? (
+          <div className="rounded-2xl bg-white px-6 py-16 text-center" style={{ border: '1px solid #fee2e2' }}>
+            <p className="text-sm font-semibold text-red-600">Không thể tải kết quả tìm kiếm.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="mt-4 rounded-full px-5 py-2 text-sm font-semibold text-white"
+              style={{ background: '#2a7bd9' }}
+            >
+              Thử lại
+            </button>
           </div>
         ) : items.length === 0 ? (
           <EmptyState onReset={() => { resetFilters(); setLocalKeyword(''); }} />
@@ -465,19 +572,21 @@ function SearchPageInner() {
           <div className="mt-10 flex items-center justify-center gap-2">
             <button
               disabled={currentPage <= 1}
-              onClick={() => setFilters({ page: currentPage - 1 })}
+              onClick={() => updateFilters({ page: currentPage - 1 })}
               className="flex h-9 w-9 items-center justify-center rounded-xl border transition-all disabled:opacity-40"
               style={{ borderColor: '#e2e8f0', color: '#5a6b85' }}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              const p = i + 1;
+            {paginationItems(currentPage, totalPages).map((p) => {
+              if (typeof p !== 'number') {
+                return <span key={p} className="px-1 text-sm text-slate-400">…</span>;
+              }
               const active = p === currentPage;
               return (
                 <button
                   key={p}
-                  onClick={() => setFilters({ page: p })}
+                  onClick={() => updateFilters({ page: p })}
                   className="flex h-9 w-9 items-center justify-center rounded-xl border text-sm font-semibold transition-all"
                   style={{
                     borderColor: active ? '#2a7bd9' : '#e2e8f0',
@@ -491,7 +600,7 @@ function SearchPageInner() {
             })}
             <button
               disabled={currentPage >= totalPages}
-              onClick={() => setFilters({ page: currentPage + 1 })}
+              onClick={() => updateFilters({ page: currentPage + 1 })}
               className="flex h-9 w-9 items-center justify-center rounded-xl border transition-all disabled:opacity-40"
               style={{ borderColor: '#e2e8f0', color: '#5a6b85' }}
             >
@@ -524,11 +633,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
 
 export default function SearchPage() {
   return (
-    <>
-      <Suspense fallback={null}>
-        <UrlParamSync />
-      </Suspense>
+    <Suspense fallback={null}>
       <SearchPageInner />
-    </>
+    </Suspense>
   );
 }

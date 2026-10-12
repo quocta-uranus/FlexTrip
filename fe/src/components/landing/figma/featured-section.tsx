@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Star, ShieldCheck, Sparkles, RotateCw, ChevronDown, X } from 'lucide-react';
 import { listingApi } from '@/lib/api/client';
-import type { Listing } from '@/types/listing';
+import type { Listing, ListingCategory } from '@/types/listing';
 import { LISTING_CATEGORIES, CATEGORY_META } from '@/constants/categories';
 import { PillButton } from '@/components/ui/pill-button';
 import { PillBadge } from '@/components/ui/pill-badge';
@@ -142,9 +142,8 @@ export function FeaturedSection() {
     queryKey: ['featured-listings', selectedCategory, selectedLocation],
     queryFn: () =>
       listingApi.list({
-        status: 'ACTIVE',
         limit: 6,
-        category: selectedCategory || undefined,
+        category: (selectedCategory as ListingCategory) || undefined,
         location: selectedLocation || undefined,
       }),
     staleTime: 60 * 1000,
