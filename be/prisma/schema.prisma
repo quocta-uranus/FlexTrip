@@ -714,6 +714,8 @@ model TravelPreference {
   tripType  String
   budgetMin Decimal? @db.Decimal(10, 2)
   budgetMax Decimal? @db.Decimal(10, 2)
+  preferredCategories String[] @default([])
+  budgetScope String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

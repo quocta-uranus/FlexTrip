@@ -249,15 +249,15 @@ export const userApi = {
 
   updateMe: (data: UpdateMePayload) => api.patch('/users/me', data) as Promise<UserProfile>,
 
-  // Travel preferences
+  // Travel preferences (PROF-02)
   getPreferences: () =>
-    api.get('/profile/preferences') as Promise<any[]>,
+    api.get('/profile/preferences') as Promise<import('@/types/preference').TravelPreference[]>,
 
-  addPreference: (data: { tripType: string; budgetMin?: number; budgetMax?: number }) =>
-    api.post('/profile/preferences', data) as Promise<any>,
+  addPreference: (data: import('@/types/preference').CreatePreferencePayload) =>
+    api.post('/profile/preferences', data) as Promise<import('@/types/preference').TravelPreference>,
 
-  updatePreference: (id: string, data: { tripType?: string; budgetMin?: number; budgetMax?: number }) =>
-    api.patch(`/profile/preferences/${id}`, data) as Promise<any>,
+  updatePreference: (id: string, data: import('@/types/preference').UpdatePreferencePayload) =>
+    api.patch(`/profile/preferences/${id}`, data) as Promise<import('@/types/preference').TravelPreference>,
 
   deletePreference: (id: string) =>
     api.delete(`/profile/preferences/${id}`) as Promise<{ ok: boolean }>,
