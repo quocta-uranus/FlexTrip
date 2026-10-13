@@ -137,21 +137,34 @@ export class ModifyBookingService {
     const totalPrice = unitPrice * newQty * rentalDays;
     const depositAmount = totalPrice * listing.depositRate.toNumber();
 
-    // Cập nhật request + booking trong 1 transaction
-    await this.prisma.$transaction([
-      this.prisma.bookingModifyRequest.update({
+    // Cập nhật request + booking trong 1 transaction có lock Listing
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${booking.listingId} FOR UPDATE`;
+
+      const check = await this.availabilitySvc.checkAvailabilityExcludingBooking(
+        booking.id,
+        newStartDate,
+        newEndDate,
+        newQty,
+        tx,
+      );
+      if (!check.available) {
+        throw new BadRequestException('Khoảng ngày hoặc số lượng mới hiện không còn khả dụng để chấp nhận thay đổi');
+      }
+
+      await tx.bookingModifyRequest.update({
         where: { id: requestId },
         data: { status: ModifyRequestStatus.ACCEPTED, respondedAt: new Date() },
-      }),
-      this.prisma.bookingModifyRequest.updateMany({
+      });
+      await tx.bookingModifyRequest.updateMany({
         where: { bookingId: booking.id, status: ModifyRequestStatus.PENDING, id: { not: requestId } },
         data: { status: ModifyRequestStatus.REJECTED, respondedAt: new Date() },
-      }),
-      this.prisma.booking.update({
+      });
+      await tx.booking.update({
         where: { id: booking.id },
         data: { startDate: newStartDate, endDate: newEndDate, quantity: newQty, totalPrice, depositAmount },
-      }),
-    ]);
+      });
+    });
 
     // Reschedule BullMQ jobs với ngày mới
     await this.rescheduleJobs(booking.id, newStartDate);

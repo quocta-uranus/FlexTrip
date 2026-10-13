@@ -1,22 +1,21 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PillButton } from '@/components/ui/pill-button';
-import { Menu, X, ChevronDown, Compass, User, ClipboardList, Package, LogOut } from 'lucide-react';
+import { Menu, X, ChevronDown, Compass, User, ClipboardList, Package, LogOut, Heart } from 'lucide-react';
+import { useLogout } from '@/hooks/useAuthMutations';
+import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
 export function LandingHeader() {
-  const { user, isAuthenticated, clearAuth } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const logout = useLogout();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    setScrolled(window.scrollY > 20);
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -86,6 +85,7 @@ export function LandingHeader() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <WishlistHeaderLink variant="landing" />
           {!isAuthenticated ? (
             <>
               <Link
@@ -142,6 +142,17 @@ export function LandingHeader() {
                       Đơn thuê của tôi
                     </Link>
 
+                    {!isAdmin && !isStaff && (
+                      <Link
+                        href="/wishlist"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Heart className="h-4 w-4 text-slate-500" />
+                        Danh sách yêu thích
+                      </Link>
+                    )}
+
                     {(isProvider || isAdmin) && (
                       <Link
                         href="/dashboard/listings"
@@ -157,7 +168,7 @@ export function LandingHeader() {
                   <div className="border-t border-black/6 mt-1 pt-1">
                     <button
                       onClick={() => {
-                        clearAuth();
+                        logout.mutate();
                         setUserMenuOpen(false);
                       }}
                       className="flex items-center gap-2.5 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl mx-1 transition-colors cursor-pointer"

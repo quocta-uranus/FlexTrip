@@ -14,7 +14,13 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { DenyRoles } from '../../common/decorators/deny-roles.decorator';
@@ -50,7 +56,11 @@ export class ProfileController {
   @UseGuards(RolesGuard)
   @Roles(Role.TRAVELER, Role.PROVIDER)
   @DenyRoles(Role.ADMIN)
-  @ApiOperation({ summary: 'PROF-02: Thêm travel preference' })
+  @ApiOperation({
+    summary: 'PROF-02: Thêm travel preference',
+    description:
+      'Danh mục Listing hợp lệ; ngân sách VNĐ tiền thuê/chuyến, chưa gồm cọc và giao hàng.',
+  })
   add(@Req() req: AuthenticatedRequest, @Body() dto: CreatePreferenceDto) {
     return this.svc.addPreference(req.authUserId, dto);
   }
@@ -59,7 +69,11 @@ export class ProfileController {
   @UseGuards(RolesGuard)
   @Roles(Role.TRAVELER, Role.PROVIDER)
   @DenyRoles(Role.ADMIN)
-  @ApiOperation({ summary: 'PROF-02: Sửa preference' })
+  @ApiOperation({
+    summary: 'PROF-02: Sửa preference',
+    description:
+      'Chỉ sửa bản ghi của mình. Bỏ qua trường để giữ nguyên; null xoá ngân sách, [] xoá danh mục. Ngân sách cũ cần xác nhận RENTAL_PER_TRIP khi chỉnh.',
+  })
   update(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -72,19 +86,27 @@ export class ProfileController {
   @UseGuards(RolesGuard)
   @Roles(Role.TRAVELER, Role.PROVIDER)
   @DenyRoles(Role.ADMIN)
-  @ApiOperation({ summary: 'PROF-02: Xoá preference' })
+  @ApiOperation({
+    summary: 'PROF-02: Xoá preference',
+    description: '404 nếu bản ghi không tồn tại hoặc không thuộc người dùng.',
+  })
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.svc.deletePreference(req.authUserId, id);
   }
 
   @Post('password')
   @ApiOperation({ summary: 'PROF-04: Đổi mật khẩu' })
-  changePassword(@Req() req: AuthenticatedRequest, @Body() dto: ChangePasswordDto) {
+  changePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+  ) {
     return this.svc.changePassword(req.authUserId, dto);
   }
 
   @Post('avatar')
-  @ApiOperation({ summary: 'PROF-01: Upload avatar (multipart/form-data, field "file")' })
+  @ApiOperation({
+    summary: 'PROF-01: Upload avatar (multipart/form-data, field "file")',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

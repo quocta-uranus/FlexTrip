@@ -1,9 +1,16 @@
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, ListingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BlockDatesDto, RentalConfigDto, UnblockDatesDto } from './dto/availability.dto';
+import {
+  BlockDatesDto,
+  RentalConfigDto,
+  UnblockDatesDto,
+} from './dto/availability.dto';
 
 // Booking statuses that occupy inventory
 const ACTIVE_STATUSES: BookingStatus[] = [
@@ -14,7 +21,11 @@ const ACTIVE_STATUSES: BookingStatus[] = [
 
 export interface AvailabilityCheckResult {
   available: boolean;
-  reason?: 'BLOCKED_DATE' | 'INSUFFICIENT_STOCK' | 'MIN_RENTAL_DAYS' | 'MAX_RENTAL_DAYS';
+  reason?:
+    | 'BLOCKED_DATE'
+    | 'INSUFFICIENT_STOCK'
+    | 'MIN_RENTAL_DAYS'
+    | 'MAX_RENTAL_DAYS';
 }
 
 @Injectable()
@@ -31,16 +42,35 @@ export class AvailabilityService {
 
     if (fromDate > toDate) throw new BadRequestException('from phải trước to');
 
-    const [manualBlocks, activeBookings, listing] = await Promise.all([
+    const [manualBlocks, activeBookings, activeHolds, listing] = await Promise.all([
       this.prisma.listingAvailability.findMany({
-        where: { listingId, date: { gte: fromDate, lte: toDate }, isBlocked: true },
+        where: {
+          listingId,
+          date: { gte: fromDate, lte: toDate },
+          isBlocked: true,
+        },
         select: { date: true, note: true },
         orderBy: { date: 'asc' },
       }),
       this.prisma.booking.findMany({
         where: {
           listingId,
-          status: { in: ACTIVE_STATUSES },
+          OR: [
+            { status: { in: ACTIVE_STATUSES } },
+            {
+              status: BookingStatus.PENDING_PAYMENT,
+              holdExpiresAt: { gt: new Date() },
+            },
+          ],
+          startDate: { lte: toDate },
+          endDate: { gte: fromDate },
+        },
+        select: { startDate: true, endDate: true, quantity: true },
+      }),
+      this.prisma.cartItem.findMany({
+        where: {
+          listingId,
+          holdExpiresAt: { gt: new Date() },
           startDate: { lte: toDate },
           endDate: { gte: fromDate },
         },
@@ -48,21 +78,29 @@ export class AvailabilityService {
       }),
       this.prisma.listing.findUnique({
         where: { id: listingId },
-        select: { quantity: true, minRentalDays: true, maxRentalDays: true, depositRate: true },
+        select: {
+          quantity: true,
+          minRentalDays: true,
+          maxRentalDays: true,
+          depositRate: true,
+        },
       }),
     ]);
 
     // Build day-level occupancy map for the range
     const occupancy: Record<string, number> = {};
-    for (const b of activeBookings) {
-      const cur = new Date(b.startDate);
-      const end = new Date(b.endDate);
+    const addOccupancy = (s: Date, e: Date, qty: number) => {
+      const cur = new Date(Math.max(s.getTime(), fromDate.getTime()));
+      const end = new Date(Math.min(e.getTime(), toDate.getTime()));
       while (cur <= end) {
         const key = cur.toISOString().slice(0, 10);
-        occupancy[key] = (occupancy[key] ?? 0) + b.quantity;
+        occupancy[key] = (occupancy[key] ?? 0) + qty;
         cur.setDate(cur.getDate() + 1);
       }
-    }
+    };
+
+    for (const b of activeBookings) addOccupancy(new Date(b.startDate), new Date(b.endDate), b.quantity);
+    for (const h of activeHolds)    addOccupancy(new Date(h.startDate), new Date(h.endDate), h.quantity);
 
     const totalQty = listing!.quantity;
     const fullyBookedDates = Object.entries(occupancy)
@@ -90,8 +128,10 @@ export class AvailabilityService {
     endDate: Date,
     quantity: number,
     excludeCartItemId?: string,
+    client?: Prisma.TransactionClient,
   ): Promise<AvailabilityCheckResult> {
-    const listing = await this.prisma.listing.findUnique({
+    const prisma = client ?? this.prisma;
+    const listing = await prisma.listing.findUnique({
       where: { id: listingId },
       select: { quantity: true, minRentalDays: true, maxRentalDays: true },
     });
@@ -107,7 +147,7 @@ export class AvailabilityService {
       return { available: false, reason: 'MAX_RENTAL_DAYS' };
 
     // Manual blocked dates
-    const blocked = await this.prisma.listingAvailability.findFirst({
+    const blocked = await prisma.listingAvailability.findFirst({
       where: {
         listingId,
         isBlocked: true,
@@ -116,19 +156,27 @@ export class AvailabilityService {
     });
     if (blocked) return { available: false, reason: 'BLOCKED_DATE' };
 
-    // Active bookings occupying stock
-    const bookedAgg = await this.prisma.booking.aggregate({
+    // ── Day-level occupancy check ─────────────────────────────────────────
+    // Fetch all active bookings that overlap with the requested range
+    const overlappingBookings = await prisma.booking.findMany({
       where: {
         listingId,
-        status: { in: ACTIVE_STATUSES },
+        OR: [
+          { status: { in: ACTIVE_STATUSES } },
+          {
+            status: BookingStatus.PENDING_PAYMENT,
+            holdExpiresAt: { gt: new Date() },
+          },
+        ],
         startDate: { lte: endDate },
         endDate: { gte: startDate },
       },
-      _sum: { quantity: true },
+      select: { startDate: true, endDate: true, quantity: true },
     });
 
-    // Active cart holds occupying stock
-    const holdAgg = await this.prisma.cartItem.aggregate({
+    // Fetch all active cart holds that overlap with the requested range
+    // (excluding the caller's own cart item if re-checking after an edit)
+    const overlappingHolds = await prisma.cartItem.findMany({
       where: {
         listingId,
         holdExpiresAt: { gt: new Date() },
@@ -136,11 +184,31 @@ export class AvailabilityService {
         endDate: { gte: startDate },
         ...(excludeCartItemId ? { id: { not: excludeCartItemId } } : {}),
       },
-      _sum: { quantity: true },
+      select: { startDate: true, endDate: true, quantity: true },
     });
 
-    const occupied = (bookedAgg._sum.quantity ?? 0) + (holdAgg._sum.quantity ?? 0);
-    if (listing.quantity - occupied < quantity)
+    // Build per-day occupancy and find the peak occupied quantity in the range
+    const occupancy: Record<string, number> = {};
+    const dayMs = 86_400_000;
+
+    const addOccupancy = (s: Date, e: Date, qty: number) => {
+      const cur = new Date(Math.max(s.getTime(), startDate.getTime()));
+      const end = new Date(Math.min(e.getTime(), endDate.getTime()));
+      while (cur <= end) {
+        const key = cur.toISOString().slice(0, 10);
+        occupancy[key] = (occupancy[key] ?? 0) + qty;
+        cur.setTime(cur.getTime() + dayMs);
+      }
+    };
+
+    for (const b of overlappingBookings) addOccupancy(new Date(b.startDate), new Date(b.endDate), b.quantity);
+    for (const h of overlappingHolds)    addOccupancy(new Date(h.startDate), new Date(h.endDate), h.quantity);
+
+    const peakOccupied = Object.values(occupancy).length > 0
+      ? Math.max(...Object.values(occupancy))
+      : 0;
+
+    if (listing.quantity - peakOccupied < quantity)
       return { available: false, reason: 'INSUFFICIENT_STOCK' };
 
     return { available: true };
@@ -153,14 +221,16 @@ export class AvailabilityService {
     startDate: Date,
     endDate: Date,
     quantity: number,
+    client?: Prisma.TransactionClient,
   ): Promise<AvailabilityCheckResult> {
-    const booking = await this.prisma.booking.findUnique({
+    const prisma = client ?? this.prisma;
+    const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       select: { listingId: true },
     });
     if (!booking) throw new NotFoundException('Booking không tồn tại');
 
-    const listing = await this.prisma.listing.findUnique({
+    const listing = await prisma.listing.findUnique({
       where: { id: booking.listingId },
       select: { quantity: true, minRentalDays: true, maxRentalDays: true },
     });
@@ -174,7 +244,7 @@ export class AvailabilityService {
     if (listing.maxRentalDays && rentalDays > listing.maxRentalDays)
       return { available: false, reason: 'MAX_RENTAL_DAYS' };
 
-    const blocked = await this.prisma.listingAvailability.findFirst({
+    const blocked = await prisma.listingAvailability.findFirst({
       where: {
         listingId: booking.listingId,
         isBlocked: true,
@@ -183,30 +253,55 @@ export class AvailabilityService {
     });
     if (blocked) return { available: false, reason: 'BLOCKED_DATE' };
 
-    // Active bookings excluding the current one
-    const bookedAgg = await this.prisma.booking.aggregate({
+    // ── Day-level occupancy check (excluding this booking) ────────────────
+    const overlappingBookings = await prisma.booking.findMany({
       where: {
         listingId: booking.listingId,
-        status: { in: ACTIVE_STATUSES },
+        OR: [
+          { status: { in: ACTIVE_STATUSES } },
+          {
+            status: BookingStatus.PENDING_PAYMENT,
+            holdExpiresAt: { gt: new Date() },
+          },
+        ],
         startDate: { lte: endDate },
         endDate: { gte: startDate },
-        id: { not: bookingId },
+        id: { not: bookingId }, // exclude the booking being modified
       },
-      _sum: { quantity: true },
+      select: { startDate: true, endDate: true, quantity: true },
     });
 
-    const holdAgg = await this.prisma.cartItem.aggregate({
+    const overlappingHolds = await prisma.cartItem.findMany({
       where: {
         listingId: booking.listingId,
         holdExpiresAt: { gt: new Date() },
         startDate: { lte: endDate },
         endDate: { gte: startDate },
       },
-      _sum: { quantity: true },
+      select: { startDate: true, endDate: true, quantity: true },
     });
 
-    const occupied = (bookedAgg._sum.quantity ?? 0) + (holdAgg._sum.quantity ?? 0);
-    if (listing.quantity - occupied < quantity)
+    const occupancy: Record<string, number> = {};
+    const dayMs = 86_400_000;
+
+    const addOccupancy = (s: Date, e: Date, qty: number) => {
+      const cur = new Date(Math.max(s.getTime(), startDate.getTime()));
+      const end = new Date(Math.min(e.getTime(), endDate.getTime()));
+      while (cur <= end) {
+        const key = cur.toISOString().slice(0, 10);
+        occupancy[key] = (occupancy[key] ?? 0) + qty;
+        cur.setTime(cur.getTime() + dayMs);
+      }
+    };
+
+    for (const b of overlappingBookings) addOccupancy(new Date(b.startDate), new Date(b.endDate), b.quantity);
+    for (const h of overlappingHolds)    addOccupancy(new Date(h.startDate), new Date(h.endDate), h.quantity);
+
+    const peakOccupied = Object.values(occupancy).length > 0
+      ? Math.max(...Object.values(occupancy))
+      : 0;
+
+    if (listing.quantity - peakOccupied < quantity)
       return { available: false, reason: 'INSUFFICIENT_STOCK' };
 
     return { available: true };
@@ -244,7 +339,11 @@ export class AvailabilityService {
 
   // ─── Provider: unblock dates ──────────────────────────────────────────────
 
-  async unblockDates(listingId: string, providerId: string, dto: UnblockDatesDto) {
+  async unblockDates(
+    listingId: string,
+    providerId: string,
+    dto: UnblockDatesDto,
+  ) {
     await this.assertOwner(listingId, providerId);
 
     const dates = dto.dates.map((d) => new Date(d));
@@ -275,11 +374,17 @@ export class AvailabilityService {
 
   // ─── Provider: update rental config ──────────────────────────────────────
 
-  async updateRentalConfig(listingId: string, providerId: string, dto: RentalConfigDto) {
+  async updateRentalConfig(
+    listingId: string,
+    providerId: string,
+    dto: RentalConfigDto,
+  ) {
     await this.assertOwner(listingId, providerId);
 
     if (dto.maxRentalDays && dto.maxRentalDays < dto.minRentalDays)
-      throw new BadRequestException('maxRentalDays phải lớn hơn hoặc bằng minRentalDays');
+      throw new BadRequestException(
+        'maxRentalDays phải lớn hơn hoặc bằng minRentalDays',
+      );
 
     return this.prisma.listing.update({
       where: { id: listingId },
@@ -287,7 +392,13 @@ export class AvailabilityService {
         minRentalDays: dto.minRentalDays,
         maxRentalDays: dto.maxRentalDays ?? null,
       },
-      select: { id: true, minRentalDays: true, maxRentalDays: true, quantity: true, depositRate: true },
+      select: {
+        id: true,
+        minRentalDays: true,
+        maxRentalDays: true,
+        quantity: true,
+        depositRate: true,
+      },
     });
   }
 
@@ -304,10 +415,19 @@ export class AvailabilityService {
   private async assertOwner(listingId: string, providerId: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id: listingId },
-      select: { id: true, providerId: true },
+      select: { id: true, providerId: true, status: true },
     });
     if (!listing) throw new NotFoundException('Listing không tồn tại');
     if (listing.providerId !== providerId)
       throw new ForbiddenException('Bạn không phải chủ sở hữu listing này');
+    if (
+      listing.status === ListingStatus.SUSPENDED ||
+      listing.status === ListingStatus.REMOVED
+    ) {
+      throw new ForbiddenException({
+        code: 'LISTING_LOCKED_BY_ADMIN',
+        message: 'Tin đăng đang bị quản trị viên khoá.',
+      });
+    }
   }
 }

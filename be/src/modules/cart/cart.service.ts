@@ -62,61 +62,66 @@ export class CartService {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
-    if (startDate >= endDate)
-      throw new BadRequestException('endDate phải sau startDate');
+    if (startDate > endDate)
+      throw new BadRequestException('endDate không được trước startDate');
     if (startDate < new Date(new Date().toDateString()))
       throw new BadRequestException('Không thể chọn ngày trong quá khứ');
 
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: dto.listingId },
-      select: { id: true, status: true, price: true, providerId: true },
-    });
-    if (!listing) throw new NotFoundException('Listing không tồn tại');
-    if (listing.status !== 'ACTIVE')
-      throw new BadRequestException('Listing không còn hoạt động');
-    if (listing.providerId === travelerId)
-      throw new BadRequestException('Không thể thêm listing của chính mình vào giỏ');
-
     const qty = dto.quantity ?? 1;
 
-    const check = await this.availabilitySvc.checkAvailability(
-      dto.listingId, startDate, endDate, qty,
-    );
-    if (!check.available) {
-      const msg: Record<string, string> = {
-        BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
-        INSUFFICIENT_STOCK: 'Không đủ số lượng',
-        MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
-        MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn',
-      };
-      throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
-    }
+    return this.prisma.$transaction(async (tx) => {
+      // Row lock on Listing to serialize concurrent holds
+      await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${dto.listingId} FOR UPDATE`;
 
-    // Get or create cart
-    const cart = await this.prisma.cart.upsert({
-      where: { travelerId },
-      create: { travelerId },
-      update: {},
+      const listing = await tx.listing.findUnique({
+        where: { id: dto.listingId },
+        select: { id: true, status: true, price: true, providerId: true },
+      });
+      if (!listing) throw new NotFoundException('Listing không tồn tại');
+      if (listing.status !== 'ACTIVE')
+        throw new BadRequestException('Listing không còn hoạt động');
+      if (listing.providerId === travelerId)
+        throw new BadRequestException('Không thể thêm listing của chính mình vào giỏ');
+
+      const check = await this.availabilitySvc.checkAvailability(
+        dto.listingId, startDate, endDate, qty, undefined, tx,
+      );
+      if (!check.available) {
+        const msg: Record<string, string> = {
+          BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
+          INSUFFICIENT_STOCK: 'Không đủ số lượng',
+          MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
+          MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn',
+        };
+        throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
+      }
+
+      // Get or create cart
+      const cart = await tx.cart.upsert({
+        where: { travelerId },
+        create: { travelerId },
+        update: {},
+      });
+
+      const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
+
+      const item = await tx.cartItem.create({
+        data: {
+          cartId: cart.id,
+          listingId: dto.listingId,
+          startDate,
+          endDate,
+          quantity: qty,
+          deliveryMethod: dto.deliveryMethod ?? DeliveryMethod.PICKUP,
+          deliveryAddress: dto.deliveryAddress,
+          unitPrice: listing.price,
+          holdExpiresAt,
+        },
+        include: CART_ITEM_INCLUDE,
+      });
+
+      return this.enrichItem(item);
     });
-
-    const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
-
-    const item = await this.prisma.cartItem.create({
-      data: {
-        cartId: cart.id,
-        listingId: dto.listingId,
-        startDate,
-        endDate,
-        quantity: qty,
-        deliveryMethod: dto.deliveryMethod ?? DeliveryMethod.PICKUP,
-        deliveryAddress: dto.deliveryAddress,
-        unitPrice: listing.price,
-        holdExpiresAt,
-      },
-      include: CART_ITEM_INCLUDE,
-    });
-
-    return this.enrichItem(item);
   }
 
   // ─── UPDATE item (đổi ngày / qty / delivery) ──────────────────────────────
@@ -128,38 +133,43 @@ export class CartService {
     const endDate = dto.endDate ? new Date(dto.endDate) : new Date(item.endDate);
     const qty = dto.quantity ?? item.quantity;
 
-    if (startDate >= endDate)
-      throw new BadRequestException('endDate phải sau startDate');
+    if (startDate > endDate)
+      throw new BadRequestException('endDate không được trước startDate');
 
-    // Re-check availability, bỏ qua hold của chính item này
-    const check = await this.availabilitySvc.checkAvailability(
-      item.listingId, startDate, endDate, qty, itemId,
-    );
-    if (!check.available) {
-      const msg: Record<string, string> = {
-        BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
-        INSUFFICIENT_STOCK: 'Không đủ số lượng',
-        MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
-        MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn',
-      };
-      throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
-    }
+    return this.prisma.$transaction(async (tx) => {
+      // Row lock on Listing
+      await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${item.listingId} FOR UPDATE`;
 
-    const updated = await this.prisma.cartItem.update({
-      where: { id: itemId },
-      data: {
-        startDate,
-        endDate,
-        quantity: qty,
-        ...(dto.deliveryMethod ? { deliveryMethod: dto.deliveryMethod } : {}),
-        ...(dto.deliveryAddress !== undefined ? { deliveryAddress: dto.deliveryAddress } : {}),
-        // Renew hold
-        holdExpiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
-      },
-      include: CART_ITEM_INCLUDE,
+      // Re-check availability, bỏ qua hold của chính item này
+      const check = await this.availabilitySvc.checkAvailability(
+        item.listingId, startDate, endDate, qty, itemId, tx,
+      );
+      if (!check.available) {
+        const msg: Record<string, string> = {
+          BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
+          INSUFFICIENT_STOCK: 'Không đủ số lượng',
+          MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
+          MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn',
+        };
+        throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
+      }
+
+      const updated = await tx.cartItem.update({
+        where: { id: itemId },
+        data: {
+          startDate,
+          endDate,
+          quantity: qty,
+          ...(dto.deliveryMethod ? { deliveryMethod: dto.deliveryMethod } : {}),
+          ...(dto.deliveryAddress !== undefined ? { deliveryAddress: dto.deliveryAddress } : {}),
+          // Renew hold
+          holdExpiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
+        },
+        include: CART_ITEM_INCLUDE,
+      });
+
+      return this.enrichItem(updated);
     });
-
-    return this.enrichItem(updated);
   }
 
   // ─── REMOVE item ──────────────────────────────────────────────────────────
@@ -208,28 +218,36 @@ export class CartService {
       );
     }
 
-    // 2. Re-check availability từng item (race condition protection)
-    for (const item of cart.items) {
-      if (item.listing.status !== 'ACTIVE')
-        throw new BadRequestException(`Listing "${item.listing.title}" không còn hoạt động`);
-      if (item.listing.providerId === travelerId)
-        throw new BadRequestException(`Không thể thuê listing "${item.listing.title}" của chính mình`);
+    // 2. Lock listings theo thứ tự ID cố định & Re-check availability & tạo bookings trong 1 transaction
+    const sortedListingIds = [...new Set(cart.items.map((i) => i.listingId))].sort();
 
-      const check = await this.availabilitySvc.checkAvailability(
-        item.listingId,
-        new Date(item.startDate),
-        new Date(item.endDate),
-        item.quantity,
-        item.id, // exclude chính item này trong hold check
-      );
-      if (!check.available)
-        throw new BadRequestException(
-          `"${item.listing.title}" không còn khả dụng cho khoảng ngày đã chọn`,
-        );
-    }
-
-    // 3. Tạo N bookings + N payments trong 1 transaction
     const bookings = await this.prisma.$transaction(async (tx) => {
+      // Row lock all listings in deterministic order to prevent deadlocks
+      for (const lid of sortedListingIds) {
+        await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${lid} FOR UPDATE`;
+      }
+
+      // Re-verify availability từng item bên trong transaction đã lock
+      for (const item of cart.items) {
+        if (item.listing.status !== 'ACTIVE')
+          throw new BadRequestException(`Listing "${item.listing.title}" không còn hoạt động`);
+        if (item.listing.providerId === travelerId)
+          throw new BadRequestException(`Không thể thuê listing "${item.listing.title}" của chính mình`);
+
+        const check = await this.availabilitySvc.checkAvailability(
+          item.listingId,
+          new Date(item.startDate),
+          new Date(item.endDate),
+          item.quantity,
+          item.id, // exclude chính item này trong hold check
+          tx,
+        );
+        if (!check.available)
+          throw new BadRequestException(
+            `"${item.listing.title}" không còn khả dụng cho khoảng ngày đã chọn`,
+          );
+      }
+
       const created: Prisma.BookingGetPayload<{
         include: { listing: { select: { title: true; providerId: true } }; payment: true };
       }>[] = [];

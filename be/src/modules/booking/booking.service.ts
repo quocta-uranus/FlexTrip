@@ -41,64 +41,75 @@ export class BookingService {
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
 
-    if (startDate >= endDate)
-      throw new BadRequestException('endDate phải sau startDate');
+    if (startDate > endDate)
+      throw new BadRequestException('endDate không được trước startDate');
     if (startDate < new Date(new Date().toDateString()))
       throw new BadRequestException('Không thể đặt ngày trong quá khứ');
 
-    const listing = await this.prisma.listing.findUnique({
-      where: { id: dto.listingId },
-      select: {
-        id: true, title: true, status: true, price: true,
-        currency: true, providerId: true, quantity: true, depositRate: true,
-      },
-    });
-    if (!listing) throw new NotFoundException('Listing không tồn tại');
-    if (listing.status !== 'ACTIVE')
-      throw new BadRequestException('Listing không còn hoạt động');
-    if (listing.providerId === travelerId)
-      throw new BadRequestException('Không thể đặt listing của chính mình');
-
     const qty = dto.quantity ?? 1;
-    const check = await this.availabilitySvc.checkAvailability(
-      dto.listingId, startDate, endDate, qty,
-    );
-    if (!check.available) {
-      const msg: Record<string, string> = {
-        BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
-        INSUFFICIENT_STOCK: 'Không đủ số lượng trong khoảng ngày đã chọn',
-        MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
-        MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn tối đa',
-      };
-      throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
-    }
-
     const rentalDays =
       Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
-    const unitPrice = listing.price.toNumber();
-    const totalPrice = unitPrice * qty * rentalDays;
-    const depositAmount = totalPrice * listing.depositRate.toNumber();
-    const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
 
-    const booking = await this.prisma.booking.create({
-      data: {
-        travelerId,
-        listingId: dto.listingId,
-        startDate,
-        endDate,
-        quantity: qty,
-        totalPrice,
-        depositAmount,
-        deliveryMethod: dto.deliveryMethod ?? DeliveryMethod.PICKUP,
-        deliveryAddress: dto.deliveryAddress,
-        notes: dto.notes,
-        status: BookingStatus.PENDING_PAYMENT,
-        holdExpiresAt,
-      },
-      include: BOOKING_INCLUDE,
+    const { booking, summary } = await this.prisma.$transaction(async (tx) => {
+      // Row lock on Listing to serialize concurrent direct bookings
+      await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${dto.listingId} FOR UPDATE`;
+
+      const listing = await tx.listing.findUnique({
+        where: { id: dto.listingId },
+        select: {
+          id: true, title: true, status: true, price: true,
+          currency: true, providerId: true, quantity: true, depositRate: true,
+        },
+      });
+      if (!listing) throw new NotFoundException('Listing không tồn tại');
+      if (listing.status !== 'ACTIVE')
+        throw new BadRequestException('Listing không còn hoạt động');
+      if (listing.providerId === travelerId)
+        throw new BadRequestException('Không thể đặt listing của chính mình');
+
+      const check = await this.availabilitySvc.checkAvailability(
+        dto.listingId, startDate, endDate, qty, undefined, tx,
+      );
+      if (!check.available) {
+        const msg: Record<string, string> = {
+          BLOCKED_DATE: 'Listing không nhận đặt trong khoảng ngày này',
+          INSUFFICIENT_STOCK: 'Không đủ số lượng trong khoảng ngày đã chọn',
+          MIN_RENTAL_DAYS: 'Số ngày thuê chưa đạt tối thiểu',
+          MAX_RENTAL_DAYS: 'Số ngày thuê vượt quá giới hạn tối đa',
+        };
+        throw new BadRequestException(msg[check.reason!] ?? 'Không khả dụng');
+      }
+
+      const unitPrice = listing.price.toNumber();
+      const totalPrice = unitPrice * qty * rentalDays;
+      const depositAmount = totalPrice * listing.depositRate.toNumber();
+      const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
+
+      const createdBooking = await tx.booking.create({
+        data: {
+          travelerId,
+          listingId: dto.listingId,
+          startDate,
+          endDate,
+          quantity: qty,
+          totalPrice,
+          depositAmount,
+          deliveryMethod: dto.deliveryMethod ?? DeliveryMethod.PICKUP,
+          deliveryAddress: dto.deliveryAddress,
+          notes: dto.notes,
+          status: BookingStatus.PENDING_PAYMENT,
+          holdExpiresAt,
+        },
+        include: BOOKING_INCLUDE,
+      });
+
+      return {
+        booking: createdBooking,
+        summary: { rentalDays, unitPrice, totalPrice, depositAmount, holdExpiresAt, holdMinutes: HOLD_MINUTES },
+      };
     });
 
-    // Schedule hold expiry job
+    // Schedule hold expiry job (outside transaction)
     await this.bookingQueue.add(
       BookingJob.HOLD_EXPIRY,
       { bookingId: booking.id },
@@ -107,34 +118,56 @@ export class BookingService {
 
     return {
       ...booking,
-      summary: { rentalDays, unitPrice, totalPrice, depositAmount, holdExpiresAt, holdMinutes: HOLD_MINUTES },
+      summary,
     };
   }
 
   // ─── BOOK-01: Confirm payment → PENDING_APPROVAL ─────────────────────────
 
   async confirmPayment(bookingId: string, travelerId: string, dto: ConfirmPaymentDto) {
-    const booking = await this.prisma.booking.findUnique({
+    const initialBooking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { listing: { select: { id: true, title: true, providerId: true } }, payment: true },
+      select: { id: true, travelerId: true, listingId: true, status: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
-    if (booking.travelerId !== travelerId) throw new ForbiddenException();
-    if (booking.status !== BookingStatus.PENDING_PAYMENT)
-      throw new BadRequestException('Booking không ở trạng thái chờ thanh toán');
-    if (booking.holdExpiresAt && booking.holdExpiresAt < new Date())
-      throw new BadRequestException('Thời gian giữ chỗ đã hết, vui lòng đặt lại');
+    if (!initialBooking) throw new NotFoundException('Booking không tồn tại');
+    if (initialBooking.travelerId !== travelerId) throw new ForbiddenException();
 
-    // Remove hold expiry job — không cần cancel nữa
+    // Remove hold expiry job
     await this.bookingQueue.remove(`hold-${bookingId}`);
 
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.booking.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // Row lock on Listing
+      await tx.$queryRaw`SELECT "id" FROM "Listing" WHERE "id" = ${initialBooking.listingId} FOR UPDATE`;
+
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        include: { listing: { select: { id: true, title: true, providerId: true } }, payment: true },
+      });
+      if (!booking) throw new NotFoundException('Booking không tồn tại');
+      if (booking.status !== BookingStatus.PENDING_PAYMENT)
+        throw new BadRequestException('Booking không ở trạng thái chờ thanh toán');
+      if (booking.holdExpiresAt && booking.holdExpiresAt < new Date())
+        throw new BadRequestException('Thời gian giữ chỗ đã hết, vui lòng đặt lại');
+
+      // Verify availability excluding this booking to ensure stock is still reserved
+      const check = await this.availabilitySvc.checkAvailabilityExcludingBooking(
+        bookingId,
+        new Date(booking.startDate),
+        new Date(booking.endDate),
+        booking.quantity,
+        tx,
+      );
+      if (!check.available) {
+        throw new BadRequestException('Khoảng ngày đã chọn không còn khả dụng để xác nhận thanh toán');
+      }
+
+      const updatedBooking = await tx.booking.update({
         where: { id: bookingId },
         data: { status: BookingStatus.PENDING_APPROVAL, holdExpiresAt: null },
         include: BOOKING_INCLUDE,
-      }),
-      this.prisma.payment.upsert({
+      });
+
+      await tx.payment.upsert({
         where: { bookingId },
         create: {
           bookingId,
@@ -145,15 +178,19 @@ export class BookingService {
           status: 'PAID',
         },
         update: { method: dto.method, transactionId: dto.transactionRef ?? null, status: 'PAID' },
-      }),
-      this.notify(
-        booking.listing.providerId,
-        NotificationType.BOOKING,
-        'Yêu cầu đặt chỗ mới',
-        `Traveler vừa đặt "${booking.listing.title}". Vui lòng duyệt hoặc từ chối.`,
-        { bookingId },
-      ),
-    ]);
+      });
+
+      return updatedBooking;
+    });
+
+    // Notify provider outside transaction
+    await this.notify(
+      updated.listing.providerId,
+      NotificationType.BOOKING,
+      'Yêu cầu đặt chỗ mới',
+      `Traveler vừa đặt "${updated.listing.title}". Vui lòng duyệt hoặc từ chối.`,
+      { bookingId },
+    );
 
     // Auto-generate contract + traveler signs (atomic với payment confirmation)
     await this.contractsSvc.generate(bookingId);

@@ -1,3 +1,4 @@
+import { ListingReadGuard } from '../listing-access/listing-read.guard';
 import {
   Body,
   Controller,
@@ -105,6 +106,7 @@ export class ReviewsController {
   }
 
   @Get('listings/:listingId/reviews')
+  @UseGuards(ListingReadGuard)
   @ApiOperation({
     summary: 'REVIEW-01: Danh sách đánh giá công khai của listing',
   })

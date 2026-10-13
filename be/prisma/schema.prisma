@@ -270,6 +270,7 @@ model User {
   reviewsReceived     Review[]               @relation("ReviewsReceived")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
+  wishlistItems      Wishlist[]
 
   // admin
   staffProfile     StaffProfile?
@@ -416,10 +417,27 @@ model Listing {
   flags        ListingFlag[]
   availability ListingAvailability[]
   cartItems    CartItem[]
+  wishlistItems Wishlist[]
 
   @@index([providerId])
   @@index([status])
   @@index([location])
+}
+
+// ─── Wishlist ────────────────────────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([userId, createdAt, id])
+  @@index([listingId])
 }
 
 // ─── Booking ─────────────────────────────────────────────────────────────────
@@ -714,6 +732,8 @@ model TravelPreference {
   tripType  String
   budgetMin Decimal? @db.Decimal(10, 2)
   budgetMax Decimal? @db.Decimal(10, 2)
+  preferredCategories String[] @default([])
+  budgetScope String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
