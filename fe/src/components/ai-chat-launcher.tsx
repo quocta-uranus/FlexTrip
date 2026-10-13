@@ -139,6 +139,12 @@ export function AiChatLauncher() {
   }, [isOpen, isSending, messages]);
 
   useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-ai-chat', handleOpen);
+    return () => window.removeEventListener('open-ai-chat', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (!isOpen || historyLoaded.current || conversationId) return;
     let cancelled = false;
     void (async () => {

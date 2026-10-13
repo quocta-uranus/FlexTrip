@@ -35,7 +35,19 @@ function UrlParamSync() {
   useEffect(() => {
     const cat = searchParams.get('category') as ListingCategory | null;
     const kw = searchParams.get('keyword');
-    if (cat || kw) setFilters({ ...(cat ? { category: cat } : {}), ...(kw ? { keyword: kw } : {}), page: 1 });
+    const loc = searchParams.get('location');
+    const df = searchParams.get('dateFrom');
+    const dt = searchParams.get('dateTo');
+    if (cat || kw || loc || df || dt) {
+      setFilters({
+        ...(cat ? { category: cat } : {}),
+        ...(kw ? { keyword: kw } : {}),
+        ...(loc ? { location: loc } : {}),
+        ...(df ? { dateFrom: df } : {}),
+        ...(dt ? { dateTo: dt } : {}),
+        page: 1,
+      });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return null;
