@@ -25,6 +25,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ContractsModule } from './modules/contracts/contracts.module';
     ReviewsModule,
     ReputationModule,
     ContractsModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -68,17 +68,9 @@ export interface SearchFilters {
   location?: string;
   dateFrom?: string;
   dateTo?: string;
-  priceMin?: number;
-  priceMax?: number;
-  sortBy?: 'price_asc' | 'price_desc' | 'rating' | 'newest';
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: 'price_asc' | 'price_desc' | 'rating' | 'newest';
   page?: number;
   limit?: number;
-}
-
-export interface SearchResult {
-  items: Listing[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }

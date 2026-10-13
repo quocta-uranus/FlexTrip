@@ -1,3 +1,4 @@
+import { ListingAccessModule } from '../listing-access/listing-access.module';
 import { Module } from '@nestjs/common';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
@@ -12,6 +13,7 @@ import { ReviewModerationService } from './review-moderation.service';
 
 @Module({
   imports: [
+    ListingAccessModule,
     AuthModule,
     ReputationModule,
     SystemConfigModule,

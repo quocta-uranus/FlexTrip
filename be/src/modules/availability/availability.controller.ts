@@ -1,15 +1,34 @@
 import {
-  Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req, UseGuards,
+  ListingReadGuard,
+  ListingReadRequest,
+} from '../listing-access/listing-read.guard';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
+import {
+  AccessTokenGuard,
+  AuthenticatedRequest,
+} from '../auth/guards/access-token.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AvailabilityService } from './availability.service';
 import {
-  AvailabilityQueryDto, BlockDatesDto, CheckAvailabilityDto,
-  RentalConfigDto, UnblockDatesDto,
+  AvailabilityQueryDto,
+  BlockDatesDto,
+  CheckAvailabilityDto,
+  RentalConfigDto,
+  UnblockDatesDto,
 } from './dto/availability.dto';
 
 @ApiTags('availability')
@@ -20,15 +39,27 @@ export class AvailabilityController {
   // ─── Public ───────────────────────────────────────────────────────────────
 
   @Get('availability')
+  @UseGuards(ListingReadGuard)
   @ApiOperation({ summary: 'Lấy blocked/booked dates theo khoảng thời gian' })
-  getAvailability(
+  async getAvailability(
     @Param('listingId') listingId: string,
     @Query() query: AvailabilityQueryDto,
+    @Req() req: ListingReadRequest,
   ) {
-    return this.svc.getAvailability(listingId, query.from, query.to);
+    const data = await this.svc.getAvailability(
+      listingId,
+      query.from,
+      query.to,
+    );
+    if (req.listingReadOwner) return data;
+    return {
+      ...data,
+      manuallyBlocked: data.manuallyBlocked.map(({ date }) => ({ date })),
+    };
   }
 
   @Post('availability/check')
+  @UseGuards(ListingReadGuard)
   @HttpCode(200)
   @ApiOperation({ summary: 'Kiểm tra availability cho ngày + số lượng cụ thể' })
   checkAvailability(
@@ -44,6 +75,7 @@ export class AvailabilityController {
   }
 
   @Get('rental-config')
+  @UseGuards(ListingReadGuard)
   @ApiOperation({ summary: 'Lấy cấu hình min/max days và deposit rate' })
   getRentalConfig(@Param('listingId') listingId: string) {
     return this.svc.getRentalConfig(listingId);

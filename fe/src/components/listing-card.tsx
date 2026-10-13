@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, MapPin, Star } from 'lucide-react';
+import { MapPin, Star } from 'lucide-react';
 import type { Listing } from '@/types/listing';
 import { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META } from '@/types/listing';
+import { WishlistButton } from '@/components/wishlist-button';
 
 interface ListingCardProps {
   listing: Listing;
@@ -58,13 +59,11 @@ export function ListingCard({ listing, href }: ListingCardProps) {
         </span>
 
         {/* heart button */}
-        <button
-          onClick={(e) => e.preventDefault()}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-110"
-          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
-        >
-          <Heart className="h-4 w-4" style={{ color: '#94a3b8' }} />
-        </button>
+        <WishlistButton
+          listingId={listing.id}
+          ownerId={listing.providerId}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-all hover:scale-110"
+        />
 
         {/* price on image */}
         <div className="absolute bottom-3 left-3">

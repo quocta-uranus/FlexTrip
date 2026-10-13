@@ -8,7 +8,8 @@ import { useLogout } from '@/hooks/useAuthMutations';
 import { useCart } from '@/hooks/useCart';
 import { NotificationBell } from '@/components/notification-bell';
 import { PillButton } from '@/components/ui/pill-button';
-import { Compass, ShoppingBag, ChevronDown, User, ClipboardList, MessageSquare, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
+import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, MessageSquare, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
+import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
 const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
@@ -118,6 +119,7 @@ export function Navbar() {
         <div className="flex items-center gap-2.5 shrink-0">
           {isAuthenticated && user && <NotificationBell isProvider={isProvider} />}
           {isAuthenticated && !isAdmin && !isStaff && <CartIcon />}
+          <WishlistHeaderLink />
 
           {isAuthenticated && user ? (
             <div className="relative">
@@ -157,6 +159,7 @@ export function Navbar() {
                               { href: isStaff ? '/staff/complete-profile' : '/profile', label: 'Hồ sơ cá nhân', icon: <User className="h-4 w-4 text-[#68655E]" /> },
                               { href: '/bookings', label: 'Đặt thuê của tôi', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
                               { href: '/messages', label: 'Tin nhắn', icon: <MessageSquare className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/wishlist', label: 'Danh sách yêu thích', icon: <Heart className="h-4 w-4 text-[#68655E]" /> },
                               { href: '/profile/payments', label: 'Thanh toán & Ví', icon: <CreditCard className="h-4 w-4 text-[#68655E]" /> },
                             ]),
                         ...(!isAdmin && isStaff
