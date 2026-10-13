@@ -545,6 +545,48 @@ export const listingApi = {
   }>,
 };
 
+// ─── Wishlist (SRC-07) ──────────────────────────────────────────────────────
+
+export const wishlistApi = {
+  list: (params: { page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.limit) query.set('limit', String(params.limit));
+    const suffix = query.toString();
+    return api.get(`/wishlist${suffix ? `?${suffix}` : ''}`) as Promise<import('@/types/wishlist').WishlistPage>;
+  },
+  ids: () => api.get('/wishlist/ids') as Promise<{ listingIds: string[] }>,
+  add: (listingId: string) =>
+    api.post(`/wishlist/${encodeURIComponent(listingId)}`, {}) as Promise<{ status: 'added' | 'alreadyExists' }>,
+  remove: (listingId: string) =>
+    api.delete(`/wishlist/${encodeURIComponent(listingId)}`) as Promise<{ removed: boolean }>,
+  sync: async (listingIds: string[]) => {
+    const combined: import('@/types/wishlist').WishlistSyncResult = {
+      added: [], alreadyExists: [], skipped: [], retryableFailed: [],
+    };
+    for (let index = 0; index < listingIds.length; index += 100) {
+      const result = await api.post('/wishlist/sync', {
+        listingIds: listingIds.slice(index, index + 100),
+      }) as import('@/types/wishlist').WishlistSyncResult;
+      combined.added.push(...result.added);
+      combined.alreadyExists.push(...result.alreadyExists);
+      combined.skipped.push(...result.skipped);
+      combined.retryableFailed.push(...result.retryableFailed);
+    }
+    return combined;
+  },
+  resolveGuest: async (listingIds: string[]) => {
+    const items: Listing[] = [];
+    for (let index = 0; index < listingIds.length; index += 100) {
+      const result = await api.post('/wishlist/guest/resolve', {
+        listingIds: listingIds.slice(index, index + 100),
+      }) as { items: Listing[] };
+      items.push(...result.items);
+    }
+    return { items };
+  },
+};
+
 // ─── Availability ─────────────────────────────────────────────────────────────
 
 export const availabilityApi = {

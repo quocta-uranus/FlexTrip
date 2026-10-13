@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin, Star, ChevronLeft, ChevronRight, Share2,
-  Heart, Shield, Clock, Tag, MessageCircle, Package,
+  Shield, Clock, Tag, MessageCircle, Package,
 } from 'lucide-react';
 import { useListing } from '@/hooks/useListings';
 import { BookingWidget } from '@/components/listing/booking-widget';
 import { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META } from '@/types/listing';
 import { useListingReviews } from '@/hooks/useReviews';
 import { ReputationBadge } from '@/components/reputation/reputation-badge';
+import { WishlistButton } from '@/components/wishlist-button';
 
 function StarRating({ rating, count, size = 'md' }: { rating: number; count?: number; size?: 'sm' | 'md' | 'lg' }) {
   const sz = size === 'lg' ? 'h-5 w-5' : size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
@@ -45,7 +46,6 @@ function RatingBar({ star, count, total }: { star: number; count: number; total:
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { data: listing, isLoading, error } = useListing(id);
   const { data: publicReviews } = useListingReviews(id);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -139,9 +139,11 @@ export default function ListingDetailPage() {
                 )}
                 {/* action buttons */}
                 <div className="absolute right-3 top-3 flex gap-2">
-                  <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm hover:bg-white transition-all">
-                    <Heart className="h-4 w-4" style={{ color: '#5a6b85' }} />
-                  </button>
+                  <WishlistButton
+                    listingId={listing.id}
+                    ownerId={listing.providerId}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm hover:bg-white transition-all"
+                  />
                   <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm hover:bg-white transition-all">
                     <Share2 className="h-4 w-4" style={{ color: '#5a6b85' }} />
                   </button>
