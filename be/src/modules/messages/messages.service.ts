@@ -157,4 +157,47 @@ export class MessagesService {
     if (count) this.gateway.emitToUsers(memberIds, 'message:read', { conversationId, readerId: userId });
     return { ok: true };
   }
+
+  private async ownMessage(userId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { id: true, senderId: true, type: true, deletedAt: true, conversationId: true },
+    });
+    if (!message) throw new NotFoundException('Tin nhắn không tồn tại');
+    if (message.senderId !== userId) throw new ForbiddenException('Bạn chỉ có thể thao tác với tin nhắn của mình');
+    return message;
+  }
+
+  async edit(userId: string, messageId: string, content: string): Promise<MessageDto> {
+    const existing = await this.ownMessage(userId, messageId);
+    const notEditable = new BadRequestException('Chỉ có thể sửa tin nhắn văn bản chưa bị thu hồi');
+    if (existing.deletedAt || existing.type !== MessageType.TEXT) throw notEditable;
+    // deletedAt in the filter closes the race with a concurrent recall.
+    const { count } = await this.prisma.message.updateMany({
+      where: { id: messageId, deletedAt: null },
+      data: { content, editedAt: new Date(), links: extractLinks(content) },
+    });
+    if (!count) throw notEditable;
+    const row = await this.prisma.message.findUniqueOrThrow({ where: { id: messageId }, include: MESSAGE_INCLUDE });
+    const [message] = await this.hydrate([row]);
+    this.gateway.emitToUsers(await this.memberIds(existing.conversationId), 'message:updated', message);
+    return message;
+  }
+
+  async remove(userId: string, messageId: string): Promise<{ ok: true }> {
+    const existing = await this.ownMessage(userId, messageId);
+    const deletedAt = new Date();
+    const { count } = await this.prisma.message.updateMany({
+      where: { id: messageId, deletedAt: null },
+      data: { deletedAt },
+    });
+    if (count) {
+      this.gateway.emitToUsers(await this.memberIds(existing.conversationId), 'message:deleted', {
+        id: messageId,
+        conversationId: existing.conversationId,
+        deletedAt: deletedAt.toISOString(),
+      });
+    }
+    return { ok: true };
+  }
 }

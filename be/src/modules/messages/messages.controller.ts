@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
-import { MessagesQueryDto, SendMessageDto, StartConversationDto } from './messages.dto';
+import { EditMessageDto, MessagesQueryDto, SendMessageDto, StartConversationDto } from './messages.dto';
 import { MessagesService } from './messages.service';
 
 @ApiTags('messages')
@@ -39,5 +39,15 @@ export class MessagesController {
   @Post('conversations/:id/read')
   read(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.svc.markRead(req.authUserId, id);
+  }
+
+  @Patch(':id')
+  edit(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: EditMessageDto) {
+    return this.svc.edit(req.authUserId, id, dto.content);
+  }
+
+  @Delete(':id')
+  remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.svc.remove(req.authUserId, id);
   }
 }
