@@ -6,7 +6,7 @@ import type { SendMessageDto } from './messages.dto';
 // class-validator cannot express "fields depend on `type`", so the invariants live here.
 export function validateSendShape(dto: SendMessageDto): void {
   const attachments = dto.attachments ?? [];
-  const hasLocation = dto.latitude !== undefined || dto.longitude !== undefined || dto.locationLabel !== undefined;
+  const hasLocation = dto.latitude != null || dto.longitude != null || dto.locationLabel != null;
 
   switch (dto.type) {
     case MessageType.TEXT:
@@ -29,7 +29,7 @@ export function validateSendShape(dto: SendMessageDto): void {
       return;
     }
     case MessageType.LOCATION:
-      if (dto.latitude === undefined || dto.longitude === undefined) throw new BadRequestException('Thiếu toạ độ');
+      if (typeof dto.latitude !== 'number' || typeof dto.longitude !== 'number') throw new BadRequestException('Thiếu toạ độ');
       if (attachments.length) throw new BadRequestException('Tin vị trí không kèm file');
       return;
   }

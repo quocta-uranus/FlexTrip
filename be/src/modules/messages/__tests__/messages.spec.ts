@@ -168,6 +168,29 @@ describe('MSG-01 conversations and messages', () => {
       expect((await send(traveler, c, { type: 'LOCATION', latitude: 91, longitude: 0 })).status).toBe(400);
       expect((await send(traveler, c, { type: 'LOCATION', latitude: 10 })).status).toBe(400);
     });
+
+    it('rejects LOCATION with null coordinates', async () => {
+      const { traveler, provider } = await setup();
+      const c = await open(traveler, provider);
+      expect((await send(traveler, c, { type: 'LOCATION', latitude: null, longitude: null })).status).toBe(400);
+      expect((await send(traveler, c, { type: 'LOCATION', latitude: 10, longitude: null })).status).toBe(400);
+    });
+
+    it('stores zero coordinates as 0, not null', async () => {
+      const { traveler, provider } = await setup();
+      const c = await open(traveler, provider);
+      const res = await send(traveler, c, { type: 'LOCATION', latitude: 0, longitude: 0 });
+      expect(res.status).toBe(201);
+      expect(res.body).toMatchObject({ latitude: 0, longitude: 0 });
+    });
+
+    it('ignores null location fields on a TEXT message', async () => {
+      const { traveler, provider } = await setup();
+      const c = await open(traveler, provider);
+      const res = await text(traveler, c, 'hi', { latitude: null, longitude: null });
+      expect(res.status).toBe(201);
+      expect(res.body).toMatchObject({ latitude: null, longitude: null });
+    });
   });
 
   describe('read receipts', () => {
