@@ -219,6 +219,50 @@ function BookingDetailContent() {
               <p className="text-sm" style={{ color: '#5a6b85' }}>{booking.deliveryAddress}</p>
             </div>
           )}
+
+          {/* Assigned staff card */}
+          {booking.assignedStaff && !['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Staff phụ trách</span>
+                {booking.assignedStaff.staffProfile?.employeeCode && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                  >
+                    {booking.assignedStaff.staffProfile.employeeCode}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #2a7bd9 0%, #1e5aa8 100%)' }}
+                >
+                  {booking.assignedStaff.avatarUrl
+                    ? <img src={booking.assignedStaff.avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+                    : booking.assignedStaff.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold" style={{ color: '#0f1729' }}>{booking.assignedStaff.name}</p>
+                  <p className="mt-0.5 text-xs" style={{ color: '#5a6b85' }}>
+                    {booking.assignedStaff.phone ?? booking.assignedStaff.staffProfile?.phone ?? booking.assignedStaff.email}
+                  </p>
+                  {booking.assignedStaff.staffProfile?.regions && booking.assignedStaff.staffProfile.regions.length > 0 && (
+                    <p className="mt-0.5 text-xs" style={{ color: '#8694ad' }}>
+                      Khu vực: {booking.assignedStaff.staffProfile.regions.join(' · ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl px-3 py-2.5 text-xs leading-relaxed" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
+                <span className="mr-1.5 text-base">🛡️</span>
+                Staff sẽ đảm nhận bàn giao thiết bị, hỗ trợ giải quyết tranh chấp và theo sát đơn thuê của bạn.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: payment + actions */}

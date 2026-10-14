@@ -12,7 +12,7 @@ import { requestContext } from '../../common/request-context';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
 import {
   ConfirmConditionDto, CreateMediationDto, EscalateMediationDto,
-  ListMediationsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
+  ListMediationsQueryDto, ListMyBookingsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
 } from './dto/staff-operations.dto';
 import { StaffOperationsService } from './staff-operations.service';
 
@@ -28,6 +28,12 @@ export class StaffOperationsController {
   @ApiOperation({ summary: 'STAFF-06: Lịch giao/nhận được phân công' })
   tasks(@Query() query: ListStaffTasksQueryDto, @Req() req: AuthenticatedRequest) {
     return this.svc.tasks(req.authUserId, query);
+  }
+
+  @Get('bookings')
+  @ApiOperation({ summary: 'STAFF-01: Danh sách tất cả booking được phân công' })
+  myBookings(@Query() query: ListMyBookingsQueryDto, @Req() req: AuthenticatedRequest) {
+    return this.svc.myBookings(req.authUserId, query);
   }
 
   @Get('bookings/:id')

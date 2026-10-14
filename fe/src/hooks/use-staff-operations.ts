@@ -13,6 +13,21 @@ export function useStaffTasks(date: string) {
   return useQuery({ queryKey: [...KEY, 'tasks', date], queryFn: () => staffApi.tasks(date) });
 }
 
+export function useMyBookings(params: { status?: string; page?: number; limit?: number } = {}) {
+  return useQuery({
+    queryKey: [...KEY, 'my-bookings', params],
+    queryFn: () => staffApi.myBookings(params),
+  });
+}
+
+export function useStaffBooking(id: string) {
+  return useQuery({
+    queryKey: [...KEY, 'booking', id],
+    queryFn: () => staffApi.booking(id),
+    enabled: !!id,
+  });
+}
+
 export function useStaffMediations(status?: StaffMediationStatus) {
   return useQuery({ queryKey: [...KEY, 'mediations', status], queryFn: () => staffApi.mediations(status) });
 }

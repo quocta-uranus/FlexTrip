@@ -1,6 +1,25 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@360..530&display=swap");
 @import "tailwindcss";
 
+@theme inline {
+  --color-background:           #ffffff;
+  --color-foreground:           #0f1729;
+  --color-card:                 #ffffff;
+  --color-card-foreground:      #0f1729;
+  --color-popover:              #ffffff;
+  --color-popover-foreground:   #0f1729;
+  --color-primary:              #2a7bd9;
+  --color-primary-foreground:   #ffffff;
+  --color-secondary:            #f1f5f9;
+  --color-secondary-foreground: #0f1729;
+  --color-muted:                #f1f5f9;
+  --color-muted-foreground:     #5a6b85;
+  --color-destructive:          #dc2626;
+  --color-border:               #e2e8f3;
+  --color-input:                #e2e8f3;
+  --color-ring:                 #2a7bd9;
+}
+
 :root {
   color: #000000;
   background: #f1faff;

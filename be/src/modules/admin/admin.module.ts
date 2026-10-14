@@ -25,6 +25,8 @@ import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service'
 import { ReviewsModule } from '../reviews/reviews.module';
 import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
+import { AdminBookingsController } from './bookings/admin-bookings.controller';
+import { AdminBookingsService } from './bookings/admin-bookings.service';
 
 @Module({
   imports: [AuthModule, ReviewsModule],
@@ -40,6 +42,7 @@ import { AdminReviewsService } from './reviews/admin-reviews.service';
     AdminStaffRulesController,
     AdminStaffBookingsController,
     AdminReviewsController,
+    AdminBookingsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -55,6 +58,7 @@ import { AdminReviewsService } from './reviews/admin-reviews.service';
     AdminStaffRulesService,
     AdminStaffBookingsService,
     AdminReviewsService,
+    AdminBookingsService,
   ],
 })
 export class AdminModule {}
