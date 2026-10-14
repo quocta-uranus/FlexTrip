@@ -304,6 +304,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <QuickLink href="/dashboard/bookings"    icon={BarChart2}      label="Quản lý đơn thuê"  sub="Duyệt, bắt đầu, hoàn thành" color="#2a7bd9" />
           <QuickLink href="/dashboard/listings/new" icon={Plus}           label="Thêm sản phẩm"     sub="Đăng sản phẩm cho thuê"     color="#10b981" />
+          <QuickLink href="/dashboard/pricing"      icon={TrendingUp}     label="AI Định giá"       sub="Gợi ý giá & dự báo nhu cầu"  color="#7c3aed" />
           <QuickLink href="/profile/shop"           icon={Store}          label="Cập nhật Shop"     sub="Thông tin cửa hàng, địa chỉ" color="#f59e0b" />
           <QuickLink href="/messages"               icon={MessageCircle}  label="Tin nhắn"          sub="Trò chuyện với khách hàng"   color="#8b5cf6" />
         </div>

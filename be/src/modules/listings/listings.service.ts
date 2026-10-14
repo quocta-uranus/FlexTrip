@@ -48,7 +48,7 @@ export class ListingsService {
     const genAI = new GoogleGenerativeAI(
       this.config.get<string>('GEMINI_API_KEY', ''),
     );
-    this.gemini = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
   }
 
   private async ask(prompt: string): Promise<string> {
@@ -506,23 +506,38 @@ Trả lời dưới dạng JSON thuần (không markdown): {"category": "...", "
   async aiGenerateDescription(dto: AiDescriptionDto) {
     const amenityList = dto.amenities?.length
       ? dto.amenities.join(', ')
-      : 'không có thông tin';
-    const prompt = `Bạn là copywriter cho nền tảng cho thuê đồ du lịch FlexTrip.
+      : null;
 
-Viết mô tả sản phẩm cho thuê với thông tin sau:
+    const CATEGORY_LABELS: Record<string, string> = {
+      CAMERA_GEAR: 'thiết bị quay/chụp',
+      CAMPING: 'dụng cụ camping',
+      TREKKING: 'đồ trekking',
+      BEACH: 'đồ du lịch biển',
+      TRAVEL_ESSENTIALS: 'tiện ích du lịch',
+      FAMILY: 'đồ gia đình du lịch',
+    };
+
+    const prompt = `Bạn là copywriter chuyên nghiệp cho nền tảng cho thuê đồ du lịch FlexTrip (Việt Nam).
+Nhiệm vụ: viết mô tả sản phẩm cho thuê thật hấp dẫn để người đọc muốn thuê ngay.
+
+Thông tin sản phẩm:
 - Tên: ${dto.title}
-- Danh mục: ${dto.category}
-- Địa điểm: ${dto.location}
-- Tiện ích kèm theo: ${amenityList}
-${dto.price ? `- Giá: ${dto.price.toLocaleString('vi-VN')} VND/ngày` : ''}
+- Loại: ${CATEGORY_LABELS[dto.category] ?? dto.category}
+- Địa điểm nhận/trả: ${dto.location}
+${amenityList ? `- Đi kèm: ${amenityList}` : ''}
+${dto.price ? `- Giá thuê: chỉ ${dto.price.toLocaleString('vi-VN')}đ/ngày` : ''}
 
-Yêu cầu:
-- Viết bằng tiếng Việt, tự nhiên, hấp dẫn
-- 3-4 câu, khoảng 80-120 từ
-- Nêu bật giá trị cho người thuê
-- Kết thúc bằng call-to-action nhẹ
+Yêu cầu bắt buộc:
+1. Viết bằng tiếng Việt tự nhiên, gần gũi nhưng chuyên nghiệp
+2. Độ dài 3–4 câu (80–130 từ)
+3. Câu đầu: nêu bật điểm nổi bật / tình trạng sản phẩm để tạo tin tưởng
+4. Câu giữa: lợi ích cụ thể cho người thuê (tiết kiệm, tiện lợi, trải nghiệm tốt hơn)
+5. Nếu có đi kèm phụ kiện: nhắc đến để tăng giá trị
+6. Câu cuối: kêu gọi hành động nhẹ nhàng (đặt lịch, liên hệ, v.v.)
+7. KHÔNG bịa thông tin không có trong input
+8. KHÔNG dùng từ hoa toàn bộ, KHÔNG spam dấu chấm than
 
-Trả về chỉ đoạn mô tả, không thêm gì khác.`;
+Trả về CHỈ đoạn mô tả hoàn chỉnh, không thêm tiêu đề hay giải thích.`;
 
     const description = (await this.ask(prompt)).trim();
     return { description };

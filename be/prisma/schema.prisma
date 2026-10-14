@@ -189,6 +189,12 @@ enum DisputePriority {
   CRITICAL
 }
 
+enum PriceSource {
+  MANUAL
+  AI_SUGGESTED
+  AI_AUTO
+}
+
 enum StaffMediationStatus {
   OPEN
   RESOLVED
@@ -411,13 +417,15 @@ model Listing {
   marketValue   Decimal? @db.Decimal(12, 2)
   isHighValue   Boolean  @default(false)
 
-  provider     User                  @relation(fields: [providerId], references: [id])
-  bookings     Booking[]
-  reviews      Review[]
-  flags        ListingFlag[]
-  availability ListingAvailability[]
-  cartItems    CartItem[]
+  provider      User                  @relation(fields: [providerId], references: [id])
+  bookings      Booking[]
+  reviews       Review[]
+  flags         ListingFlag[]
+  availability  ListingAvailability[]
+  cartItems     CartItem[]
   wishlistItems Wishlist[]
+  priceHistory  PriceHistory[]
+  priceConfig   ListingPriceConfig?
 
   @@index([providerId])
   @@index([status])
@@ -1034,4 +1042,32 @@ model StaffMediation {
 
   @@index([staffId, status, createdAt])
   @@index([bookingId, createdAt])
+}
+
+// ─── AI Pricing ──────────────────────────────────────────────────────────────
+
+model PriceHistory {
+  id          String      @id @default(cuid())
+  listingId   String
+  price       Decimal     @db.Decimal(10, 2)
+  source      PriceSource
+  aiScore     Float?
+  aiReason    String?     @db.Text
+  bookingRate Float?
+  createdAt   DateTime    @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt])
+}
+
+model ListingPriceConfig {
+  id         String   @id @default(cuid())
+  listingId  String   @unique
+  autoAdjust Boolean  @default(false)
+  minPrice   Decimal? @db.Decimal(10, 2)
+  maxPrice   Decimal? @db.Decimal(10, 2)
+  updatedAt  DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
