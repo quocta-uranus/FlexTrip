@@ -26,6 +26,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { PriceAiModule } from './modules/price-ai/price-ai.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
     ReputationModule,
     ContractsModule,
     WishlistModule,
+    PriceAiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
