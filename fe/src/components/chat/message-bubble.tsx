@@ -21,19 +21,26 @@ interface Props {
 const actionClass =
   'rounded p-1 text-[#8694ad] opacity-0 transition-opacity hover:bg-[#e2e8f3] focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100';
 
+const editBtn = 'rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2a7bd9]';
+
 export function MessageBubble({ message: m, isMine, onReply, onEdit, onDelete, onJumpTo }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(m.content ?? '');
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const deleted = m.deletedAt !== null;
 
   async function run(action: () => Promise<unknown>, onDone?: () => void) {
+    if (pending) return;
+    setPending(true);
     try {
       await action();
       setError(null);
       onDone?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Thao tác thất bại');
+    } finally {
+      setPending(false);
     }
   }
 
@@ -82,8 +89,17 @@ export function MessageBubble({ message: m, isMine, onReply, onEdit, onDelete, o
                     className="w-64 rounded border border-[#DCEFFB] p-1.5 text-sm"
                   />
                   <div className="flex justify-end gap-2 text-xs">
-                    <button type="button" onClick={() => setEditing(false)}>Huỷ</button>
-                    <button type="button" onClick={save} className="font-semibold text-[#2a7bd9]">Lưu</button>
+                    <button type="button" onClick={() => setEditing(false)} disabled={pending} className={cn(editBtn, 'disabled:opacity-50')}>
+                      Huỷ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={save}
+                      disabled={pending || !draft.trim()}
+                      className={cn(editBtn, 'font-semibold text-[#2a7bd9] disabled:opacity-50')}
+                    >
+                      Lưu
+                    </button>
                   </div>
                 </div>
               ) : (

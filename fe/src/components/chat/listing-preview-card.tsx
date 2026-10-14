@@ -1,8 +1,17 @@
 import Link from 'next/link';
 import type { ListingPreview } from '@/types/message';
 
+// Listing.currency is free text in the DB; an invalid code makes Intl throw and would crash the chat tree.
+function formatPrice(price: number, currency: string) {
+  try {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency }).format(price);
+  } catch {
+    return `${new Intl.NumberFormat('vi-VN').format(price)} ${currency}`;
+  }
+}
+
 export function ListingPreviewCard({ preview }: { preview: ListingPreview }) {
-  const price = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: preview.currency }).format(preview.price);
+  const price = formatPrice(preview.price, preview.currency);
   return (
     <Link
       href={`/listings/${preview.id}`}

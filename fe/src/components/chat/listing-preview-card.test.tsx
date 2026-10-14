@@ -19,4 +19,10 @@ describe('ListingPreviewCard', () => {
     render(<ListingPreviewCard preview={{ id: 'l2', title: 'Xe', imageUrl: null, price: 1, currency: 'VND', location: 'HN' }} />);
     expect(screen.queryByRole('img')).toBeNull();
   });
+
+  it('falls back to a plain price when the currency code is invalid', () => {
+    render(<ListingPreviewCard preview={{ id: 'l3', title: 'Xe máy', imageUrl: null, price: 150000, currency: 'XX', location: 'HN' }} />);
+    expect(screen.getByText('Xe máy')).toBeInTheDocument();
+    expect(screen.getByText(/150\.000 XX/)).toBeInTheDocument();
+  });
 });

@@ -97,4 +97,53 @@ describe('MessageBubble', () => {
     expect(screen.getByText('2.0 KB')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Lều/ })).toHaveAttribute('href', '/listings/l1');
   });
+
+  it('disables Lưu for a whitespace-only draft', async () => {
+    renderBubble({ content: 'cũ' });
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    const box = screen.getByRole('textbox', { name: 'Sửa tin nhắn' });
+    await userEvent.clear(box);
+    await userEvent.type(box, '   ');
+    expect(screen.getByRole('button', { name: 'Lưu' })).toBeDisabled();
+  });
+
+  it('calls onEdit once on a double click while pending', async () => {
+    let resolve!: () => void;
+    const h = handlers();
+    h.onEdit = vi.fn().mockReturnValue(new Promise<void>((r) => (resolve = r)));
+    render(<MessageBubble message={makeMessage({ id: 'm7', content: 'cũ' })} isMine {...h} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    const save = screen.getByRole('button', { name: 'Lưu' });
+    await userEvent.dblClick(save);
+    expect(h.onEdit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Huỷ' })).toBeDisabled();
+    resolve();
+  });
+
+  it('shows the error and keeps the editor open when onEdit rejects', async () => {
+    const h = handlers();
+    h.onEdit = vi.fn().mockRejectedValue(new Error('Hết hạn sửa'));
+    render(<MessageBubble message={makeMessage({ content: 'cũ' })} isMine {...h} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Hết hạn sửa');
+    expect(screen.getByRole('textbox', { name: 'Sửa tin nhắn' })).toBeInTheDocument();
+  });
+
+  it('closes the editor on Huỷ without calling onEdit', async () => {
+    const h = renderBubble({ content: 'cũ' });
+    await userEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Huỷ' }));
+    expect(screen.queryByRole('textbox', { name: 'Sửa tin nhắn' })).toBeNull();
+    expect(h.onEdit).not.toHaveBeenCalled();
+  });
+
+  it('shows an alert when onDelete rejects', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const h = handlers();
+    h.onDelete = vi.fn().mockRejectedValue(new Error('Không thể thu hồi'));
+    render(<MessageBubble message={makeMessage()} isMine {...h} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Xoá' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không thể thu hồi');
+  });
 });
