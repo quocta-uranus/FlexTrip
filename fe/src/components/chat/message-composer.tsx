@@ -130,7 +130,8 @@ export function MessageComposer({ replyTo, onCancelReply, initialText, onSend, o
           {...register('content')}
           onKeyDown={(e) => {
             // Enter while composing (Vietnamese IME) confirms the candidate, it must not send.
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            // Safari fires that keydown after compositionend (isComposing false) but with keyCode 229.
+            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
               e.preventDefault();
               void submit();
             }

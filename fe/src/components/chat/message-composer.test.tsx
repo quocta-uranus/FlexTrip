@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, type Mock } from 'vitest';
 import { makeMessage } from '@/test/factories';
@@ -38,6 +38,18 @@ describe('MessageComposer', () => {
     await userEvent.type(box(), 'a{Shift>}{Enter}{/Shift}b');
     expect(p.onSend).not.toHaveBeenCalled();
     await userEvent.type(box(), '{Enter}');
+    expect(p.onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send on the Enter that confirms an IME candidate', async () => {
+    const p = setup();
+    await userEvent.type(box(), 'xin');
+    fireEvent.keyDown(box(), { key: 'Enter', isComposing: true });
+    // Safari fires this keydown after compositionend, so isComposing is already false.
+    fireEvent.keyDown(box(), { key: 'Enter', keyCode: 229, isComposing: false });
+    expect(p.onSend).not.toHaveBeenCalled();
+    expect(box()).toHaveValue('xin');
+    fireEvent.keyDown(box(), { key: 'Enter', keyCode: 13 });
     expect(p.onSend).toHaveBeenCalledTimes(1);
   });
 
