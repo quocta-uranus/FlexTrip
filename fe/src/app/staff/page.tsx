@@ -2,9 +2,10 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertTriangle, CalendarDays, Camera, CheckCircle2, Clock3, MapPin,
-  PackageCheck, RotateCcw, Scale, Upload,
+  AlertTriangle, ArrowRight, CalendarDays, Camera, CheckCircle2,
+  ClipboardList, Clock3, MapPin, Package, RotateCcw, Scale, Upload,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
@@ -19,42 +20,44 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useConfirmStaffTask, useCreateMediation, useEscalateMediation,
-  useResolveMediation, useStaffMediations, useStaffTasks,
+  useMyBookings, useResolveMediation, useStaffMediations, useStaffTasks,
 } from '@/hooks/use-staff-operations';
 import {
   staffConditionSchema, staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
   type StaffConditionInput, type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
 } from '@/lib/validators/staff.schema';
-import type { StaffMediation, StaffTask } from '@/types/staff';
+import type { StaffBooking, StaffMediation, StaffTask } from '@/types/staff';
 
 function localDate() {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
-
-function messageOf(error: unknown) {
-  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message;
-  return 'Không thể thực hiện thao tác. Vui lòng thử lại.';
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+}
+function errMsg(e: unknown) {
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string')
+    return (e as { message: string }).message;
+  return 'Không thể thực hiện. Vui lòng thử lại.';
 }
 
+// ── Task card ────────────────────────────────────────────────────────────
 function TaskCard({ task, onConfirm, onMediate }: {
-  task: StaffTask;
-  onConfirm: (task: StaffTask) => void;
-  onMediate: (task: StaffTask) => void;
+  task: StaffTask; onConfirm: (t: StaffTask) => void; onMediate: (t: StaffTask) => void;
 }) {
   const isHandover = task.type === 'HANDOVER';
   const completed = Boolean(task.completedAt);
   return (
-    <Card className="border-0 bg-white shadow-sm ring-slate-200">
-      <CardHeader className="border-b border-slate-100">
+    <Card className="border-0 bg-white shadow-sm ring-1 ring-[#e2e8f3]">
+      <CardHeader className="border-b border-[#f1f5fa]">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className={`rounded-xl p-2.5 ${isHandover ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'}`}>
-              {isHandover ? <PackageCheck /> : <RotateCcw />}
+              {isHandover ? <Package className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}
             </div>
             <div>
-              <CardTitle>{isHandover ? 'Giao thiết bị' : 'Nhận lại thiết bị'}</CardTitle>
-              <CardDescription className="mt-1 font-mono">#{task.bookingId.slice(0, 10)}</CardDescription>
+              <CardTitle className="text-base">{isHandover ? 'Giao thiết bị' : 'Nhận lại thiết bị'}</CardTitle>
+              <CardDescription className="mt-0.5 font-mono">#{task.bookingId.slice(0, 10)}</CardDescription>
             </div>
           </div>
           <Badge variant={completed ? 'secondary' : 'outline'}>
@@ -62,22 +65,25 @@ function TaskCard({ task, onConfirm, onMediate }: {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         <div>
-          <p className="font-semibold text-slate-900">{task.listing.title}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500"><MapPin className="size-4" />{task.deliveryAddress || task.listing.location}</p>
+          <p className="font-semibold text-[#0f1729]">{task.listing.title}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-[#5a6b85]">
+            <MapPin className="h-4 w-4 text-[#8694ad]" />
+            {task.deliveryAddress ?? task.listing.location}
+          </p>
         </div>
-        <div className="grid gap-3 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-2">
-          <div><span className="text-slate-500">Traveler</span><p className="font-medium">{task.traveler.name}</p><p className="text-xs text-slate-500">{task.traveler.phone || task.traveler.email}</p></div>
-          <div><span className="text-slate-500">Provider</span><p className="font-medium">{task.listing.provider.name}</p><p className="text-xs text-slate-500">{task.listing.provider.phone || 'Chưa có SĐT'}</p></div>
+        <div className="grid gap-3 rounded-xl bg-[#f8fafc] p-3 text-sm sm:grid-cols-2">
+          <div><p className="text-[#8694ad]">Traveler</p><p className="font-medium text-[#0f1729]">{task.traveler.name}</p><p className="text-xs text-[#8694ad]">{task.traveler.phone ?? task.traveler.email}</p></div>
+          <div><p className="text-[#8694ad]">Provider</p><p className="font-medium text-[#0f1729]">{task.listing.provider.name}</p><p className="text-xs text-[#8694ad]">{task.listing.provider.phone ?? '—'}</p></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button disabled={completed} onClick={() => onConfirm(task)}>
-            <Camera />{completed ? 'Đã xác nhận' : 'Chụp ảnh & xác nhận'}
+          <Button disabled={completed} onClick={() => onConfirm(task)} className="bg-[#2a7bd9] hover:bg-[#1e5aa8]">
+            <Camera className="h-4 w-4" />{completed ? 'Đã xác nhận' : 'Chụp ảnh & xác nhận'}
           </Button>
           {!completed && (
             <Button variant="outline" onClick={() => onMediate(task)}>
-              <Scale />Có bất đồng
+              <Scale className="h-4 w-4" />Có bất đồng
             </Button>
           )}
         </div>
@@ -86,48 +92,41 @@ function TaskCard({ task, onConfirm, onMediate }: {
   );
 }
 
+// ── Condition dialog ─────────────────────────────────────────────────────
 function ConditionDialog({ task, onClose, onDone }: {
-  task: StaffTask | null;
-  onClose: () => void;
-  onDone: (message: string) => void;
+  task: StaffTask | null; onClose: () => void; onDone: (msg: string) => void;
 }) {
   const mutation = useConfirmStaffTask();
   const form = useForm<StaffConditionInput>({ resolver: zodResolver(staffConditionSchema) });
-  const submit = form.handleSubmit((values) => {
+  const submit = form.handleSubmit((v) => {
     if (!task) return;
     mutation.mutate(
-      { bookingId: task.bookingId, type: task.type, conditionNote: values.conditionNote, file: values.file },
-      {
-        onSuccess: () => {
-          form.reset();
-          onClose();
-          onDone(task.type === 'HANDOVER' ? 'Đã xác nhận bàn giao.' : 'Đã xác nhận nhận lại.');
-        },
-      },
+      { bookingId: task.bookingId, type: task.type, conditionNote: v.conditionNote, file: v.file },
+      { onSuccess: () => { form.reset(); onClose(); onDone(task.type === 'HANDOVER' ? 'Đã xác nhận bàn giao.' : 'Đã xác nhận nhận lại.'); } },
     );
   });
   return (
-    <Dialog open={Boolean(task)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(task)} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{task?.type === 'HANDOVER' ? 'Xác nhận giao thiết bị' : 'Xác nhận nhận lại thiết bị'}</DialogTitle>
-          <DialogDescription>Ảnh và mô tả sẽ được lưu vào biên bản để đối chiếu khi có tranh chấp.</DialogDescription>
+          <DialogDescription>Ảnh và mô tả sẽ được lưu vào biên bản đối chiếu khi có tranh chấp.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="condition-photo">Ảnh tình trạng</Label>
-            <Input id="condition-photo" type="file" accept="image/*" capture="environment" onChange={(event) => form.setValue('file', event.target.files?.[0] as File, { shouldValidate: true })} />
+            <Label>Ảnh tình trạng</Label>
+            <Input type="file" accept="image/*" capture="environment" onChange={(e) => form.setValue('file', e.target.files?.[0] as File, { shouldValidate: true })} />
             {form.formState.errors.file && <p className="text-xs text-red-600">{form.formState.errors.file.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="condition-note">Tình trạng thiết bị</Label>
-            <Textarea id="condition-note" rows={5} placeholder="Mô tả ngoại quan, phụ kiện, vết xước hoặc hư hỏng..." {...form.register('conditionNote')} />
+            <Label>Tình trạng thiết bị</Label>
+            <Textarea rows={5} placeholder="Mô tả ngoại quan, phụ kiện, vết xước..." {...form.register('conditionNote')} />
             {form.formState.errors.conditionNote && <p className="text-xs text-red-600">{form.formState.errors.conditionNote.message}</p>}
           </div>
-          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{messageOf(mutation.error)}</p>}
+          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Huỷ</Button>
-            <Button type="submit" disabled={mutation.isPending}><Upload />{mutation.isPending ? 'Đang lưu...' : 'Xác nhận'}</Button>
+            <Button type="submit" disabled={mutation.isPending}><Upload className="h-4 w-4" />{mutation.isPending ? 'Đang lưu...' : 'Xác nhận'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -135,36 +134,32 @@ function ConditionDialog({ task, onClose, onDone }: {
   );
 }
 
+// ── Mediation dialog ─────────────────────────────────────────────────────
 function MediationDialog({ task, onClose, onDone }: {
-  task: StaffTask | null;
-  onClose: () => void;
-  onDone: (message: string) => void;
+  task: StaffTask | null; onClose: () => void; onDone: (msg: string) => void;
 }) {
   const mutation = useCreateMediation();
   const form = useForm<StaffMediationInput>({
     resolver: zodResolver(staffMediationSchema),
     defaultValues: { files: [], issue: '', travelerStatement: '', providerStatement: '' },
   });
-  const submit = form.handleSubmit((values) => {
+  const submit = form.handleSubmit((v) => {
     if (!task) return;
-    mutation.mutate(
-      { bookingId: task.bookingId, ...values },
-      { onSuccess: () => { form.reset(); onClose(); onDone('Đã lập biên bản thương lượng tại chỗ.'); } },
-    );
+    mutation.mutate({ bookingId: task.bookingId, ...v }, { onSuccess: () => { form.reset(); onClose(); onDone('Đã lập biên bản thương lượng.'); } });
   });
   return (
-    <Dialog open={Boolean(task)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(task)} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Biên bản thương lượng tại chỗ</DialogTitle>
-          <DialogDescription>Ghi nhận trung lập ý kiến hai bên và bằng chứng trước khi quyết định thoả thuận hoặc chuyển Admin.</DialogDescription>
+          <DialogDescription>Ghi nhận trung lập ý kiến hai bên và bằng chứng trước khi quyết định.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2"><Label>Vấn đề phát sinh</Label><Textarea rows={4} {...form.register('issue')} />{form.formState.errors.issue && <p className="text-xs text-red-600">{form.formState.errors.issue.message}</p>}</div>
           <div className="space-y-2"><Label>Ý kiến Traveler</Label><Textarea rows={3} {...form.register('travelerStatement')} /></div>
           <div className="space-y-2"><Label>Ý kiến Provider</Label><Textarea rows={3} {...form.register('providerStatement')} /></div>
-          <div className="space-y-2"><Label>Ảnh bằng chứng (tối đa 10)</Label><Input type="file" accept="image/*" multiple onChange={(event) => form.setValue('files', Array.from(event.target.files ?? []), { shouldValidate: true })} /></div>
-          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{messageOf(mutation.error)}</p>}
+          <div className="space-y-2"><Label>Ảnh bằng chứng (tối đa 10)</Label><Input type="file" accept="image/*" multiple onChange={(e) => form.setValue('files', Array.from(e.target.files ?? []))} /></div>
+          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
           <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Đang lập...' : 'Lập biên bản'}</Button></DialogFooter>
         </form>
       </DialogContent>
@@ -172,50 +167,48 @@ function MediationDialog({ task, onClose, onDone }: {
   );
 }
 
+// ── Mediation action dialog ───────────────────────────────────────────────
 function MediationActionDialog({ mediation, action, onClose, onDone }: {
-  mediation: StaffMediation | null;
-  action: 'resolve' | 'escalate';
-  onClose: () => void;
-  onDone: (message: string) => void;
+  mediation: StaffMediation | null; action: 'resolve' | 'escalate'; onClose: () => void; onDone: (msg: string) => void;
 }) {
-  const resolveMutation = useResolveMediation();
-  const escalateMutation = useEscalateMediation();
+  const resolve = useResolveMediation();
+  const escalate = useEscalateMediation();
   const resolveForm = useForm<StaffResolutionInput>({ resolver: zodResolver(staffResolutionSchema) });
   const escalateForm = useForm<StaffEscalationInput>({ resolver: zodResolver(staffEscalationSchema), defaultValues: { type: 'DAMAGE_CLAIM', priority: 'HIGH' } });
-  const submitResolve = resolveForm.handleSubmit((values) => {
+  const submitResolve = resolveForm.handleSubmit((v) => {
     if (!mediation) return;
-    resolveMutation.mutate({ id: mediation.id, resolution: values.resolution }, { onSuccess: () => { resolveForm.reset(); onClose(); onDone('Đã ghi nhận thoả thuận.'); } });
+    resolve.mutate({ id: mediation.id, resolution: v.resolution }, { onSuccess: () => { resolveForm.reset(); onClose(); onDone('Đã ghi nhận thoả thuận.'); } });
   });
-  const submitEscalate = escalateForm.handleSubmit((values) => {
+  const submitEscalate = escalateForm.handleSubmit((v) => {
     if (!mediation) return;
-    const amount = values.requestedAmount ? Number(values.requestedAmount) : undefined;
-    escalateMutation.mutate({ id: mediation.id, type: values.type, priority: values.priority, requestedAmount: amount, additionalNotes: values.additionalNotes }, { onSuccess: () => { escalateForm.reset(); onClose(); onDone('Đã chuyển vụ việc lên Admin.'); } });
+    escalate.mutate({ id: mediation.id, type: v.type, priority: v.priority, requestedAmount: v.requestedAmount ? Number(v.requestedAmount) : undefined, additionalNotes: v.additionalNotes },
+      { onSuccess: () => { escalateForm.reset(); onClose(); onDone('Đã chuyển vụ việc lên Admin.'); } });
   });
-  const pending = resolveMutation.isPending || escalateMutation.isPending;
-  const error = resolveMutation.error ?? escalateMutation.error;
+  const pending = resolve.isPending || escalate.isPending;
+  const error = resolve.error ?? escalate.error;
   return (
-    <Dialog open={Boolean(mediation)} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={Boolean(mediation)} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{action === 'resolve' ? 'Ghi nhận thoả thuận' : 'Chuyển vụ việc lên Admin'}</DialogTitle>
-          <DialogDescription>{mediation?.issue}</DialogDescription>
+          <DialogDescription className="line-clamp-2">{mediation?.issue}</DialogDescription>
         </DialogHeader>
         {action === 'resolve' ? (
           <form onSubmit={submitResolve} className="space-y-4">
             <div className="space-y-2"><Label>Nội dung hai bên đã thống nhất</Label><Textarea rows={5} {...resolveForm.register('resolution')} />{resolveForm.formState.errors.resolution && <p className="text-xs text-red-600">{resolveForm.formState.errors.resolution.message}</p>}</div>
-            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{messageOf(error)}</p>}
+            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(error)}</p>}
             <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" disabled={pending}>Hoàn tất thương lượng</Button></DialogFooter>
           </form>
         ) : (
           <form onSubmit={submitEscalate} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Loại tranh chấp</Label><select className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" {...escalateForm.register('type')}><option value="DAMAGE_CLAIM">Hư hỏng</option><option value="REFUND_REQUEST">Yêu cầu hoàn tiền</option><option value="PAYMENT_DISPUTE">Thanh toán</option><option value="CANCELLATION_DISPUTE">Huỷ booking</option></select></div>
+              <div className="space-y-2"><Label>Loại tranh chấp</Label><select className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" {...escalateForm.register('type')}><option value="DAMAGE_CLAIM">Hư hỏng</option><option value="REFUND_REQUEST">Hoàn tiền</option><option value="PAYMENT_DISPUTE">Thanh toán</option><option value="CANCELLATION_DISPUTE">Huỷ booking</option></select></div>
               <div className="space-y-2"><Label>Mức ưu tiên</Label><select className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" {...escalateForm.register('priority')}><option value="MEDIUM">Trung bình</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></div>
             </div>
             <div className="space-y-2"><Label>Số tiền yêu cầu (nếu có)</Label><Input type="number" min="0" {...escalateForm.register('requestedAmount')} /></div>
-            <div className="space-y-2"><Label>Ghi chú bổ sung</Label><Textarea rows={4} {...escalateForm.register('additionalNotes')} /></div>
-            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{messageOf(error)}</p>}
-            <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" variant="destructive" disabled={pending}><AlertTriangle />Chuyển Admin</Button></DialogFooter>
+            <div className="space-y-2"><Label>Ghi chú</Label><Textarea rows={3} {...escalateForm.register('additionalNotes')} /></div>
+            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(error)}</p>}
+            <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" variant="destructive" disabled={pending}><AlertTriangle className="h-4 w-4" />Chuyển Admin</Button></DialogFooter>
           </form>
         )}
       </DialogContent>
@@ -223,59 +216,261 @@ function MediationActionDialog({ mediation, action, onClose, onDone }: {
   );
 }
 
-export default function StaffOperationsPage() {
+// ── Upcoming booking mini-card ────────────────────────────────────────────
+function UpcomingCard({ booking }: { booking: StaffBooking }) {
+  return (
+    <Link href={`/staff/bookings/${booking.id}`}>
+      <div className="flex items-center gap-3 rounded-xl border border-[#e2e8f3] bg-white px-4 py-3 transition-colors hover:border-[#2a7bd9]/40 hover:bg-[#2a7bd9]/5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2a7bd9]/10">
+          <CalendarDays className="h-4 w-4 text-[#2a7bd9]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-[#0f1729]">{booking.listing.title}</p>
+          <p className="text-xs text-[#8694ad]">{formatDate(booking.startDate)} → {formatDate(booking.endDate)}</p>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 text-[#8694ad]" />
+      </div>
+    </Link>
+  );
+}
+
+// ── Main dashboard ────────────────────────────────────────────────────────
+export default function StaffDashboard() {
   const [date, setDate] = useState(localDate);
   const [conditionTask, setConditionTask] = useState<StaffTask | null>(null);
   const [mediationTask, setMediationTask] = useState<StaffTask | null>(null);
   const [actionState, setActionState] = useState<{ mediation: StaffMediation; action: 'resolve' | 'escalate' } | null>(null);
   const [notice, setNotice] = useState('');
+
   const tasksQuery = useStaffTasks(date);
   const mediationsQuery = useStaffMediations();
-  const tasks = useMemo(() => tasksQuery.data?.tasks ?? [], [tasksQuery.data?.tasks]);
-  const stats = useMemo(() => ({ total: tasks.length, done: tasks.filter((task) => task.completedAt).length }), [tasks]);
+  const inProgressQuery = useMyBookings({ status: 'IN_PROGRESS', limit: 5 });
+  const upcomingQuery  = useMyBookings({ status: 'CONFIRMED', limit: 5 });
+  const allQuery       = useMyBookings({ limit: 1 });
+  const completedQuery = useMyBookings({ status: 'COMPLETED', limit: 1 });
+
+  const tasks = useMemo(() => tasksQuery.data?.tasks ?? [], [tasksQuery.data]);
+  const stats = useMemo(() => ({
+    total:         allQuery.data?.total ?? 0,
+    inProgress:    inProgressQuery.data?.total ?? 0,
+    completed:     completedQuery.data?.total ?? 0,
+    allMediations: mediationsQuery.data?.length ?? 0,
+    openMediations: mediationsQuery.data?.filter((m) => m.status === 'OPEN').length ?? 0,
+  }), [allQuery.data, inProgressQuery.data, completedQuery.data, mediationsQuery.data]);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Staff Operations</p><h1 className="mt-1 text-3xl font-bold text-slate-950">Lịch giao nhận</h1><p className="mt-2 text-slate-600">Xử lý các điểm giao, nhận và sự cố được Admin phân công.</p></div>
-        <div className="space-y-2"><Label htmlFor="task-date">Ngày làm việc</Label><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3"><CalendarDays className="size-4 text-slate-500" /><Input id="task-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} className="border-0 shadow-none" /></div></div>
-      </section>
+    <div className="mx-auto max-w-5xl space-y-8 px-6 py-8">
+      {/* Header */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2a7bd9]">Staff Operations</p>
+        <h1 className="mt-1 text-2xl font-bold text-[#0f1729]">Dashboard</h1>
+      </div>
 
-      {notice && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><CheckCircle2 className="size-5" />{notice}</div>}
+      {notice && (
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />{notice}
+        </div>
+      )}
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="flex items-center gap-3"><Clock3 className="size-8 text-blue-600" /><div><p className="text-2xl font-bold">{stats.total}</p><p className="text-sm text-slate-500">Tác vụ trong ngày</p></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-3"><CheckCircle2 className="size-8 text-emerald-600" /><div><p className="text-2xl font-bold">{stats.done}</p><p className="text-sm text-slate-500">Đã hoàn thành</p></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-3"><Scale className="size-8 text-amber-600" /><div><p className="text-2xl font-bold">{mediationsQuery.data?.filter((item) => item.status === 'OPEN').length ?? 0}</p><p className="text-sm text-slate-500">Đang thương lượng</p></div></CardContent></Card>
-      </section>
+      {/* ── Tổng quan ── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-bold text-[#0f1729]">Tổng quan</h2>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Card className="border-0 shadow-sm ring-1 ring-[#e2e8f3]">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f8fafc]">
+                <ClipboardList className="h-5 w-5 text-[#2a7bd9]" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-[#2a7bd9]">{stats.total}</p>
+                <p className="text-xs text-[#8694ad]">Tổng booking</p>
+              </div>
+            </CardContent>
+          </Card>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-900">Điểm giao nhận</h2>
-        {tasksQuery.isLoading && <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-72" /><Skeleton className="h-72" /></div>}
-        {tasksQuery.isError && <p className="rounded-xl bg-red-50 p-4 text-red-700">{messageOf(tasksQuery.error)}</p>}
-        {!tasksQuery.isLoading && tasks.length === 0 && <Card><CardContent className="py-12 text-center text-slate-500"><CalendarDays className="mx-auto mb-3 size-10" />Không có tác vụ được phân công trong ngày này.</CardContent></Card>}
-        <div className="grid gap-4 lg:grid-cols-2">{tasks.map((task) => <TaskCard key={task.id} task={task} onConfirm={setConditionTask} onMediate={setMediationTask} />)}</div>
-      </section>
+          <Card className="border-0 shadow-sm ring-1 ring-[#e2e8f3]">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f8fafc]">
+                <Package className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-violet-600">{stats.inProgress}</p>
+                <p className="text-xs text-[#8694ad]">Đang thuê</p>
+              </div>
+            </CardContent>
+          </Card>
 
-      <section id="mediations" className="scroll-mt-24 space-y-4">
-        <div><h2 className="text-xl font-bold text-slate-900">Biên bản thương lượng</h2><p className="text-sm text-slate-500">Theo dõi các bất đồng đã ghi nhận tại điểm giao hoặc nhận.</p></div>
-        <div className="space-y-3">
-          {mediationsQuery.isLoading && <Skeleton className="h-40 w-full" />}
-          {mediationsQuery.data?.map((item) => (
-            <Card key={item.id} className="bg-white">
-              <CardContent className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="space-y-1"><div className="flex items-center gap-2"><Badge variant={item.status === 'OPEN' ? 'outline' : 'secondary'}>{item.status === 'OPEN' ? 'Đang thương lượng' : item.status === 'RESOLVED' ? 'Đã thoả thuận' : 'Đã chuyển Admin'}</Badge><span className="font-mono text-xs text-slate-400">#{item.bookingId.slice(0, 8)}</span></div><p className="font-semibold text-slate-900">{item.booking?.listing.title}</p><p className="line-clamp-2 text-sm text-slate-600">{item.issue}</p></div>
-                {item.status === 'OPEN' && <div className="flex shrink-0 gap-2"><Button variant="outline" onClick={() => setActionState({ mediation: item, action: 'resolve' })}><CheckCircle2 />Đã thoả thuận</Button><Button variant="destructive" onClick={() => setActionState({ mediation: item, action: 'escalate' })}><AlertTriangle />Chuyển Admin</Button></div>}
-              </CardContent>
-            </Card>
-          ))}
-          {!mediationsQuery.isLoading && mediationsQuery.data?.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Chưa có biên bản thương lượng.</p>}
+          <Card className="border-0 shadow-sm ring-1 ring-[#e2e8f3]">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f8fafc]">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-600">{stats.completed}</p>
+                <p className="text-xs text-[#8694ad]">Đã hoàn thành</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm ring-1 ring-[#e2e8f3]">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f8fafc]">
+                <Scale className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-bold text-amber-600">{stats.allMediations}</p>
+                  {stats.openMediations > 0 && (
+                    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                      {stats.openMediations} mở
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[#8694ad]">Biên bản</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
+      {/* ── Thống kê ngày ── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-base font-bold text-[#0f1729]">Thống kê ngày</h2>
+          <div className="flex items-center gap-2 rounded-xl border border-[#e2e8f3] bg-white px-3 py-2">
+            <CalendarDays className="h-4 w-4 text-[#8694ad]" />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border-0 p-0 shadow-none focus-visible:ring-0" />
+          </div>
+        </div>
+
+        {/* Daily mini-stats */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex items-center gap-3 rounded-xl border border-[#e2e8f3] bg-white px-4 py-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f8fafc]">
+              <Clock3 className="h-4 w-4 text-[#2a7bd9]" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-[#2a7bd9]">{tasks.length}</p>
+              <p className="text-xs text-[#8694ad]">Tác vụ trong ngày</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl border border-[#e2e8f3] bg-white px-4 py-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f8fafc]">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-emerald-600">{tasks.filter((t) => t.completedAt).length}</p>
+              <p className="text-xs text-[#8694ad]">Đã xử lý trong ngày</p>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-sm font-semibold text-[#5a6b85]">Điểm giao nhận</h3>
+        {tasksQuery.isLoading && <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>}
+        {tasksQuery.isError && <p className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{errMsg(tasksQuery.error)}</p>}
+        {!tasksQuery.isLoading && tasks.length === 0 && (
+          <Card className="border-0 shadow-sm ring-1 ring-[#e2e8f3]">
+            <CardContent className="py-10 text-center text-[#5a6b85]">
+              <CalendarDays className="mx-auto mb-3 h-10 w-10 text-[#8694ad]" />
+              Không có tác vụ nào được phân công trong ngày này.
+            </CardContent>
+          </Card>
+        )}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} onConfirm={setConditionTask} onMediate={setMediationTask} />
+          ))}
+        </div>
+      </section>
+
+      {/* Upcoming + In-progress side by side */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Booking sắp tới */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-[#0f1729]">Booking sắp tới</h2>
+            <Link href="/staff/bookings?status=CONFIRMED" className="flex items-center gap-1 text-xs font-medium text-[#2a7bd9] hover:underline">
+              Xem tất cả <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          {upcomingQuery.isLoading && <Skeleton className="h-32 w-full" />}
+          {!upcomingQuery.isLoading && (upcomingQuery.data?.items ?? []).length === 0 && (
+            <p className="rounded-xl border border-dashed border-[#e2e8f3] p-5 text-center text-sm text-[#8694ad]">Không có booking đã xác nhận.</p>
+          )}
+          <div className="space-y-2">
+            {(upcomingQuery.data?.items ?? []).map((b) => <UpcomingCard key={b.id} booking={b} />)}
+          </div>
+        </section>
+
+        {/* Đang thuê */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-[#0f1729]">Đang thuê</h2>
+            <Link href="/staff/bookings?status=IN_PROGRESS" className="flex items-center gap-1 text-xs font-medium text-[#2a7bd9] hover:underline">
+              Xem tất cả <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          {inProgressQuery.isLoading && <Skeleton className="h-32 w-full" />}
+          {!inProgressQuery.isLoading && (inProgressQuery.data?.items ?? []).length === 0 && (
+            <p className="rounded-xl border border-dashed border-[#e2e8f3] p-5 text-center text-sm text-[#8694ad]">Không có booking đang thuê.</p>
+          )}
+          <div className="space-y-2">
+            {(inProgressQuery.data?.items ?? []).map((b) => <UpcomingCard key={b.id} booking={b} />)}
+          </div>
+        </section>
+      </div>
+
+      {/* Open mediations */}
+      {stats.openMediations > 0 && (
+        <section id="mediations" className="scroll-mt-24 space-y-3">
+          <h2 className="text-base font-bold text-[#0f1729]">Biên bản thương lượng đang mở</h2>
+          <div className="space-y-2">
+            {mediationsQuery.data?.filter((m) => m.status === 'OPEN').map((item) => (
+              <Card key={item.id} className="border-0 bg-white shadow-sm ring-1 ring-amber-200">
+                <CardContent className="flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-[#0f1729]">{item.booking?.listing.title}</p>
+                    <p className="line-clamp-1 text-sm text-[#5a6b85]">{item.issue}</p>
+                    <p className="font-mono text-[10px] text-[#8694ad]">#{item.bookingId.slice(0, 8)}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setActionState({ mediation: item, action: 'resolve' })}>
+                      <CheckCircle2 className="h-4 w-4" />Thoả thuận
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => setActionState({ mediation: item, action: 'escalate' })}>
+                      <AlertTriangle className="h-4 w-4" />Chuyển Admin
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* All mediations link */}
+      <div className="flex items-center justify-between rounded-xl border border-[#e2e8f3] bg-white px-5 py-4">
+        <div className="flex items-center gap-3">
+          <Scale className="h-5 w-5 text-[#8694ad]" />
+          <div>
+            <p className="text-sm font-semibold text-[#0f1729]">Tất cả biên bản thương lượng</p>
+            <p className="text-xs text-[#8694ad]">{mediationsQuery.data?.length ?? 0} biên bản</p>
+          </div>
+        </div>
+        <Link href="/staff/bookings" className="flex items-center gap-1 text-xs font-medium text-[#2a7bd9] hover:underline">
+          <ClipboardList className="h-4 w-4" />Xem booking <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {/* Dialogs */}
       <ConditionDialog task={conditionTask} onClose={() => setConditionTask(null)} onDone={setNotice} />
       <MediationDialog task={mediationTask} onClose={() => setMediationTask(null)} onDone={setNotice} />
-      <MediationActionDialog mediation={actionState?.mediation ?? null} action={actionState?.action ?? 'resolve'} onClose={() => setActionState(null)} onDone={setNotice} />
+      <MediationActionDialog
+        mediation={actionState?.mediation ?? null}
+        action={actionState?.action ?? 'resolve'}
+        onClose={() => setActionState(null)}
+        onDone={setNotice}
+      />
     </div>
   );
 }

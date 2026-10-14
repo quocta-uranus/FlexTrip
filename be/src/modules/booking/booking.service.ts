@@ -24,6 +24,12 @@ const BOOKING_INCLUDE = {
   },
   traveler: { select: { id: true, name: true, avatarUrl: true, email: true } },
   payment: { select: { id: true, status: true, method: true, amount: true, transactionId: true } },
+  assignedStaff: {
+    select: {
+      id: true, name: true, avatarUrl: true, email: true, phone: true,
+      staffProfile: { select: { employeeCode: true, phone: true, regions: true } },
+    },
+  },
 } satisfies Prisma.BookingInclude;
 
 @Injectable()
