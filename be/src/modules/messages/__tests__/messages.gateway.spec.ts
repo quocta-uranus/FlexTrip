@@ -42,4 +42,22 @@ describe('MSG gateway', () => {
     await sleep(200);
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it('delivers to nobody when there are no recipients', async () => {
+    const a = await h.createUser('a@example.com', [Role.TRAVELER]);
+    const b = await h.createUser('b@example.com', [Role.PROVIDER]);
+    const sa = await connect(url, a.accessToken);
+    const sb = await connect(url, b.accessToken);
+    sockets.push(sa, sb);
+    const spyA = jest.fn();
+    const spyB = jest.fn();
+    sa.on('message:new', spyA);
+    sb.on('message:new', spyB);
+
+    h.app.get(MessagesGateway).emitToUsers([], 'message:new', { leak: true });
+
+    await sleep(200);
+    expect(spyA).not.toHaveBeenCalled();
+    expect(spyB).not.toHaveBeenCalled();
+  });
 });

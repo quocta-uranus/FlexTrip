@@ -48,6 +48,8 @@ export class MessagesGateway implements OnGatewayConnection {
   }
 
   emitToUsers(userIds: string[], event: MessageEvent, payload: unknown): void {
+    // socket.io's to([]) targets no room and broadcasts to every socket.
+    if (!userIds.length) return;
     this.server.to(userIds.map(userRoom)).emit(event, payload);
   }
 }
