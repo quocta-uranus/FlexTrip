@@ -1,8 +1,26 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body, CanActivate, Controller, Delete, ExecutionContext, Get, Injectable, Param, Patch, Post, Query, Req,
+  UploadedFiles, UseGuards, UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
-import { EditMessageDto, MessagesQueryDto, SendMessageDto, StartConversationDto } from './messages.dto';
+import { MAX_FILE_BYTES, MAX_FILES } from './attachment-validator';
+import { EditMessageDto, MessagesQueryDto, SendMessageDto, SharedQueryDto, StartConversationDto } from './messages.dto';
 import { MessagesService } from './messages.service';
+
+// Guards run before the multer interceptor, so outsiders are rejected before any upload is buffered.
+@Injectable()
+class ConversationMemberGuard implements CanActivate {
+  constructor(private readonly svc: MessagesService) {}
+
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const req = ctx.switchToHttp().getRequest<AuthenticatedRequest & { params: { id: string } }>();
+    await this.svc.requireMember(req.authUserId, req.params.id);
+    return true;
+  }
+}
 
 @ApiTags('messages')
 @ApiBearerAuth()
@@ -49,5 +67,21 @@ export class MessagesController {
   @Delete(':id')
   remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.svc.remove(req.authUserId, id);
+  }
+
+  @Post('conversations/:id/attachments')
+  @UseGuards(ConversationMemberGuard)
+  @UseInterceptors(FilesInterceptor('files', MAX_FILES, { storage: memoryStorage(), limits: { fileSize: MAX_FILE_BYTES } }))
+  upload(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+  ) {
+    return this.svc.uploadAttachments(req.authUserId, id, files);
+  }
+
+  @Get('conversations/:id/shared')
+  shared(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Query() q: SharedQueryDto) {
+    return this.svc.shared(req.authUserId, id, q.kind, q);
   }
 }

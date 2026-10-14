@@ -63,3 +63,27 @@ export interface MessagePage {
   items: MessageDto[];
   nextCursor: string | null;
 }
+
+export interface SharedAttachmentDto extends MessageAttachmentDto {
+  messageId: string;
+  createdAt: string;
+}
+
+export interface SharedLinkDto {
+  messageId: string;
+  url: string;
+  createdAt: string;
+  listingPreview: ListingPreviewDto | null;
+}
+
+export interface SharedPage<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export interface UploadedAttachmentDto {
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+}

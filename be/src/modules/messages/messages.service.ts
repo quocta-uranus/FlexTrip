@@ -1,13 +1,17 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { MessageType, Prisma, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { safeFileName, validateAttachment } from './attachment-validator';
+import { ChatStorage } from './chat-storage.service';
 import { LinkPreviewService } from './link-preview.service';
 import { extractLinks } from './links.util';
 import { MESSAGE_INCLUDE, MessageRow, toMessageDto } from './message.mapper';
 import { validateSendShape } from './message-shape';
 import { MessagesGateway } from './messages.gateway';
 import type { SendMessageDto } from './messages.dto';
-import type { ConversationDto, MessageDto, MessagePage } from './messages.types';
+import type {
+  ConversationDto, MessageDto, MessagePage, SharedAttachmentDto, SharedLinkDto, SharedPage, UploadedAttachmentDto,
+} from './messages.types';
 
 const MEMBER_USER = { select: { id: true, name: true, avatarUrl: true } } as const;
 
@@ -17,6 +21,7 @@ export class MessagesService {
     private readonly prisma: PrismaService,
     private readonly previews: LinkPreviewService,
     private readonly gateway: MessagesGateway,
+    private readonly storage: ChatStorage,
   ) {}
 
   private async memberIds(conversationId: string): Promise<string[]> {
@@ -24,7 +29,7 @@ export class MessagesService {
     return rows.map((r) => r.userId);
   }
 
-  private async requireMember(userId: string, conversationId: string): Promise<string[]> {
+  async requireMember(userId: string, conversationId: string): Promise<string[]> {
     const ids = await this.memberIds(conversationId);
     if (!ids.includes(userId)) throw new ForbiddenException('Bạn không thuộc cuộc trò chuyện này');
     return ids;
@@ -118,6 +123,10 @@ export class MessagesService {
   async send(userId: string, conversationId: string, dto: SendMessageDto): Promise<MessageDto> {
     const memberIds = await this.requireMember(userId, conversationId);
     validateSendShape(dto);
+    const attachments = dto.attachments ?? [];
+    if (attachments.some((a) => !this.storage.isOwnUrl(a.url))) {
+      throw new BadRequestException('File đính kèm không hợp lệ');
+    }
     if (dto.replyToId) {
       const target = await this.prisma.message.findUnique({ where: { id: dto.replyToId }, select: { conversationId: true } });
       if (target?.conversationId !== conversationId) {
@@ -137,6 +146,7 @@ export class MessagesService {
           latitude: dto.type === MessageType.LOCATION ? dto.latitude : undefined,
           longitude: dto.type === MessageType.LOCATION ? dto.longitude : undefined,
           locationLabel: dto.type === MessageType.LOCATION ? dto.locationLabel : undefined,
+          attachments: { create: attachments.map(({ url, name, mimeType, size }) => ({ url, name, mimeType, size })) },
         },
         include: MESSAGE_INCLUDE,
       });
@@ -199,5 +209,85 @@ export class MessagesService {
       });
     }
     return { ok: true };
+  }
+
+  async uploadAttachments(
+    userId: string,
+    conversationId: string,
+    files: Express.Multer.File[] | undefined,
+  ): Promise<UploadedAttachmentDto[]> {
+    await this.requireMember(userId, conversationId);
+    if (!files?.length) throw new BadRequestException('Thiếu file đính kèm (field "files")');
+    // Validate the whole batch first so a bad file never leaves orphans in storage.
+    const validated = files.map((file) => ({ file, ...validateAttachment(file) }));
+    return Promise.all(
+      validated.map(async ({ file, mime, ext }) => ({
+        url: await this.storage.upload(file.buffer, ext, mime),
+        // multer decodes multipart filenames as latin1, which garbles UTF-8 names.
+        name: safeFileName(Buffer.from(file.originalname, 'latin1').toString('utf8')),
+        mimeType: mime,
+        size: file.size,
+      })),
+    );
+  }
+
+  async shared(
+    userId: string,
+    conversationId: string,
+    kind: 'media' | 'files' | 'links',
+    q: { cursor?: string; limit: number },
+  ): Promise<SharedPage<SharedAttachmentDto> | SharedPage<SharedLinkDto>> {
+    await this.requireMember(userId, conversationId);
+    return kind === 'links' ? this.sharedLinks(conversationId, q) : this.sharedAttachments(conversationId, kind, q);
+  }
+
+  private async sharedAttachments(
+    conversationId: string,
+    kind: 'media' | 'files',
+    q: { cursor?: string; limit: number },
+  ): Promise<SharedPage<SharedAttachmentDto>> {
+    const rows = await this.prisma.messageAttachment.findMany({
+      where: {
+        message: { conversationId, deletedAt: null, type: kind === 'media' ? MessageType.IMAGE : MessageType.FILE },
+      },
+      orderBy: [{ message: { createdAt: 'desc' } }, { message: { id: 'desc' } }, { id: 'desc' }],
+      take: q.limit + 1,
+      ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
+      include: { message: { select: { id: true, createdAt: true } } },
+    });
+    const hasMore = rows.length > q.limit;
+    const page = hasMore ? rows.slice(0, q.limit) : rows;
+    return {
+      items: page.map((a) => ({
+        id: a.id, url: a.url, name: a.name, mimeType: a.mimeType, size: a.size,
+        messageId: a.message.id, createdAt: a.message.createdAt.toISOString(),
+      })),
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+    };
+  }
+
+  // Cursor is a message id: one page = up to `limit` messages, each expanded into its links.
+  private async sharedLinks(
+    conversationId: string,
+    q: { cursor?: string; limit: number },
+  ): Promise<SharedPage<SharedLinkDto>> {
+    const rows = await this.prisma.message.findMany({
+      where: { conversationId, deletedAt: null, links: { isEmpty: false } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: q.limit + 1,
+      ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
+      select: { id: true, links: true, createdAt: true },
+    });
+    const hasMore = rows.length > q.limit;
+    const page = hasMore ? rows.slice(0, q.limit) : rows;
+    const previews = await this.previews.forUrls([...new Set(page.flatMap((m) => m.links))]);
+    return {
+      items: page.flatMap((m) =>
+        m.links.map((url) => ({
+          messageId: m.id, url, createdAt: m.createdAt.toISOString(), listingPreview: previews.get(url) ?? null,
+        })),
+      ),
+      nextCursor: hasMore ? page[page.length - 1].id : null,
+    };
   }
 }

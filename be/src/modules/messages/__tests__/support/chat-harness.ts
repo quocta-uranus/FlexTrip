@@ -1,12 +1,32 @@
+import { TestingModuleBuilder } from '@nestjs/testing';
 import { Role } from '@prisma/client';
 import { AddressInfo } from 'net';
 import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
 import { AuthHarness, resetDatabase } from '../../../auth/__tests__/support/auth-harness';
+import { ChatStorage } from '../../chat-storage.service';
 
 export type Method = 'get' | 'post' | 'patch' | 'delete';
 
+export class FakeChatStorage {
+  uploaded: { ext: string; mime: string; size: number }[] = [];
+  private n = 0;
+  async upload(buffer: Buffer, ext: string, mime: string): Promise<string> {
+    this.uploaded.push({ ext, mime, size: buffer.length });
+    return `https://storage.test/chat/${++this.n}.${ext}`;
+  }
+  isOwnUrl(url: string): boolean {
+    return url.startsWith('https://storage.test/chat/');
+  }
+}
+
 export class ChatHarness extends AuthHarness {
+  storage = new FakeChatStorage();
+
+  open(configure: (b: TestingModuleBuilder) => TestingModuleBuilder = (b) => b): Promise<void> {
+    return super.open((b) => configure(b.overrideProvider(ChatStorage).useValue(this.storage)));
+  }
+
   async createUser(email: string, roles: Role[]): Promise<{ userId: string; accessToken: string }> {
     const registered = await this.register(email);
     await this.prisma.user.update({
@@ -30,6 +50,7 @@ export class ChatHarness extends AuthHarness {
   async reset(): Promise<void> {
     await resetDatabase(this.prisma);
     this.redis.clear();
+    this.storage.uploaded = [];
   }
 
   async listen(): Promise<string> {

@@ -27,6 +27,7 @@ export async function uploadToSupabase(
   buffer: Buffer,
   filename: string,
   bucket = 'avatars',
+  contentType?: string,
 ): Promise<string> {
   const ext = filename.split('.').pop() || 'jpg';
   const uniqueName = `${Date.now()}-${createHash('sha1').update(buffer).digest('hex').slice(0, 8)}.${ext}`;
@@ -34,7 +35,7 @@ export async function uploadToSupabase(
   const { error } = await supabaseAdmin.storage
     .from(bucket)
     .upload(uniqueName, buffer, {
-      contentType: getMimeType(ext),
+      contentType: contentType ?? getMimeType(ext),
       upsert: false,
     });
 
