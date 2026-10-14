@@ -10,6 +10,9 @@ import { useListing, useUpdateListing } from '@/hooks/useListings';
 import { listingApi } from '@/lib/api/client';
 import { ImageUploader } from '@/components/listing/image-uploader';
 import { LISTING_CATEGORIES } from '@/constants/categories';
+import { PriceSuggestionCard } from '@/components/pricing/PriceSuggestionCard';
+import { AutoAdjustSettings } from '@/components/pricing/AutoAdjustSettings';
+import { AiDescriptionPanel } from '@/components/listing/AiDescriptionPanel';
 
 const COMMON_AMENITIES = [
   'Lều', 'Túi ngủ', 'Đèn pin', 'Bếp dã ngoại', 'Nồi/Chảo', 'Bộ dụng cụ sơ cứu',
@@ -32,139 +35,6 @@ function Field({ label, error, required, children }: {
 
 const inputCls = "w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
 const inputStyle = { borderColor: '#DCEFFB', color: '#0f1729' };
-
-// ─── AI Suggestion Panel ──────────────────────────────────────────────────────
-
-function AiPanel({
-  title, description, category, location, amenities, price,
-  onDescription, onOptimized,
-}: {
-  title: string; description: string; category: string; location: string;
-  amenities: string[]; price: number;
-  onDescription: (d: string) => void;
-  onOptimized: (d: string, improvements: string[]) => void;
-}) {
-  const [loading, setLoading] = useState<string | null>(null);
-  const [qualityResult, setQualityResult] = useState<{
-    score: number; grade: string; suggestions: string[];
-    breakdown: Record<string, number>;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function runAi(action: string) {
-    setLoading(action);
-    setError(null);
-    try {
-      if (action === 'generate') {
-        const res = await listingApi.aiGenerateDescription({
-          title, category, location, amenities, price: price || undefined,
-        });
-        onDescription(res.description);
-      } else if (action === 'optimize') {
-        const res = await listingApi.aiOptimize({ description, title, category });
-        onOptimized(res.optimized, res.improvements);
-      } else if (action === 'quality') {
-        const res = await listingApi.aiQualityScore({
-          title, description, category, imageUrls: [], amenities, price: price || undefined,
-        });
-        setQualityResult(res);
-      }
-    } catch {
-      setError('AI không khả dụng. Kiểm tra ANTHROPIC_API_KEY.');
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  return (
-    <div className="rounded-2xl border bg-white p-6 space-y-4" style={{ borderColor: '#DCEFFB' }}>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🤖</span>
-        <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>AI Assistant</h2>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: 'rgba(42,123,217,0.1)', color: '#2a7bd9' }}>Beta</span>
-      </div>
-
-      {error && (
-        <p className="rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626' }}>{error}</p>
-      )}
-
-      <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => runAi('generate')}
-          disabled={!title || !category || !location || loading === 'generate'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'generate' ? <span className="animate-spin">⏳</span> : '✍️'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Tạo mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-04: AI soạn từ đầu</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => runAi('optimize')}
-          disabled={description.length < 20 || loading === 'optimize'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'optimize' ? <span className="animate-spin">⏳</span> : '✨'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Tối ưu mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-07: Copywriting AI</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => runAi('quality')}
-          disabled={!title || !description || loading === 'quality'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'quality' ? <span className="animate-spin">⏳</span> : '📊'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Chấm điểm</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-05: Quality Score</p>
-          </div>
-        </button>
-      </div>
-
-      {qualityResult && (
-        <div className="rounded-xl p-4 space-y-3" style={{ background: '#f8fbff' }}>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-bold text-white"
-              style={{
-                background: qualityResult.score >= 70 ? '#16a34a' : qualityResult.score >= 50 ? '#ca8a04' : '#dc2626',
-              }}
-            >
-              {qualityResult.grade}
-            </div>
-            <div>
-              <p className="text-2xl font-bold" style={{ color: '#0f1729' }}>{qualityResult.score}/100</p>
-              <p className="text-xs" style={{ color: '#5a6b85' }}>Điểm chất lượng tin đăng</p>
-            </div>
-          </div>
-          {qualityResult.suggestions?.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold" style={{ color: '#0f1729' }}>Gợi ý cải thiện:</p>
-              <ul className="space-y-1">
-                {qualityResult.suggestions.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#5a6b85' }}>
-                    <span className="mt-0.5 shrink-0 text-[#2a7bd9]">→</span> {s}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -306,6 +176,16 @@ export default function EditListingPage() {
                   </select>
                 </Field>
               </div>
+
+              {/* AI Price Suggestion */}
+              <PriceSuggestionCard
+                category={watch('category')}
+                location={watch('location') ?? ''}
+                title={watch('title')}
+                currentPrice={watch('price') > 0 ? watch('price') : undefined}
+                listingId={id}
+                onApply={(price) => setValue('price', price, { shouldValidate: true })}
+              />
             </div>
           </div>
 
@@ -453,11 +333,14 @@ export default function EditListingPage() {
             </div>
           </div>
 
-          {/* AI Panel */}
-          <AiPanel
+          {/* Auto-Adjust Settings */}
+          <AutoAdjustSettings listingId={id} />
+
+          {/* AI Description Panel */}
+          <AiDescriptionPanel
             title={watchTitle} description={watchDescription}
             category={selectedCategory ?? ''} location={watchLocation}
-            amenities={amenities} price={Number(watchPrice)}
+            amenities={amenities} price={Number(watchPrice) || undefined}
             onDescription={(d) => setValue('description', d)}
             onOptimized={(d, imps) => { setValue('description', d); setAiImprovements(imps); }}
           />
