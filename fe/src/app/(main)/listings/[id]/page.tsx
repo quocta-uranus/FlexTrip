@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ContactProviderButton } from '@/components/listing/contact-provider-button';
 import { useListing } from '@/hooks/useListings';
 import { useBookingStore } from '@/store/booking.store';
 import { CATEGORY_LABELS } from '@/types/listing';
@@ -223,13 +224,7 @@ export default function ListingDetailPage() {
                         <span>⏱ Phản hồi trong {listing.provider.providerProfile.responseHours}</span>
                       </div>
                     )}
-                    <Link
-                      href={`/messages?to=${listing.provider.id}`}
-                      className="mt-3 inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all hover:shadow-sm"
-                      style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
-                    >
-                      💬 Liên hệ Provider
-                    </Link>
+                    <ContactProviderButton providerId={listing.provider.id} listingId={listing.id} />
                   </div>
                 </div>
               </div>
