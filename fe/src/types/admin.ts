@@ -359,3 +359,48 @@ export interface AssignableBooking {
   traveler: Ref;
   assignedStaff: (Ref & { employeeCode: string | null }) | null;
 }
+
+
+// ─── Admin Bookings Overview ──────────────────────────────────────────────────
+export interface AdminBookingStats {
+  total: number;
+  withStaff: number;
+  withoutStaff: number;
+  byStatus: Partial<Record<BookingStatus, number>>;
+}
+export interface AdminBookingRow {
+  id: string;
+  status: BookingStatus;
+  startDate: string;
+  endDate: string;
+  totalPrice: number | string;
+  quantity: number;
+  deliveryMethod: string | null;
+  createdAt: string;
+  listing: { id: string; title: string; location: string; imageUrls: string[] };
+  traveler: { id: string; name: string; email: string; phone: string | null; avatarUrl: string | null };
+  assignedStaff: { id: string; name: string; avatarUrl: string | null; staffProfile: { employeeCode: string } | null } | null;
+  payment: { status: string; method: string } | null;
+  _count: { staffMediations: number };
+}
+export interface AdminBookingDetail extends AdminBookingRow {
+  notes: string | null;
+  cancelledBy: string | null;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
+  listing: AdminBookingRow['listing'] & {
+    price: number | string;
+    currency: string;
+    provider: { id: string; name: string; email: string; phone: string | null; avatarUrl: string | null };
+  };
+  assignedStaff: (AdminBookingRow['assignedStaff'] & {
+    email: string;
+    phone: string | null;
+    staffProfile: { employeeCode: string; phone: string | null; regions: string[] } | null;
+  }) | null;
+  payment: { id: string; status: string; method: string; amount: number; transactionId: string | null } | null;
+  contract: { id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null } | null;
+  staffMediations: { id: string; status: string; issue: string; resolution: string | null; createdAt: string }[];
+}

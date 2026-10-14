@@ -11,7 +11,7 @@ import { uploadImage } from '../../common/upload.util';
 import { AuditService } from '../audit/audit.service';
 import {
   ConfirmConditionDto, CreateMediationDto, EscalateMediationDto,
-  ListMediationsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
+  ListMediationsQueryDto, ListMyBookingsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
 } from './dto/staff-operations.dto';
 
 const DETAIL_INCLUDE = {
@@ -71,6 +71,27 @@ export class StaffOperationsService {
       ];
     });
     return { date: day, tasks };
+  }
+
+  async myBookings(staffId: string, query: ListMyBookingsQueryDto) {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 50);
+    const skip = (page - 1) * limit;
+    const where = {
+      assignedStaffId: staffId,
+      ...(query.status ? { status: query.status } : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.booking.findMany({
+        where,
+        include: DETAIL_INCLUDE,
+        orderBy: [{ startDate: 'asc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
+    return { items, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   booking(staffId: string, bookingId: string) {

@@ -88,4 +88,10 @@ export const adminApi = {
       api.post(`/admin/bookings/${bookingId}/auto-assign`, {}) as Promise<{ booking: T.AssignableBooking; rule: { id: string; name: string } }>,
     unassign: (bookingId: string) => api.delete(`/admin/bookings/${bookingId}/assign`) as Promise<T.AssignableBooking>,
   },
+
+  bookings: {
+    stats: () => api.get('/admin/bookings-overview/stats') as Promise<T.AdminBookingStats>,
+    list: (q: Q) => api.get(`/admin/bookings-overview${toQuery(q)}`) as Promise<T.Paginated<T.AdminBookingRow>>,
+    detail: (id: string) => api.get(`/admin/bookings-overview/${id}`) as Promise<T.AdminBookingDetail>,
+  },
 };

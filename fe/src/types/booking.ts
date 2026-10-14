@@ -61,6 +61,18 @@ export interface Booking {
   updatedAt: string;
   listing?: Listing;
   traveler?: { id: string; name: string; avatarUrl?: string | null };
+  assignedStaff?: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+    email: string;
+    phone?: string | null;
+    staffProfile?: {
+      employeeCode: string;
+      phone?: string | null;
+      regions: string[];
+    } | null;
+  } | null;
   payment?: {
     id: string;
     amount: number;

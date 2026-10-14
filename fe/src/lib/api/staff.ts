@@ -1,8 +1,10 @@
 import { api, toQuery } from '@/lib/api/client';
-import type { StaffMediation, StaffMediationStatus, StaffTaskSchedule } from '@/types/staff';
+import type { StaffBookingPage, StaffMediation, StaffMediationStatus, StaffTaskSchedule } from '@/types/staff';
 
 export const staffApi = {
   tasks: (date: string) => api.get(`/staff/tasks${toQuery({ date })}`) as Promise<StaffTaskSchedule>,
+  myBookings: (params: { status?: string; page?: number; limit?: number }) =>
+    api.get(`/staff/bookings${toQuery(params)}`) as Promise<StaffBookingPage>,
   booking: (id: string) => api.get(`/staff/bookings/${id}`),
   confirmHandover: (id: string, body: { photoUrl: string; conditionNote: string }) =>
     api.post(`/staff/bookings/${id}/handover`, body),

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { DisputePriority, DisputeType, StaffMediationStatus } from '@prisma/client';
+import { BookingStatus, DisputePriority, DisputeType, StaffMediationStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize, IsArray, IsDateString, IsEnum, IsNumber, IsOptional,
@@ -48,4 +48,18 @@ export class ListMediationsQueryDto {
   @ApiPropertyOptional({ enum: StaffMediationStatus })
   @IsOptional() @IsEnum(StaffMediationStatus)
   status?: StaffMediationStatus;
+}
+
+export class ListMyBookingsQueryDto {
+  @ApiPropertyOptional({ enum: BookingStatus })
+  @IsOptional() @IsEnum(BookingStatus)
+  status?: BookingStatus;
+
+  @ApiPropertyOptional({ example: 1, minimum: 1 })
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ example: 20, minimum: 1 })
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(1)
+  limit?: number;
 }

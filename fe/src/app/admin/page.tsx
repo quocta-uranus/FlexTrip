@@ -16,6 +16,7 @@ const QUICK_ACTIONS = [
   { title: "Kiểm duyệt đánh giá", desc: "Xử lý đánh giá do AI hoặc hệ thống gắn cờ", icon: "⭐", href: "/admin/reviews", color: "#7c3aed" },
   { title: "Nhật ký", desc: "Lịch sử hoạt động hệ thống", icon: "📜", href: "/admin/09-audit-log", color: "#f59e0b" },
   { title: "Nhân sự", desc: "Phân công & quản lý staff", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
+  { title: "Booking", desc: "Xem tất cả đơn thuê & staff", icon: "📦", href: "/admin/11-bookings", color: "#2a7bd9" },
 ];
 
 const MODULE_LABEL: Record<string, string> = {

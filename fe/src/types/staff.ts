@@ -44,3 +44,31 @@ export interface StaffTaskSchedule {
   date: string;
   tasks: StaffTask[];
 }
+
+export interface StaffBooking {
+  id: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  deliveryMethod: 'PICKUP' | 'DELIVERY';
+  deliveryAddress: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
+  listing: {
+    id: string;
+    title: string;
+    location: string;
+    imageUrls: string[];
+    provider: { id: string; name: string; phone: string | null };
+  };
+  traveler: { id: string; name: string; phone: string | null; email: string };
+  contract: { status: string; checkInPhotos: string[]; checkOutPhotos: string[] | null } | null;
+  staffMediations: StaffMediation[];
+}
+
+export interface StaffBookingPage {
+  items: StaffBooking[];
+  total: number;
+  page: number;
+  totalPages: number;
+}

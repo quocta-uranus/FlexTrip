@@ -223,6 +223,28 @@ export default function ProviderBookingsPage() {
                           </span>
                         </div>
                       )}
+
+                      {booking.assignedStaff && (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div
+                            className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                            style={{ background: '#64748b' }}
+                          >
+                            {booking.assignedStaff.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-xs" style={{ color: '#8694ad' }}>
+                            Staff: <span style={{ color: '#5a6b85' }}>{booking.assignedStaff.name}</span>
+                          </span>
+                          {booking.assignedStaff.staffProfile?.employeeCode && (
+                            <span
+                              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                            >
+                              {booking.assignedStaff.staffProfile.employeeCode}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
