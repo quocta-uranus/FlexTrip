@@ -15,6 +15,7 @@ import { ProviderApplicationsModule } from './modules/provider-applications/prov
 import { ListingsModule } from './modules/listings/listings.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ListingsModule,
     AiChatModule,
     AdminModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
