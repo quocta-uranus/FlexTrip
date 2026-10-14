@@ -15,18 +15,31 @@ function MessagesContent() {
   const { user } = useAuthStore();
   useChatSocket();
 
-  const [selectedId, setActiveId] = useState<string | null>(params.get('c'));
-  // Captured once on mount; the query param is stripped below so a refresh does not refill the draft.
-  const [prefill] = useState(() => {
+  const urlId = params.get('c');
+  const [selectedId, setSelectedId] = useState<string | null>(urlId);
+  const [seenUrlId, setSeenUrlId] = useState<string | null>(urlId);
+  // The URL is the source of truth, but local state makes selection instant while router.replace is in flight.
+  if (urlId !== seenUrlId) {
+    setSeenUrlId(urlId);
+    if (urlId) setSelectedId(urlId);
+  }
+  // Captured once on mount (the URL is built lazily: window does not exist during SSR); the query param is stripped below so a refresh does not refill the draft.
+  const [prefill, setPrefill] = useState(() => {
     const listing = params.get('listing');
-    const c = params.get('c');
-    return listing && c ? { conversationId: c, text: listingUrl(window.location.origin, listing) } : null;
+    return listing && urlId ? { conversationId: urlId, listingId: listing } : null;
   });
+  const selectedKey = selectedId ?? null;
+  if (prefill && selectedKey && selectedKey !== prefill.conversationId) setPrefill(null);
 
   useEffect(() => {
-    if (params.get('listing')) router.replace(selectedId ? `/messages?c=${selectedId}` : '/messages');
+    if (params.get('listing')) router.replace(urlId ? `/messages?c=${urlId}` : '/messages');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once for the initial URL
   }, []);
+
+  function select(id: string) {
+    setSelectedId(id);
+    router.replace(`/messages?c=${id}`);
+  }
 
   const { data: conversations, isLoading } = useConversations();
   // An explicit selection wins (even if not in the list yet); otherwise default to the first conversation.
@@ -51,7 +64,7 @@ function MessagesContent() {
             isLoading={isLoading}
             activeId={activeId}
             currentUserId={currentUserId}
-            onSelect={setActiveId}
+            onSelect={select}
           />
         </div>
       </div>
@@ -62,7 +75,7 @@ function MessagesContent() {
           conversation={active}
           conversationId={activeId}
           currentUserId={currentUserId}
-          initialText={prefill?.conversationId === activeId ? prefill.text : undefined}
+          initialText={prefill?.conversationId === activeId ? listingUrl(window.location.origin, prefill.listingId) : undefined}
         />
       ) : activeId ? (
         <div className="flex flex-1 items-center justify-center text-sm text-[#8694ad]">Đang tải...</div>

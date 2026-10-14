@@ -96,7 +96,7 @@ export function MessageComposer({ replyTo, onCancelReply, initialText, onSend, o
   const canSend = !sending && (files.length > 0 || content.trim().length > 0);
 
   return (
-    <div className="border-t border-[#DCEFFB] bg-white p-3">
+    <div className="border-t border-[#DCEFFB] bg-white py-3 pl-3 pr-20">
       {replyTo && (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-[#f6fbfe] px-3 py-1.5 text-xs">
           <span className="truncate">
