@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, request, test, type Browser, type Page } from '@playwright/test';
 
 const API = process.env.E2E_API_URL ?? 'http://localhost:3001/api/v1';
 const PASSWORD = 'Seed@123456';
@@ -28,18 +28,35 @@ async function signIn(browser: Browser, email: string) {
   return { context, page };
 }
 
-async function providerListing(browser: Browser) {
-  const ctx = await browser.newContext();
-  const request = ctx.request;
-  const login = await (await request.post(`${API}/auth/login`, { data: { email: PROVIDER, password: PASSWORD } })).json();
-  const headers = { Authorization: `Bearer ${login.accessToken}` };
-  const me = await (await request.get(`${API}/users/me`, { headers })).json();
-  const all = await (await request.get(`${API}/listings?limit=100`)).json();
-  await ctx.close();
-  const listing = all.items.find((l: { providerId: string }) => l.providerId === me.id);
-  if (!listing) throw new Error('seed data: provider1 has no ACTIVE listing — run `npx prisma db seed` in be/');
-  return listing as { id: string; title: string };
+type Listing = { id: string; title: string; providerId: string; status?: string };
+
+async function fetchProviderListing(): Promise<Listing> {
+  const ctx = await request.newContext();
+  try {
+    const call = async (path: string, init?: { method?: 'POST'; data?: unknown; token?: string }) => {
+      const res = await (init?.method === 'POST'
+        ? ctx.post(`${API}${path}`, { data: init.data })
+        : ctx.get(`${API}${path}`, { headers: init?.token ? { Authorization: `Bearer ${init.token}` } : {} }));
+      if (!res.ok()) throw new Error(`${path} -> ${res.status()}: ${await res.text()}`);
+      return res.json();
+    };
+    const { accessToken } = await call('/auth/login', { method: 'POST', data: { email: PROVIDER, password: PASSWORD } });
+    const me = await call('/users/me', { token: accessToken });
+    let totalPages = 1;
+    for (let page = 1; page <= totalPages; page++) {
+      const res = await call(`/listings?page=${page}&limit=100`);
+      totalPages = res.totalPages ?? 1;
+      const hit = (res.items as Listing[]).find((l) => l.providerId === me.id && (l.status ?? 'ACTIVE') === 'ACTIVE');
+      if (hit) return hit;
+    }
+    throw new Error('seed data: provider1 has no ACTIVE listing — run `npx prisma db seed` in be/');
+  } finally {
+    await ctx.dispose();
+  }
 }
+
+let listingPromise: Promise<Listing> | undefined;
+const providerListing = () => (listingPromise ??= fetchProviderListing());
 
 const bubble = (page: Page, text: string | RegExp) => page.getByTestId('message').filter({ hasText: text });
 const composer = (page: Page) => page.getByRole('textbox', { name: 'Nhập tin nhắn' });
@@ -54,7 +71,7 @@ async function openConversation(page: Page, listingId: string) {
 }
 
 test('traveler opens a listing, contacts the provider and both chat in realtime', async ({ browser }) => {
-  const listing = await providerListing(browser);
+  const listing = await providerListing();
   const traveler = await signIn(browser, TRAVELER);
   const provider = await signIn(browser, PROVIDER);
   const unique = `xin chào ${Date.now()}`;
@@ -65,9 +82,16 @@ test('traveler opens a listing, contacts the provider and both chat in realtime'
     await provider.page.goto(`/messages?c=${c}`);
     await expect(composer(provider.page)).toBeVisible();
 
+    // earlier runs reuse this conversation, so count what is already there and require exactly one more
+    const all = provider.page.getByTestId('message');
+    const countBefore = await all.count();
     await traveler.page.getByRole('button', { name: 'Gửi', exact: true }).click();
     // provider receives the link + preview card in realtime (no reload)
-    await expect(bubble(provider.page, listing.title).last()).toBeVisible();
+    await expect(all).toHaveCount(countBefore + 1);
+    const newest = all.last();
+    expect(await newest.getAttribute('id')).toMatch(/^msg-/);
+    await expect(newest).toContainText(`/listings/${listing.id}`);
+    await expect(newest.getByRole('link', { name: new RegExp(listing.title.slice(0, 20)) }).first()).toBeVisible();
 
     await composer(traveler.page).fill(unique);
     await composer(traveler.page).press('Enter');
@@ -88,9 +112,10 @@ test('traveler opens a listing, contacts the provider and both chat in realtime'
 
     // a reply quoting the message also shows the recalled text, so target the bubble by id
     const id = await original(traveler.page, `${unique} (sửa)`).getAttribute('id');
+    expect(id).toMatch(/^msg-/);
     traveler.page.once('dialog', (d) => d.accept());
     await original(traveler.page, `${unique} (sửa)`).getByRole('button', { name: 'Xoá' }).click();
-    await expect(provider.page.locator(`#${id}`)).toContainText('Tin nhắn đã bị thu hồi');
+    await expect(provider.page.locator(`[id="${id}"]`)).toContainText('Tin nhắn đã bị thu hồi');
 
     // second click from the same listing reuses the conversation
     expect(await openConversation(traveler.page, listing.id)).toBe(c);
@@ -101,7 +126,7 @@ test('traveler opens a listing, contacts the provider and both chat in realtime'
 });
 
 test('location sharing and shared-links history', async ({ browser }) => {
-  const listing = await providerListing(browser);
+  const listing = await providerListing();
   const traveler = await signIn(browser, TRAVELER);
   const provider = await signIn(browser, PROVIDER);
   const label = `Hồ Gươm ${Date.now()}`;
@@ -125,7 +150,8 @@ test('location sharing and shared-links history', async ({ browser }) => {
     await expect(bubble(provider.page, link)).toBeVisible();
     await traveler.page.getByRole('button', { name: 'Xem ảnh, file, link' }).click();
     await traveler.page.getByRole('tab', { name: 'Link' }).click();
-    await expect(traveler.page.getByRole('link', { name: link }).last()).toBeVisible();
+    const panel = traveler.page.getByRole('complementary', { name: 'Ảnh, file, link đã gửi' });
+    await expect(panel.getByRole('link', { name: link })).toBeVisible();
   } finally {
     await traveler.context.close();
     await provider.context.close();
@@ -134,7 +160,7 @@ test('location sharing and shared-links history', async ({ browser }) => {
 
 test('images and files appear in the history panel', async ({ browser }) => {
   test.skip(process.env.E2E_UPLOADS !== '1', 'needs a Supabase "chat" bucket; set E2E_UPLOADS=1');
-  const listing = await providerListing(browser);
+  const listing = await providerListing();
   const traveler = await signIn(browser, TRAVELER);
   const provider = await signIn(browser, PROVIDER);
   const stamp = Date.now();
@@ -150,9 +176,10 @@ test('images and files appear in the history panel', async ({ browser }) => {
     await expect(bubble(provider.page, `ghichu-${stamp}.txt`)).toBeVisible({ timeout: 20_000 });
 
     await provider.page.getByRole('button', { name: 'Xem ảnh, file, link' }).click();
-    await expect(provider.page.getByRole('img', { name: `anh-${stamp}.png` }).last()).toBeVisible();
-    await provider.page.getByRole('tab', { name: 'File' }).click();
-    await expect(provider.page.getByText(`ghichu-${stamp}.txt`).last()).toBeVisible();
+    const panel = provider.page.getByRole('complementary', { name: 'Ảnh, file, link đã gửi' });
+    await expect(panel.getByRole('img', { name: `anh-${stamp}.png` })).toBeVisible();
+    await panel.getByRole('tab', { name: 'File' }).click();
+    await expect(panel.getByText(`ghichu-${stamp}.txt`)).toBeVisible();
   } finally {
     await traveler.context.close();
     await provider.context.close();
@@ -160,18 +187,24 @@ test('images and files appear in the history panel', async ({ browser }) => {
 });
 
 test('contact button: hidden for the provider, anonymous visitor is sent to login', async ({ browser }) => {
-  const listing = await providerListing(browser);
+  const listing = await providerListing();
 
   const anon = await browser.newContext();
-  const anonPage = await anon.newPage();
-  await anonPage.goto(`/listings/${listing.id}`);
-  await contactBtn(anonPage).click();
-  await anonPage.waitForURL(`**/login?redirect=${encodeURIComponent(`/listings/${listing.id}`)}`);
-  await anon.close();
+  try {
+    const page = await anon.newPage();
+    await page.goto(`/listings/${listing.id}`);
+    await contactBtn(page).click();
+    await page.waitForURL(`**/login?redirect=${encodeURIComponent(`/listings/${listing.id}`)}`);
+  } finally {
+    await anon.close();
+  }
 
   const provider = await signIn(browser, PROVIDER);
-  await provider.page.goto(`/listings/${listing.id}`);
-  await expect(provider.page.getByRole('heading', { level: 1 }).first()).toBeVisible();
-  await expect(contactBtn(provider.page)).toHaveCount(0);
-  await provider.context.close();
+  try {
+    await provider.page.goto(`/listings/${listing.id}`);
+    await expect(provider.page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await expect(contactBtn(provider.page)).toHaveCount(0);
+  } finally {
+    await provider.context.close();
+  }
 });

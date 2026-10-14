@@ -2,8 +2,10 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
+  // first hit on a cold Next dev server compiles each route
+  timeout: 120_000,
   workers: 1,
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
@@ -12,9 +14,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: [
-    { command: 'npm run dev', url: 'http://localhost:3000', reuseExistingServer: true, timeout: 120_000 },
+    { command: 'npm run dev', url: 'http://localhost:3000/login', reuseExistingServer: true, timeout: 120_000 },
     {
-      command: 'npm run start:dev',
+      // not npm run start:dev: its prestart hook recreates the Docker containers
+      command: 'npx nest start --watch',
       cwd: '../be',
       url: 'http://localhost:3001/api/v1/listings?limit=1',
       reuseExistingServer: true,
