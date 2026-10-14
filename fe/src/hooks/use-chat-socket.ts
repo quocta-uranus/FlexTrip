@@ -17,6 +17,7 @@ export function useChatSocket() {
     if (!isAuthenticated) return;
     const socket = getSocket();
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
 
     socket.on('ready', () => setConnected(true));
     socket.on('disconnect', (reason) => {
@@ -25,13 +26,15 @@ export function useChatSocket() {
       // refresh the token through a normal API call, then reconnect.
       // ponytail: retries every 3s while mounted; add backoff if auth outages become common.
       if (reason === 'io server disconnect') {
-        retry = setTimeout(() => void userApi.me().catch(() => undefined).finally(() => socket.connect()), RETRY_MS);
+        clearTimeout(retry);
+        retry = setTimeout(() => void userApi.me().catch(() => undefined).finally(() => { if (!cancelled) socket.connect(); }), RETRY_MS);
       }
     });
     for (const event of SOCKET_EVENTS) socket.on(event, (payload) => applySocketEvent(qc, event, payload));
     socket.connect();
 
     return () => {
+      cancelled = true;
       clearTimeout(retry);
       socket.removeAllListeners();
       socket.disconnect();
