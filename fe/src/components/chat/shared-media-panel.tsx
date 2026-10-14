@@ -105,10 +105,10 @@ export function SharedMediaPanel({ conversationId, onJumpTo, onClose }: Props) {
   return (
     <aside aria-label="Ảnh, file, link đã gửi" className="flex w-80 shrink-0 flex-col border-l border-[#DCEFFB] bg-white">
       <header className="flex items-center justify-between border-b border-[#DCEFFB] px-4 py-3">
-        <h2 className="text-sm font-semibold">Ảnh, file &amp; link</h2>
+        <h2 className="text-sm! leading-normal! font-semibold! tracking-normal!">Ảnh, file &amp; link</h2>
         <button type="button" aria-label="Đóng" onClick={onClose}><X className="h-4 w-4" /></button>
       </header>
-      <Tabs defaultValue="media" className="flex-1 overflow-y-auto p-3">
+      <Tabs defaultValue="media" className="flex-1 flex-col overflow-y-auto p-3">
         <TabsList className="w-full">
           <TabsTrigger value="media">Ảnh</TabsTrigger>
           <TabsTrigger value="files">File</TabsTrigger>
