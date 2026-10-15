@@ -6,6 +6,9 @@ import type {
   TwoFactorSetup,
   TwoFactorEnableResult,
 } from '@/types/auth';
+import type { NotificationListResult, NotificationType } from '@/types/notification';
+import type { CreateReviewPayload, Review, SentimentDashboardData, SentimentRange } from '@/types/review';
+import type { MyReputation, PublicReputationBadge } from '@/types/reputation';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -246,15 +249,15 @@ export const userApi = {
 
   updateMe: (data: UpdateMePayload) => api.patch('/users/me', data) as Promise<UserProfile>,
 
-  // Travel preferences
+  // Travel preferences (PROF-02)
   getPreferences: () =>
-    api.get('/profile/preferences') as Promise<any[]>,
+    api.get('/profile/preferences') as Promise<import('@/types/preference').TravelPreference[]>,
 
-  addPreference: (data: { tripType: string; budgetMin?: number; budgetMax?: number }) =>
-    api.post('/profile/preferences', data) as Promise<any>,
+  addPreference: (data: import('@/types/preference').CreatePreferencePayload) =>
+    api.post('/profile/preferences', data) as Promise<import('@/types/preference').TravelPreference>,
 
-  updatePreference: (id: string, data: { tripType?: string; budgetMin?: number; budgetMax?: number }) =>
-    api.patch(`/profile/preferences/${id}`, data) as Promise<any>,
+  updatePreference: (id: string, data: import('@/types/preference').UpdatePreferencePayload) =>
+    api.patch(`/profile/preferences/${id}`, data) as Promise<import('@/types/preference').TravelPreference>,
 
   deletePreference: (id: string) =>
     api.delete(`/profile/preferences/${id}`) as Promise<{ ok: boolean }>,
@@ -432,8 +435,8 @@ export const paymentMethodApi = {
 
 // ─── Listings ────────────────────────────────────────────────────────────────
 
-import type { Listing, SearchFilters, SearchResult, ListingCategory } from '@/types/listing';
-import type { Booking, CreateBookingPayload } from '@/types/booking';
+import type { Listing, SearchFilters, ListingCategory } from '@/types/listing';
+import type { Booking, Cart, CartItem, CreateBookingPayload, ModifyRequest } from '@/types/booking';
 import type {
   AttachmentInput, Conversation, Message, MessagePage, SendMessageInput, SharedAttachment, SharedKind, SharedLink, SharedPage,
 } from '@/types/message';
@@ -447,14 +450,18 @@ export interface ListingPage {
 }
 
 export const listingApi = {
-  list: (params?: { status?: string; page?: number; limit?: number; category?: string; keyword?: string; location?: string }) => {
+  list: (params?: Pick<SearchFilters, 'page' | 'limit' | 'category' | 'keyword' | 'location' | 'minPrice' | 'maxPrice' | 'sort' | 'dateFrom' | 'dateTo'>) => {
     const q = new URLSearchParams();
-    if (params?.status) q.set('status', params.status);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     if (params?.category) q.set('category', params.category);
     if (params?.keyword) q.set('keyword', params.keyword);
     if (params?.location) q.set('location', params.location);
+    if (params?.minPrice != null) q.set('minPrice', String(params.minPrice));
+    if (params?.maxPrice != null) q.set('maxPrice', String(params.maxPrice));
+    if (params?.sort) q.set('sort', params.sort);
+    if (params?.dateFrom) q.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) q.set('dateTo', params.dateTo);
     const qs = q.toString();
     return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<ListingPage>;
   },
@@ -540,23 +547,77 @@ export const listingApi = {
   }>,
 };
 
-// ─── Search ──────────────────────────────────────────────────────────────────
+// ─── Wishlist (SRC-07) ──────────────────────────────────────────────────────
 
-export const searchApi = {
-  search: (filters: SearchFilters) => {
-    const q = new URLSearchParams();
-    if (filters.keyword) q.set('q', filters.keyword);
-    if (filters.category) q.set('category', filters.category);
-    if (filters.location) q.set('location', filters.location);
-    if (filters.dateFrom) q.set('dateFrom', filters.dateFrom);
-    if (filters.dateTo) q.set('dateTo', filters.dateTo);
-    if (filters.priceMin != null) q.set('priceMin', String(filters.priceMin));
-    if (filters.priceMax != null) q.set('priceMax', String(filters.priceMax));
-    if (filters.sortBy) q.set('sortBy', filters.sortBy);
-    if (filters.page) q.set('page', String(filters.page));
-    if (filters.limit) q.set('limit', String(filters.limit));
-    return api.get(`/search?${q.toString()}`) as Promise<SearchResult>;
+export const wishlistApi = {
+  list: (params: { page?: number; limit?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.limit) query.set('limit', String(params.limit));
+    const suffix = query.toString();
+    return api.get(`/wishlist${suffix ? `?${suffix}` : ''}`) as Promise<import('@/types/wishlist').WishlistPage>;
   },
+  ids: () => api.get('/wishlist/ids') as Promise<{ listingIds: string[] }>,
+  add: (listingId: string) =>
+    api.post(`/wishlist/${encodeURIComponent(listingId)}`, {}) as Promise<{ status: 'added' | 'alreadyExists' }>,
+  remove: (listingId: string) =>
+    api.delete(`/wishlist/${encodeURIComponent(listingId)}`) as Promise<{ removed: boolean }>,
+  sync: async (listingIds: string[]) => {
+    const combined: import('@/types/wishlist').WishlistSyncResult = {
+      added: [], alreadyExists: [], skipped: [], retryableFailed: [],
+    };
+    for (let index = 0; index < listingIds.length; index += 100) {
+      const result = await api.post('/wishlist/sync', {
+        listingIds: listingIds.slice(index, index + 100),
+      }) as import('@/types/wishlist').WishlistSyncResult;
+      combined.added.push(...result.added);
+      combined.alreadyExists.push(...result.alreadyExists);
+      combined.skipped.push(...result.skipped);
+      combined.retryableFailed.push(...result.retryableFailed);
+    }
+    return combined;
+  },
+  resolveGuest: async (listingIds: string[]) => {
+    const items: Listing[] = [];
+    for (let index = 0; index < listingIds.length; index += 100) {
+      const result = await api.post('/wishlist/guest/resolve', {
+        listingIds: listingIds.slice(index, index + 100),
+      }) as { items: Listing[] };
+      items.push(...result.items);
+    }
+    return { items };
+  },
+};
+
+// ─── Availability ─────────────────────────────────────────────────────────────
+
+export const availabilityApi = {
+  get: (listingId: string, from: string, to: string) =>
+    api.get(`/listings/${listingId}/availability?from=${from}&to=${to}`) as Promise<{
+      listingId: string;
+      from: string;
+      to: string;
+      config: { quantity: number; minRentalDays: number; maxRentalDays: number | null; depositRate: string };
+      manuallyBlocked: Array<{ date: string; note: string | null }>;
+      fullyBooked: string[];
+    }>,
+
+  block: (listingId: string, dates: string[], note?: string) =>
+    api.post(`/listings/${listingId}/availability/block`, { dates, note }) as Promise<{ blocked: number }>,
+
+  unblock: (listingId: string, dates: string[]) =>
+    api.post(`/listings/${listingId}/availability/unblock`, { dates }) as Promise<{ unblocked: number }>,
+
+  getRentalConfig: (listingId: string) =>
+    api.get(`/listings/${listingId}/rental-config`) as Promise<{
+      id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+    }>,
+
+  updateRentalConfig: (listingId: string, data: {
+    minRentalDays: number; maxRentalDays?: number | null; depositRate?: number;
+  }) => api.patch(`/listings/${listingId}/rental-config`, data) as Promise<{
+    id: string; minRentalDays: number; maxRentalDays: number | null; quantity: number; depositRate: string;
+  }>,
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
@@ -571,26 +632,104 @@ export const bookingApi = {
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     const qs = q.toString();
-    return api.get(`/bookings/me${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+    return api.get(`/bookings${qs ? `?${qs}` : ''}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 
   get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
 
-  cancel: (id: string) => api.post(`/bookings/${id}/cancel`, {}) as Promise<Booking>,
+  cancel: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/cancel`, { reason }) as Promise<{ message: string; refundAmount: number }>,
 
-  confirm: (id: string) => api.post(`/bookings/${id}/confirm`, {}) as Promise<Booking>,
+  start: (id: string) => api.post(`/bookings/${id}/start`, {}) as Promise<Booking>,
 
   complete: (id: string) => api.post(`/bookings/${id}/complete`, {}) as Promise<Booking>,
+
+  confirmPayment: (id: string, data: { method: string; transactionRef?: string }) =>
+    api.post(`/bookings/${id}/confirm-payment`, data) as Promise<Booking>,
+
+  approve: (id: string) => api.post(`/bookings/${id}/approve`, {}) as Promise<Booking>,
+
+  decline: (id: string, reason?: string) =>
+    api.post(`/bookings/${id}/decline`, { reason }) as Promise<Booking>,
 
   // Provider: bookings for provider's listings
   providerBookings: (params?: { status?: string; page?: number; limit?: number }) => {
     const q = new URLSearchParams();
+    q.set('as', 'provider');
     if (params?.status) q.set('status', params.status);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
-    const qs = q.toString();
-    return api.get(`/bookings/provider${qs ? `?${qs}` : ''}`) as Promise<Booking[]>;
+    return api.get(`/bookings?${q.toString()}`)
+      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
+};
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+export const reviewApi = {
+  create: (data: CreateReviewPayload) => api.post('/reviews', data) as Promise<Review>,
+  mine: () => api.get('/reviews/mine') as Promise<Review[]>,
+  received: () => api.get('/reviews/received') as Promise<Review[]>,
+  respond: (reviewId: string, response: string) =>
+    api.put(`/reviews/${reviewId}/response`, { response }) as Promise<Review>,
+  forListing: (listingId: string) => api.get(`/listings/${listingId}/reviews`) as Promise<Review[]>,
+  sentiment: (range: SentimentRange) =>
+    api.get(`/reviews/sentiment?range=${range}`) as Promise<SentimentDashboardData>,
+};
+
+// ─── Reputation ──────────────────────────────────────────────────────────────
+
+export const reputationApi = {
+  mine: () => api.get('/reputation/me') as Promise<MyReputation>,
+  publicForUser: (userId: string) =>
+    api.get(`/reputation/users/${userId}`) as Promise<{
+      userId: string;
+      badges: PublicReputationBadge[];
+    }>,
+};
+
+// ─── Cart ─────────────────────────────────────────────────────────────────────
+
+export const cartApi = {
+  get: () => api.get('/cart') as Promise<Cart>,
+
+  addItem: (data: {
+    listingId: string; startDate: string; endDate: string;
+    quantity?: number; deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.post('/cart/items', data) as Promise<CartItem>,
+
+  updateItem: (itemId: string, data: {
+    startDate?: string; endDate?: string; quantity?: number;
+    deliveryMethod?: string; deliveryAddress?: string;
+  }) => api.patch(`/cart/items/${itemId}`, data) as Promise<CartItem>,
+
+  removeItem: (itemId: string) =>
+    api.delete(`/cart/items/${itemId}`) as Promise<{ message: string }>,
+
+  checkout: (data: { paymentMethod: string; transactionRef?: string }) =>
+    api.post('/cart/checkout', data) as Promise<{
+      message: string;
+      bookings: Array<{ id: string; listingTitle: string; status: string }>;
+    }>,
+};
+
+// ─── Modify Booking ───────────────────────────────────────────────────────────
+
+export const modifyBookingApi = {
+  list: (bookingId: string) =>
+    api.get(`/bookings/${bookingId}/modify-requests`) as Promise<ModifyRequest[]>,
+
+  create: (bookingId: string, data: {
+    newStartDate: string; newEndDate: string;
+    newQuantity?: number; reason?: string;
+  }) => api.post(`/bookings/${bookingId}/modify-requests`, data) as Promise<ModifyRequest>,
+
+  accept: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/accept`, { reason }) as Promise<{ message: string }>,
+
+  reject: (bookingId: string, requestId: string, reason?: string) =>
+    api.post(`/bookings/${bookingId}/modify-requests/${requestId}/reject`, { reason }) as Promise<{ message: string }>,
 };
 
 // ─── Messages ────────────────────────────────────────────────────────────────
@@ -663,4 +802,23 @@ export const messageApi = {
     api.get(`/messages/conversations/${id}/shared${toQuery({ kind, cursor, limit: 30 })}`) as Promise<
       SharedPage<SharedAttachment | SharedLink>
     >,
+};
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export const notificationApi = {
+  list: (params?: { limit?: number; unreadOnly?: boolean; type?: NotificationType }) => {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.unreadOnly) query.set('unreadOnly', 'true');
+    if (params?.type) query.set('type', params.type);
+    const suffix = query.toString();
+    return api.get(`/notifications${suffix ? `?${suffix}` : ''}`) as Promise<NotificationListResult>;
+  },
+  markRead: (id: string) =>
+    api.patch(`/notifications/${id}/read`, {}) as Promise<{ ok: boolean }>,
+  markAllRead: () =>
+    api.patch('/notifications/read-all', {}) as Promise<{ ok: boolean; updated: number }>,
+  remove: (id: string) =>
+    api.delete(`/notifications/${id}`) as Promise<{ ok: boolean }>,
 };

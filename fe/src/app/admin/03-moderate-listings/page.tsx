@@ -8,6 +8,7 @@ import { useAdminToast } from "@/components/admin/use-admin-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { CATEGORY_ICONS } from "@/constants/categories";
 import {
   useAdminListings,
   useListingFlags,
@@ -25,12 +26,7 @@ const statusStyles: Record<string, { label: string; color: string; bg: string }>
   DRAFT: { label: "Draft", color: "#8694ad", bg: "rgba(134,148,173,0.15)" },
 };
 
-const categoryEmoji: Record<string, string> = {
-  CAMPING_TREKKING: "⛺",
-  VEHICLE: "🚗",
-  STAY: "🏨",
-  EXPERIENCE: "🎯",
-};
+const categoryEmoji: Record<string, string> = CATEGORY_ICONS as Record<string, string>;
 
 const TABS: ListingTab[] = ["FLAGGED", "ACTIVE", "SUSPENDED", "REMOVED", "ALL"];
 
@@ -115,7 +111,6 @@ export default function ModerateListingsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <span className="rounded-lg bg-[#0f1729] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">ADMIN-03</span>
             <LiveDot label="MODERATING" tone="red" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Moderate Listings</h1>

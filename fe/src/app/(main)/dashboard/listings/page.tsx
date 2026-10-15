@@ -8,112 +8,206 @@ import {
 } from '@/hooks/useListings';
 import { CATEGORY_LABELS } from '@/types/listing';
 import type { Listing } from '@/types/listing';
+import {
+  Plus, Upload, Eye, Pencil, Trash2, Play, Pause, Send,
+  ChevronRight, MapPin, Tent, Package, CheckCircle2, Loader2,
+} from 'lucide-react';
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; border: string }> = {
-  ACTIVE:    { label: 'Đang cho thuê', bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-  DRAFT:     { label: 'Bản nháp',      bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' },
-  INACTIVE:  { label: 'Tạm ẩn',       bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
-  SUSPENDED: { label: 'Bị khoá',      bg: '#fef2f2', color: '#991b1b', border: '#fecaca' },
+// ── Status config ────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<string, {
+  label: string; dot: string; bg: string; color: string; border: string; accent: string;
+}> = {
+  ACTIVE:    { label: 'Đang cho thuê', dot: '#22c55e', bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', accent: '#22c55e' },
+  DRAFT:     { label: 'Bản nháp',      dot: '#94a3b8', bg: '#f8fafc', color: '#475569', border: '#e2e8f0', accent: '#94a3b8' },
+  INACTIVE:  { label: 'Tạm ẩn',       dot: '#f59e0b', bg: '#fffbeb', color: '#92400e', border: '#fde68a', accent: '#f59e0b' },
+  SUSPENDED: { label: 'Bị khoá',      dot: '#ef4444', bg: '#fef2f2', color: '#991b1b', border: '#fecaca', accent: '#ef4444' },
 };
 
-const CATEGORY_ICON: Record<string, string> = {
-  CAMPING_TREKKING: '⛺', VEHICLE: '🚵', STAY: '🏡', EXPERIENCE: '🌄', OTHER: '📦',
-};
+const STAT_TABS = [
+  { key: 'ALL',      label: 'Tất cả',        icon: Package,      color: '#2a7bd9', light: '#eff6ff' },
+  { key: 'ACTIVE',   label: 'Đang cho thuê', icon: CheckCircle2, color: '#16a34a', light: '#f0fdf4' },
+  { key: 'DRAFT',    label: 'Bản nháp',      icon: Tent,         color: '#64748b', light: '#f8fafc' },
+  { key: 'INACTIVE', label: 'Tạm ẩn',        icon: Pause,        color: '#d97706', light: '#fffbeb' },
+];
+
+// ── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.DRAFT;
+  const cfg = STATUS_CFG[status] ?? STATUS_CFG.DRAFT;
   return (
-    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-      style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+      style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: cfg.dot }} />
       {cfg.label}
     </span>
   );
 }
 
-function ListingRow({ listing }: { listing: Listing }) {
+function ActionBtn({
+  onClick, disabled, variant = 'default', icon: Icon, label,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: 'default' | 'green' | 'amber' | 'red' | 'blue';
+  icon: React.ElementType;
+  label: string;
+}) {
+  const styles: Record<string, React.CSSProperties> = {
+    default: { borderColor: '#e2e8f0', color: '#64748b' },
+    green:   { borderColor: '#bbf7d0', color: '#16a34a' },
+    amber:   { borderColor: '#fde68a', color: '#d97706' },
+    red:     { borderColor: '#fca5a5', color: '#dc2626' },
+    blue:    { borderColor: '#bfdbfe', color: '#2a7bd9' },
+  };
+  const hover: Record<string, string> = {
+    default: 'hover:bg-slate-50',
+    green:   'hover:bg-green-50',
+    amber:   'hover:bg-amber-50',
+    red:     'hover:bg-red-50',
+    blue:    'hover:bg-blue-50',
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:opacity-40 ${hover[variant]}`}
+      style={styles[variant]}
+    >
+      {disabled
+        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        : <Icon className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+function ListingCard({ listing }: { listing: Listing }) {
   const price = Number(listing.price);
-  const { mutate: del, isPending: deleting } = useDeleteListing();
+  const cfg   = STATUS_CFG[listing.status] ?? STATUS_CFG.DRAFT;
+
+  const { mutate: del,     isPending: deleting   } = useDeleteListing();
   const { mutate: publish, isPending: publishing } = usePublishListing();
-  const { mutate: pause, isPending: pausing } = usePauseListing();
-  const { mutate: resume, isPending: resuming } = useResumeListing();
+  const { mutate: pause,   isPending: pausing    } = usePauseListing();
+  const { mutate: resume,  isPending: resuming   } = useResumeListing();
   const busy = deleting || publishing || pausing || resuming;
 
   return (
-    <div className="flex items-center gap-4 rounded-2xl border bg-white p-4 transition-all hover:shadow-sm"
-      style={{ borderColor: '#DCEFFB', opacity: deleting ? 0.4 : 1 }}>
+    <div
+      className="group relative flex items-stretch gap-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.05] transition-all hover:shadow-md hover:-translate-y-0.5"
+      style={{ opacity: deleting ? 0.4 : 1 }}
+    >
+      {/* Status accent bar */}
+      <div className="w-1 shrink-0 rounded-l-2xl" style={{ background: cfg.accent }} />
+
       {/* Thumbnail */}
-      <div className="h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-[#f1f5fa]">
+      <div className="relative h-[108px] w-36 shrink-0 overflow-hidden bg-slate-100">
         {listing.imageUrls?.[0] ? (
-          <img src={listing.imageUrls[0]} alt={listing.title} className="h-full w-full object-cover" />
+          <img
+            src={listing.imageUrls[0]}
+            alt={listing.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl">
-            {CATEGORY_ICON[listing.category] ?? '📦'}
+          <div className="flex h-full items-center justify-center">
+            <Tent className="h-10 w-10 text-slate-200" />
           </div>
         )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>
-            {CATEGORY_LABELS[listing.category] ?? listing.category}
+        {listing.imageUrls?.length > 1 && (
+          <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-bold text-white">
+            +{listing.imageUrls.length - 1}
           </span>
-          <StatusBadge status={listing.status} />
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 items-center gap-4 min-w-0 px-5 py-4">
+        {/* Title + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#2a7bd9]">
+              {CATEGORY_LABELS[listing.category] ?? listing.category}
+            </span>
+            <StatusBadge status={listing.status} />
+          </div>
+          <p className="truncate text-sm font-semibold text-slate-800">{listing.title}</p>
+          <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">{listing.location}</span>
+          </div>
         </div>
-        <p className="font-semibold truncate" style={{ color: '#0f1729' }}>{listing.title}</p>
-        <p className="mt-0.5 text-xs truncate" style={{ color: '#8694ad' }}>{listing.location}</p>
-      </div>
 
-      {/* Price */}
-      <div className="shrink-0 text-right hidden sm:block">
-        <p className="text-lg font-bold" style={{ color: '#2a7bd9' }}>{price.toLocaleString('vi-VN')}</p>
-        <p className="text-xs" style={{ color: '#8694ad' }}>{listing.currency}/ngày</p>
-      </div>
+        {/* Price */}
+        <div className="hidden shrink-0 text-right sm:block">
+          <p className="text-lg font-extrabold text-[#2a7bd9]">{price.toLocaleString('vi-VN')}</p>
+          <p className="text-xs text-slate-400">{listing.currency ?? 'VND'} / ngày</p>
+        </div>
 
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1.5">
-        {listing.status === 'DRAFT' && (
-          <button onClick={() => publish(listing.id)} disabled={busy}
-            className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-green-50 disabled:opacity-50"
-            style={{ borderColor: '#bbf7d0', color: '#15803d' }}>
-            {publishing ? '...' : 'Đăng'}
-          </button>
-        )}
-        {listing.status === 'ACTIVE' && (
-          <button onClick={() => pause(listing.id)} disabled={busy}
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-amber-50 disabled:opacity-50"
-            style={{ borderColor: '#fde68a', color: '#92400e' }}>
-            {pausing ? '...' : 'Ẩn'}
-          </button>
-        )}
-        {listing.status === 'INACTIVE' && (
-          <button onClick={() => resume(listing.id)} disabled={busy}
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-green-50 disabled:opacity-50"
-            style={{ borderColor: '#bbf7d0', color: '#15803d' }}>
-            {resuming ? '...' : 'Hiện lại'}
-          </button>
-        )}
-        <Link href={`/listings/${listing.id}`}
-          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[#f1f5fa]"
-          style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}>
-          Xem
-        </Link>
-        <Link href={`/dashboard/listings/${listing.id}/edit`}
-          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[#f6fbfe]"
-          style={{ borderColor: '#2a7bd9', color: '#2a7bd9' }}>
-          Sửa
-        </Link>
-        <button
-          onClick={() => { if (confirm(`Xoá "${listing.title}"?`)) del(listing.id); }}
-          disabled={busy}
-          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-red-50 disabled:opacity-50"
-          style={{ borderColor: '#fca5a5', color: '#dc2626' }}>
-          Xoá
-        </button>
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {listing.status === 'DRAFT' && (
+            <ActionBtn onClick={() => publish(listing.id)} disabled={busy} variant="green" icon={Send} label="Đăng" />
+          )}
+          {listing.status === 'ACTIVE' && (
+            <ActionBtn onClick={() => pause(listing.id)} disabled={busy} variant="amber" icon={Pause} label="Tạm ẩn" />
+          )}
+          {listing.status === 'INACTIVE' && (
+            <ActionBtn onClick={() => resume(listing.id)} disabled={busy} variant="green" icon={Play} label="Hiện lại" />
+          )}
+          <Link
+            href={`/listings/${listing.id}`}
+            title="Xem trang"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href={`/dashboard/listings/${listing.id}/edit`}
+            title="Chỉnh sửa"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-[#2a7bd9] transition-colors hover:bg-blue-50"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Link>
+          <ActionBtn
+            onClick={() => { if (confirm(`Xoá "${listing.title}"?`)) del(listing.id); }}
+            disabled={busy}
+            variant="red"
+            icon={Trash2}
+            label="Xoá"
+          />
+        </div>
       </div>
     </div>
   );
 }
+
+function SkeletonCard() {
+  return (
+    <div className="flex overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.04] animate-pulse">
+      <div className="w-1 bg-slate-100" />
+      <div className="h-[108px] w-36 shrink-0 bg-slate-100" />
+      <div className="flex flex-1 items-center gap-4 px-5 py-4">
+        <div className="flex-1 space-y-2.5">
+          <div className="flex gap-2">
+            <div className="h-3 w-20 rounded-full bg-slate-100" />
+            <div className="h-3 w-16 rounded-full bg-slate-100" />
+          </div>
+          <div className="h-4 w-3/4 rounded-lg bg-slate-100" />
+          <div className="h-3 w-1/3 rounded-lg bg-slate-100" />
+        </div>
+        <div className="hidden sm:block space-y-1.5">
+          <div className="h-6 w-24 rounded-lg bg-slate-100" />
+          <div className="h-3 w-16 rounded-lg bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ManageListingsPage() {
   const { data: listings, isLoading } = useMyListings();
@@ -121,99 +215,136 @@ export default function ManageListingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<string>('ALL');
 
-  const filtered = listings?.filter((l) => filter === 'ALL' || l.status === filter) ?? [];
-
   const counts = listings?.reduce((acc, l) => {
     acc[l.status] = (acc[l.status] ?? 0) + 1;
     return acc;
   }, {} as Record<string, number>) ?? {};
 
+  const filtered = listings?.filter((l) => filter === 'ALL' || l.status === filter) ?? [];
+
   return (
-    <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <nav className="mb-1 flex items-center gap-2 text-xs" style={{ color: '#8694ad' }}>
-              <Link href="/dashboard" style={{ color: '#2a7bd9' }}>Dashboard</Link>
-              <span>/</span>
-              <span>Sản phẩm</span>
-            </nav>
-            <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Quản lý sản phẩm</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Bulk upload */}
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) bulkUpload(f); e.target.value = ''; }} />
-            <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all hover:bg-white disabled:opacity-50"
-              style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}>
-              {uploading ? '⏳ Đang upload...' : '📂 Nhập hàng loạt'}
-            </button>
-            <Link href="/dashboard/listings/new"
-              className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ background: '#2a7bd9' }}>
-              + Thêm mới
-            </Link>
+    <div className="min-h-screen bg-[#f3f8fd]">
+
+      {/* ── Page header ── */}
+      <div className="bg-white shadow-sm ring-1 ring-black/[0.04]">
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
+          <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400">
+            <Link href="/dashboard" className="hover:text-[#2a7bd9] transition-colors">Dashboard</Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-slate-600">Sản phẩm</span>
+          </nav>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Quản lý sản phẩm</h1>
+              <p className="mt-0.5 text-sm text-slate-400">
+                {listings?.length ?? 0} sản phẩm · {counts['ACTIVE'] ?? 0} đang cho thuê
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) bulkUpload(f); e.target.value = ''; }}
+              />
+              {/* <button
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
+              >
+                {uploading
+                  ? <><Loader2 className="h-4 w-4 animate-spin" />Đang upload…</>
+                  : <><Upload className="h-4 w-4" />Nhập hàng loạt</>}
+              </button> */}
+              <Link
+                href="/dashboard/listings/new"
+                className="flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 transition-all hover:brightness-110 active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+                Thêm mới
+              </Link>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Upload result */}
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+
+        {/* ── Upload result ── */}
         {uploadResult && (
-          <div className="mb-4 rounded-xl px-4 py-3 text-sm font-medium" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-            ✅ Đã tạo {uploadResult.created} sản phẩm từ file.
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+            <p className="text-sm font-medium text-green-700">
+              Đã tạo {uploadResult.created} sản phẩm từ file thành công.
+            </p>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { key: 'ALL',      label: 'Tất cả',        color: '#2a7bd9' },
-            { key: 'ACTIVE',   label: 'Đang cho thuê', color: '#15803d' },
-            { key: 'DRAFT',    label: 'Bản nháp',      color: '#475569' },
-            { key: 'INACTIVE', label: 'Tạm ẩn',        color: '#92400e' },
-          ].map((tab) => (
-            <button key={tab.key} onClick={() => setFilter(tab.key)}
-              className="rounded-2xl border p-3 text-left transition-all"
-              style={{
-                borderColor: filter === tab.key ? tab.color : '#DCEFFB',
-                background: filter === tab.key ? `${tab.color}10` : '#fff',
-              }}>
-              <p className="text-xl font-bold" style={{ color: tab.color }}>
-                {tab.key === 'ALL' ? (listings?.length ?? 0) : (counts[tab.key] ?? 0)}
-              </p>
-              <p className="text-xs" style={{ color: '#5a6b85' }}>{tab.label}</p>
-            </button>
-          ))}
+        {/* ── Stat / Filter tabs ── */}
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {STAT_TABS.map(({ key, label, icon: Icon, color, light }) => {
+            const count = key === 'ALL' ? (listings?.length ?? 0) : (counts[key] ?? 0);
+            const active = filter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className="relative overflow-hidden rounded-2xl p-4 text-left transition-all ring-1"
+                style={{
+                  background: active ? light : '#fff',
+                  boxShadow: active
+                    ? `0 0 0 2px ${color}40, 0 4px 12px -4px ${color}30`
+                    : '0 1px 3px rgba(0,0,0,0.04)',
+                  outline: active ? 'none' : 'none',
+                }}
+              >
+                {active && (
+                  <div
+                    className="absolute right-0 top-0 h-16 w-16 rounded-bl-full opacity-[0.12]"
+                    style={{ background: color }}
+                  />
+                )}
+                <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: active ? `${color}18` : '#f8fafc' }}>
+                  <Icon className="h-4 w-4" style={{ color: active ? color : '#94a3b8' }} />
+                </div>
+                <p className="text-2xl font-extrabold" style={{ color: active ? color : '#0f172a' }}>{count}</p>
+                <p className="mt-0.5 text-xs font-medium" style={{ color: active ? color : '#94a3b8' }}>{label}</p>
+              </button>
+            );
+          })}
         </div>
 
-        {/* List */}
+        {/* ── Listing list ── */}
         {isLoading ? (
           <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex animate-pulse gap-4 rounded-2xl border bg-white p-4" style={{ borderColor: '#DCEFFB' }}>
-                <div className="h-20 w-28 rounded-xl bg-[#e2e8f3]" />
-                <div className="flex-1 space-y-2 pt-2">
-                  <div className="h-3 w-1/3 rounded bg-[#e2e8f3]" />
-                  <div className="h-4 w-2/3 rounded bg-[#e2e8f3]" />
-                </div>
-              </div>
-            ))}
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border bg-white py-20" style={{ borderColor: '#DCEFFB' }}>
-            <span className="mb-4 text-5xl">🏕️</span>
-            <h3 className="mb-2 text-lg font-semibold" style={{ color: '#0f1729' }}>Chưa có sản phẩm</h3>
-            <p className="mb-5 text-sm" style={{ color: '#8694ad' }}>Tạo sản phẩm đầu tiên để bắt đầu cho thuê.</p>
-            <Link href="/dashboard/listings/new" className="rounded-full px-6 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
+          <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-20 text-center shadow-sm ring-1 ring-black/[0.04]">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
+              <Tent className="h-8 w-8 text-slate-200" />
+            </div>
+            <h3 className="mb-1 text-base font-semibold text-slate-800">
+              {filter === 'ALL' ? 'Chưa có sản phẩm nào' : `Không có sản phẩm "${STAT_TABS.find(t => t.key === filter)?.label}"`}
+            </h3>
+            <p className="mb-6 text-sm text-slate-400">
+              {filter === 'ALL' ? 'Tạo sản phẩm đầu tiên để bắt đầu cho thuê.' : 'Thay đổi bộ lọc hoặc tạo sản phẩm mới.'}
+            </p>
+            <Link
+              href="/dashboard/listings/new"
+              className="flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 hover:brightness-110"
+            >
+              <Plus className="h-4 w-4" />
               Tạo sản phẩm
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((listing) => <ListingRow key={listing.id} listing={listing} />)}
+            {filtered.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
           </div>
         )}
+
       </div>
     </div>
   );

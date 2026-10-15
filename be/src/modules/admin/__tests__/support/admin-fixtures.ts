@@ -62,7 +62,7 @@ export async function createListing(
       description: 'Mô tả',
       price: new Prisma.Decimal(100000),
       location: 'Quận 1, TP.HCM',
-      category: 'VEHICLE',
+      category: 'TREKKING',
       imageUrls: ['https://img.example.test/1.jpg'],
       amenities: [],
       status: ListingStatus.ACTIVE,

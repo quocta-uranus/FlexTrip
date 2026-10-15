@@ -3,22 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { listingSchema, type ListingInput } from '@/lib/validators/listing.schema';
 import { useListing, useUpdateListing } from '@/hooks/useListings';
 import { listingApi } from '@/lib/api/client';
 import { ImageUploader } from '@/components/listing/image-uploader';
-import type { ListingCategory } from '@/types/listing';
-import { CATEGORY_LABELS } from '@/types/listing';
-
-const CATEGORIES: Array<{ value: ListingCategory; label: string; icon: string }> = [
-  { value: 'CAMPING_TREKKING', label: 'Cắm trại & Trekking', icon: '⛺' },
-  { value: 'VEHICLE', label: 'Phương tiện', icon: '🚵' },
-  { value: 'STAY', label: 'Chỗ ở', icon: '🏡' },
-  { value: 'EXPERIENCE', label: 'Trải nghiệm', icon: '🌄' },
-  { value: 'OTHER', label: 'Khác', icon: '📦' },
-];
+import { LISTING_CATEGORIES } from '@/constants/categories';
+import { PriceSuggestionCard } from '@/components/pricing/PriceSuggestionCard';
+import { AutoAdjustSettings } from '@/components/pricing/AutoAdjustSettings';
+import { AiDescriptionPanel } from '@/components/listing/AiDescriptionPanel';
 
 const COMMON_AMENITIES = [
   'Lều', 'Túi ngủ', 'Đèn pin', 'Bếp dã ngoại', 'Nồi/Chảo', 'Bộ dụng cụ sơ cứu',
@@ -42,139 +36,6 @@ function Field({ label, error, required, children }: {
 const inputCls = "w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
 const inputStyle = { borderColor: '#DCEFFB', color: '#0f1729' };
 
-// ─── AI Suggestion Panel ──────────────────────────────────────────────────────
-
-function AiPanel({
-  title, description, category, location, amenities, price,
-  onDescription, onOptimized,
-}: {
-  title: string; description: string; category: string; location: string;
-  amenities: string[]; price: number;
-  onDescription: (d: string) => void;
-  onOptimized: (d: string, improvements: string[]) => void;
-}) {
-  const [loading, setLoading] = useState<string | null>(null);
-  const [qualityResult, setQualityResult] = useState<{
-    score: number; grade: string; suggestions: string[];
-    breakdown: Record<string, number>;
-  } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function runAi(action: string) {
-    setLoading(action);
-    setError(null);
-    try {
-      if (action === 'generate') {
-        const res = await listingApi.aiGenerateDescription({
-          title, category, location, amenities, price: price || undefined,
-        });
-        onDescription(res.description);
-      } else if (action === 'optimize') {
-        const res = await listingApi.aiOptimize({ description, title, category });
-        onOptimized(res.optimized, res.improvements);
-      } else if (action === 'quality') {
-        const res = await listingApi.aiQualityScore({
-          title, description, category, imageUrls: [], amenities, price: price || undefined,
-        });
-        setQualityResult(res);
-      }
-    } catch {
-      setError('AI không khả dụng. Kiểm tra ANTHROPIC_API_KEY.');
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  return (
-    <div className="rounded-2xl border bg-white p-6 space-y-4" style={{ borderColor: '#DCEFFB' }}>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🤖</span>
-        <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>AI Assistant</h2>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: 'rgba(42,123,217,0.1)', color: '#2a7bd9' }}>Beta</span>
-      </div>
-
-      {error && (
-        <p className="rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626' }}>{error}</p>
-      )}
-
-      <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => runAi('generate')}
-          disabled={!title || !category || !location || loading === 'generate'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'generate' ? <span className="animate-spin">⏳</span> : '✍️'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Tạo mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-04: AI soạn từ đầu</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => runAi('optimize')}
-          disabled={description.length < 20 || loading === 'optimize'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'optimize' ? <span className="animate-spin">⏳</span> : '✨'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Tối ưu mô tả</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-07: Copywriting AI</p>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => runAi('quality')}
-          disabled={!title || !description || loading === 'quality'}
-          className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all hover:bg-[#f6fbfe] disabled:opacity-40"
-          style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
-        >
-          {loading === 'quality' ? <span className="animate-spin">⏳</span> : '📊'}
-          <div className="text-left">
-            <p className="font-semibold text-xs">Chấm điểm</p>
-            <p className="text-[10px]" style={{ color: '#8694ad' }}>LIST-05: Quality Score</p>
-          </div>
-        </button>
-      </div>
-
-      {qualityResult && (
-        <div className="rounded-xl p-4 space-y-3" style={{ background: '#f8fbff' }}>
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-bold text-white"
-              style={{
-                background: qualityResult.score >= 70 ? '#16a34a' : qualityResult.score >= 50 ? '#ca8a04' : '#dc2626',
-              }}
-            >
-              {qualityResult.grade}
-            </div>
-            <div>
-              <p className="text-2xl font-bold" style={{ color: '#0f1729' }}>{qualityResult.score}/100</p>
-              <p className="text-xs" style={{ color: '#5a6b85' }}>Điểm chất lượng tin đăng</p>
-            </div>
-          </div>
-          {qualityResult.suggestions?.length > 0 && (
-            <div>
-              <p className="mb-1.5 text-xs font-semibold" style={{ color: '#0f1729' }}>Gợi ý cải thiện:</p>
-              <ul className="space-y-1">
-                {qualityResult.suggestions.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#5a6b85' }}>
-                    <span className="mt-0.5 shrink-0 text-[#2a7bd9]">→</span> {s}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EditListingPage() {
@@ -186,9 +47,14 @@ export default function EditListingPage() {
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
   const [aiImprovements, setAiImprovements] = useState<string[]>([]);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ListingInput>({
+  const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<ListingInput>({
     resolver: zodResolver(listingSchema) as any,
-    defaultValues: { currency: 'VND', amenities: [], imageUrls: [] },
+    defaultValues: { currency: 'VND', amenities: [], imageUrls: [], penaltyRules: [] },
+  });
+
+  const { fields: penaltyFields, append: appendPenalty, remove: removePenalty } = useFieldArray({
+    control,
+    name: 'penaltyRules',
   });
 
   const selectedCategory = watch('category');
@@ -210,6 +76,9 @@ export default function EditListingPage() {
       imageUrls: listing.imageUrls,
       latitude: listing.latitude ?? undefined,
       longitude: listing.longitude ?? undefined,
+      penaltyRules: (listing.penaltyRules as ListingInput['penaltyRules']) ?? [],
+      conditionNote: listing.conditionNote ?? '',
+      marketValue: listing.marketValue ?? undefined,
     });
     setAmenities(listing.amenities);
     setImageUrls(listing.imageUrls.length ? listing.imageUrls : ['']);
@@ -246,7 +115,16 @@ export default function EditListingPage() {
           <span style={{ color: '#0f1729' }}>Chỉnh sửa</span>
         </nav>
 
-        <h1 className="mb-8 text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
+          <Link
+            href={`/dashboard/listings/${id}/calendar`}
+            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition hover:bg-[#f6fbfe]"
+            style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
+          >
+            📅 Quản lý lịch
+          </Link>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
@@ -258,13 +136,13 @@ export default function EditListingPage() {
 
             <Field label="Danh mục" error={errors.category?.message} required>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => {
+                {LISTING_CATEGORIES.map((cat) => {
                   const active = selectedCategory === cat.value;
                   return (
                     <button key={cat.value} type="button" onClick={() => setValue('category', cat.value)}
                       className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
-                      style={{ borderColor: active ? '#2a7bd9' : '#DCEFFB', background: active ? 'rgba(42,123,217,0.08)' : '#fff', color: active ? '#2a7bd9' : '#5a6b85' }}>
-                      <span>{cat.icon}</span>{cat.label}
+                      style={{ borderColor: active ? cat.color : '#DCEFFB', background: active ? `${cat.color}14` : '#fff', color: active ? cat.color : '#5a6b85' }}>
+                      <span>{cat.emoji}</span>{cat.label}
                     </button>
                   );
                 })}
@@ -298,6 +176,16 @@ export default function EditListingPage() {
                   </select>
                 </Field>
               </div>
+
+              {/* AI Price Suggestion */}
+              <PriceSuggestionCard
+                category={watch('category')}
+                location={watch('location') ?? ''}
+                title={watch('title')}
+                currentPrice={watch('price') > 0 ? watch('price') : undefined}
+                listingId={id}
+                onApply={(price) => setValue('price', price, { shouldValidate: true })}
+              />
             </div>
           </div>
 
@@ -327,11 +215,132 @@ export default function EditListingPage() {
             />
           </div>
 
-          {/* AI Panel */}
-          <AiPanel
+          {/* Điều khoản & Mức phạt */}
+          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚖️</span>
+              <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Điều khoản & Mức phạt</h2>
+            </div>
+
+            <p className="text-xs" style={{ color: '#8694ad' }}>
+              Khai báo tình trạng sản phẩm và các mức bồi thường thiệt hại. Thông tin này được in vào hợp đồng thuê.
+            </p>
+
+            {/* conditionNote */}
+            <Field label="Tình trạng sản phẩm hiện tại">
+              <textarea
+                {...register('conditionNote')}
+                rows={3}
+                placeholder="VD: Lều còn tốt, thanh nhôm có xước nhỏ ở cọc số 3. Khoá kéo hoạt động bình thường."
+                className={`${inputCls} resize-none`}
+                style={inputStyle}
+              />
+            </Field>
+
+            {/* marketValue */}
+            <Field label="Giá trị thị trường (VND)" error={(errors as Record<string, { message?: string }>).marketValue?.message}>
+              <input
+                type="number"
+                min={0}
+                {...register('marketValue')}
+                placeholder="VD: 3500000"
+                className={inputCls}
+                style={inputStyle}
+              />
+              <p className="mt-1 text-xs" style={{ color: '#8694ad' }}>
+                Nếu ≥ 5.000.000 ₫, hợp đồng sẽ được đánh dấu <strong>Giá trị cao</strong> và thêm điều khoản bảo hiểm.
+              </p>
+            </Field>
+
+            {/* Penalty rules table */}
+            <div>
+              <p className="mb-3 text-sm font-medium" style={{ color: '#0f1729' }}>Bảng mức phạt</p>
+              {penaltyFields.length === 0 && (
+                <p className="mb-3 text-xs" style={{ color: '#8694ad' }}>
+                  Chưa có mức phạt nào. Nếu để trống, hai bên tự thỏa thuận khi phát sinh thiệt hại.
+                </p>
+              )}
+
+              <div className="space-y-3">
+                {penaltyFields.map((field, i) => (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-start gap-2 rounded-xl border p-4"
+                    style={{ borderColor: '#DCEFFB' }}
+                  >
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Loại thiệt hại</label>
+                      <input
+                        {...register(`penaltyRules.${i}.item`)}
+                        placeholder="VD: Mất cọc lều"
+                        className={inputCls}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Mô tả</label>
+                      <input
+                        {...register(`penaltyRules.${i}.description`)}
+                        placeholder="VD: Mất 1 cọc lều"
+                        className={inputCls}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối thiểu (₫)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        {...register(`penaltyRules.${i}.minAmount`)}
+                        placeholder="50000"
+                        className={inputCls}
+                        style={{ ...inputStyle, width: '100px' }}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối đa (₫)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        {...register(`penaltyRules.${i}.maxAmount`)}
+                        placeholder="200000"
+                        className={inputCls}
+                        style={{ ...inputStyle, width: '100px' }}
+                      />
+                    </div>
+                    <div className="pt-5">
+                      <button
+                        type="button"
+                        onClick={() => removePenalty(i)}
+                        className="rounded-lg border px-2.5 py-2 text-xs font-semibold transition hover:bg-red-50"
+                        style={{ borderColor: '#fca5a5', color: '#dc2626' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => appendPenalty({ item: '', description: '', minAmount: 0, maxAmount: 0 })}
+                className="mt-3 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition hover:bg-[#f6fbfe]"
+                style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
+              >
+                + Thêm mức phạt
+              </button>
+            </div>
+          </div>
+
+          {/* Auto-Adjust Settings */}
+          <AutoAdjustSettings listingId={id} />
+
+          {/* AI Description Panel */}
+          <AiDescriptionPanel
             title={watchTitle} description={watchDescription}
             category={selectedCategory ?? ''} location={watchLocation}
-            amenities={amenities} price={Number(watchPrice)}
+            amenities={amenities} price={Number(watchPrice) || undefined}
             onDescription={(d) => setValue('description', d)}
             onOptimized={(d, imps) => { setValue('description', d); setAiImprovements(imps); }}
           />

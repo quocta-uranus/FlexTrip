@@ -1,21 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMe, useUpdateMe, usePreferences, useSessions, useRevokeSession } from "@/hooks/useSession";
+import { useMe, useUpdateMe, useSessions, useRevokeSession } from "@/hooks/useSession";
 import { useSetAvatar } from "@/hooks/useSetAvatar";
 import { useQueryClient } from "@tanstack/react-query";
-import { userApi } from "@/lib/api/client";
 import type { UserProfile } from "@/lib/api/client";
 import { TwoFactorSetupModal } from "@/components/profile/TwoFactorSetupModal";
+import { TravelPreferencesSection } from "@/components/profile/TravelPreferencesSection";
 import Link from "next/link";
 import {
-  Card,
-  SectionTitle,
-  ProfileHeader,
   AvatarField,
   RoleBadge,
-  KpiCards,
   Timeline,
   Field,
   Input,
@@ -26,16 +22,14 @@ import {
   StickyCta,
 } from "@/components/profile/ui";
 import {
-  Reveal,
   MagneticAvatar,
-  Counter,
-  PulseDot,
-  AnimatedGradientText,
   ConfettiBurst,
   useConfetti,
 } from "@/components/profile/wow";
 import { useEditingProfile } from "@/hooks/useEditingProfile";
 import { Toast } from "@/components/ui/toast";
+import { ReputationProgressCard } from "@/components/reputation/reputation-badge";
+import { useMyReputation } from "@/hooks/useReputation";
 
 const LANG_CODE_TO_LABEL: Record<string, string> = {
   vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
@@ -46,8 +40,7 @@ const LANG_LABEL_TO_CODE: Record<string, string> = {
 const GENDER_UP: Record<string, string> = { male: 'MALE', female: 'FEMALE', other: 'OTHER' };
 const GENDER_DOWN: Record<string, string> = { MALE: 'male', FEMALE: 'female', OTHER: 'other' };
 
-function meToForm(me: UserProfile, prefs: any[]): TravelProfile {
-  const firstPref = prefs?.[0];
+function meToForm(me: UserProfile): TravelProfile {
   return {
     fullName: me.name ?? '',
     email: me.email ?? '',
@@ -60,9 +53,6 @@ function meToForm(me: UserProfile, prefs: any[]): TravelProfile {
     avatar: me.avatarUrl ?? '',
     emergencyContact: me.emergencyContact ?? '',
     languages: (me.languages ?? ['vi']).map((c) => LANG_CODE_TO_LABEL[c] ?? c),
-    tripType: (firstPref?.tripType ?? '') as TravelProfile['tripType'],
-    budgetMin: String(firstPref?.budgetMin ?? ''),
-    budgetMax: String(firstPref?.budgetMax ?? ''),
     tripsCount: 0,
     rating: 5.0,
     reviewsGiven: 0,
@@ -88,9 +78,6 @@ interface TravelProfile {
   avatar: string;
   emergencyContact: string;
   languages: string[];
-  tripType: "leisure" | "business" | "trekking" | "mixed" | "";
-  budgetMin: string;
-  budgetMax: string;
   tripsCount: number;
   rating: number;
   reviewsGiven: number;
@@ -111,9 +98,6 @@ const initialProfile: TravelProfile = {
   avatar: "",
   emergencyContact: "",
   languages: [],
-  tripType: "",
-  budgetMin: "",
-  budgetMax: "",
   tripsCount: 0,
   rating: 0,
   reviewsGiven: 0,
@@ -130,18 +114,12 @@ export default function TravelProfilePage() {
   const { data: p, setData: setP, editing, setEditing, save, cancel, savedAt } =
     useEditingProfile<TravelProfile>(STORAGE_KEY, initialProfile);
   const [showSaved, setShowSaved] = useState(false);
-
-  // Hiện toast khi lưu thành công
-  useEffect(() => {
-    if (!savedAt) return;
-    setShowSaved(true);
-  }, [savedAt]);
-
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const confetti = useConfetti(36);
   const [show2faModal, setShow2faModal] = useState(false);
   const { data: me } = useMe();
+  const { data: reputation } = useMyReputation();
   const { mutateAsync: uploadAvatar, isPending: avatarUploading } = useSetAvatar();
   const qc = useQueryClient();
   // Bảo vệ route: chỉ TRAVELER mới được vào /profile/travel
@@ -152,18 +130,15 @@ export default function TravelProfilePage() {
       router.replace(roles.includes('PROVIDER') ? '/profile/shop' : '/profile');
     }
   }, [me, router]);
-  const { data: preferences } = usePreferences();
   const { mutateAsync: updateMe, isPending: isSaving } = useUpdateMe();
   const { data: sessions } = useSessions();
   const { mutate: revokeSession, isPending: revoking } = useRevokeSession();
 
-  // Sync form from server whenever me/preferences load and user is NOT editing
-  const editingRef = useRef(editing);
-  editingRef.current = editing;
+  // Sync form from server whenever me loads and user is NOT editing
   useEffect(() => {
-    if (!me || !preferences || editingRef.current) return;
-    setP(meToForm(me, preferences));
-  }, [me, preferences]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!me || editing) return;
+    setP(meToForm(me));
+  }, [me, editing, setP]);
 
   const completion = computeCompletion(p);
 
@@ -194,24 +169,13 @@ export default function TravelProfilePage() {
         languages: p.languages.map((l) => LANG_LABEL_TO_CODE[l] ?? l),
       });
 
-      if (p.tripType || p.budgetMin || p.budgetMax) {
-        const prefPayload = {
-          tripType: p.tripType || 'leisure',
-          budgetMin: p.budgetMin ? Number(p.budgetMin) : undefined,
-          budgetMax: p.budgetMax ? Number(p.budgetMax) : undefined,
-        };
-        if (preferences?.[0]) {
-          await userApi.updatePreference(preferences[0].id, prefPayload);
-        } else {
-          await userApi.addPreference(prefPayload);
-        }
-      }
-
       save();
+      setShowSaved(true);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 1600);
-    } catch (err: any) {
-      setSaveError(err?.message ?? 'Lưu thất bại, thử lại.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Lưu thất bại, thử lại.';
+      setSaveError(msg);
     }
   }
 
@@ -222,12 +186,9 @@ export default function TravelProfilePage() {
     { date: "T2/2026", title: "City tour Đà Nẵng", subtitle: "FlexTrip Verified · nửa ngày", badge: "City" },
   ];
 
-  const trips = p.tripsCount;
-  const badges = [
-    { name: "Newbie Trekker", desc: "Hoàn thành 1–3 chuyến thuê", level: trips >= 1 ? ("done" as const) : ("locked" as const) },
-    { name: "Explorer", desc: "Hoàn thành 4–9 chuyến thuê", level: trips >= 4 ? ("done" as const) : trips >= 1 ? ("current" as const) : ("locked" as const) },
-    { name: "Pro Trekker", desc: "Hoàn thành 10+ chuyến thuê", level: trips >= 10 ? ("done" as const) : trips >= 4 ? ("current" as const) : ("locked" as const) },
-  ];
+  const travelerReputation = reputation?.badges.find(
+    (badge) => badge.code === 'RELIABLE_TRAVELER',
+  );
 
   return (
     <div className="min-h-screen pb-28" style={{ background: "linear-gradient(180deg, #f0f7ff 0%, #ffffff 40%)" }}>
@@ -338,17 +299,40 @@ export default function TravelProfilePage() {
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Chuyến thuê", value: p.tripsCount, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
-            { label: "Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-            { label: "Reviews", value: p.reviewsGiven, icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-            { label: "Ngân sách", value: formatVndRange(p.budgetMin, p.budgetMax), icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+            { label: "Chuyến thuê", value: p.tripsCount, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", color: "#2a7bd9", bg: "rgba(42,123,217,0.1)", href: undefined },
+            { label: "Đánh giá", value: `${p.rating.toFixed(1)} ⭐`, icon: "M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.539 1.118l-3.36-2.448a1 1 0 00-1.176 0l-3.36 2.448c-.783.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", href: undefined },
+            { label: "Đánh giá của tôi", value: p.reviewsGiven, icon: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z", color: "#10b981", bg: "rgba(16,185,129,0.1)", href: "/profile/reviews" },
+            { label: "Ngân sách", value: "Theo từng chuyến đi", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", href: undefined },
           ].map((k, i) => (
-            <div key={k.label} className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${i * 100}ms` }}>
+            <div key={k.label} className="contents">
+              {k.href ? (
+                <Link
+                  href={k.href}
+                  aria-label="Xem các đánh giá của tôi"
+                  className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: k.color }} />
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wider" style={{ color: k.color }}>{k.label}</div>
+                      <div className="mt-2 text-xl font-bold sm:text-2xl" style={{ color: "#0f1729" }}>{k.value}</div>
+                      <div className="mt-2 text-xs font-semibold" style={{ color: k.color }}>Xem chi tiết →</div>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-sm" style={{ background: k.bg, color: k.color }}>
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={k.icon} />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="group relative overflow-hidden rounded-2xl border border-white/50 bg-white/80 p-5 shadow-lg backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${i * 100}ms` }}>
               <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 blur-2xl" style={{ background: k.color }} />
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-xs font-medium uppercase tracking-wider" style={{ color: k.color }}>{k.label}</div>
-                  <div className="mt-2 text-2xl font-bold" style={{ color: "#0f1729" }}>{k.value}</div>
+                  <div className="mt-2 text-xl font-bold sm:text-2xl" style={{ color: "#0f1729" }}>{k.value}</div>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-sm" style={{ background: k.bg, color: k.color }}>
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -356,9 +340,17 @@ export default function TravelProfilePage() {
                   </svg>
                 </div>
               </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
+
+        {travelerReputation && (
+          <div className="mb-8">
+            <ReputationProgressCard badge={travelerReputation} />
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
@@ -402,6 +394,31 @@ export default function TravelProfilePage() {
                   <Field label="Liên hệ khẩn cấp">
                     <Input value={p.emergencyContact} onChange={(v) => update("emergencyContact", v)} disabled={!editing} placeholder="0912 345 678" />
                   </Field>
+                  <Field label="Ngôn ngữ" full>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_LANGUAGES.map((lang) => {
+                        const active = p.languages.includes(lang);
+                        return (
+                          <button
+                            key={lang}
+                            type="button"
+                            onClick={() => editing && toggleLanguage(lang)}
+                            disabled={!editing}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                              !editing ? "cursor-default" : "cursor-pointer hover:scale-105"
+                            }`}
+                            style={
+                              active
+                                ? { borderColor: "#2a7bd9", background: "#2a7bd9", color: "white" }
+                                : { borderColor: "#e2e8f3", background: "white", color: "#0f1729" }
+                            }
+                          >
+                            {lang}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
                   <Field label="Giới thiệu bản thân" full>
                     <textarea value={p.bio} disabled={!editing} onChange={(e) => update("bio", e.target.value)} rows={3} placeholder="Một vài dòng giới thiệu về bạn..." className="w-full rounded-lg border border-[#e2e8f3] bg-[rgba(146,238,232,0.08)] px-4 py-2.5 text-sm outline-none transition-all focus:border-[#2a7bd9] focus:ring-2 focus:ring-[#2a7bd9]/20 disabled:bg-[#f1f5fa] disabled:text-[#8694ad]" />
                   </Field>
@@ -409,49 +426,8 @@ export default function TravelProfilePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
-              <div className="border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-cyan-50 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981" }}>
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold" style={{ color: "#0f1729" }}>Tùy chọn du lịch</h3>
-                    <p className="text-xs" style={{ color: "#8694ad" }}>Gợi ý chuyến đi phù hợp với bạn</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Loại chuyến">
-                    <Select value={p.tripType} onChange={(v) => update("tripType", v as TravelProfile["tripType"])} disabled={!editing} options={[{ value: "", label: "Chọn loại chuyến" }, { value: "leisure", label: "Nghỉ dưỡng" }, { value: "business", label: "Công tác" }, { value: "trekking", label: "Trekking / Outdoor" }, { value: "mixed", label: "Kết hợp" }]} />
-                  </Field>
-                  <Field label="Ngân sách min (VND)">
-                    <Input type="number" value={p.budgetMin} onChange={(v) => update("budgetMin", v)} disabled={!editing} placeholder="500000" />
-                  </Field>
-                  <Field label="Ngân sách max (VND)">
-                    <Input type="number" value={p.budgetMax} onChange={(v) => update("budgetMax", v)} disabled={!editing} placeholder="2000000" />
-                  </Field>
-                  <Field label="Ngôn ngữ">
-                    <div className="flex flex-wrap gap-2">
-                      {ALL_LANGUAGES.map((lang) => {
-                        const active = p.languages.includes(lang);
-                        return (
-                          <button key={lang} onClick={() => editing && toggleLanguage(lang)} disabled={!editing} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${!editing ? "cursor-default" : "cursor-pointer hover:scale-105"}`} style={active ? { borderColor: "#2a7bd9", background: "#2a7bd9", color: "white" } : { borderColor: "#e2e8f3", background: "white", color: "#0f1729" }}>
-                            {lang}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </Field>
-                </div>
-                <p className="mt-4 rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-700">
-                  💡 Ngân sách và loại chuyến giúp AIREC gợi ý listing phù hợp với bạn.
-                </p>
-              </div>
-            </div>
+            {/* ── Sở thích du lịch (PROF-02) ── */}
+            <TravelPreferencesSection />
 
             <div className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg">
               <div className="border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4">
@@ -568,7 +544,6 @@ export default function TravelProfilePage() {
                 </Link>
                 <Link href="/profile/preferences" className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div>
-                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ color: "#8b5cf6" }}>PROF-02</span>
                     <div className="mt-1 text-sm font-medium" style={{ color: "#0f1729" }}>Tùy chọn du lịch</div>
                   </div>
                   <svg className="h-4 w-4" style={{ color: "#8694ad" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -620,6 +595,9 @@ export default function TravelProfilePage() {
       />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
       <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
+      {saveError && (
+        <Toast show={Boolean(saveError)} message={saveError} onClose={() => setSaveError(null)} />
+      )}
     </div>
   );
 }
@@ -637,17 +615,6 @@ function computeCompletion(p: TravelProfile): number {
     Boolean(p.avatar),
     Boolean(p.emergencyContact.trim()),
     p.languages.length > 0,
-    Boolean(p.tripType),
-    Boolean(p.budgetMin) && Boolean(p.budgetMax),
   ];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-}
-
-function formatVndRange(min: string, max: string) {
-  const mn = Number(min);
-  const mx = Number(max);
-  if (!mn || !mx) return "—";
-  if (mn >= 1_000_000) return `${(mn / 1_000_000).toFixed(0)}–${(mx / 1_000_000).toFixed(0)}M`;
-  if (mn >= 1_000) return `${(mn / 1_000).toFixed(0)}–${(mx / 1_000).toFixed(0)}k`;
-  return `${mn}–${mx}`;
 }

@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { Prisma, Role, UserStatus } from '@prisma/client';
+import { NotificationType, Prisma, Role, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
@@ -62,6 +62,15 @@ export class AdminStaffBookingsService {
         action: 'BOOKING_STAFF_ASSIGNED', entityType: 'Booking', entityId: id,
         before: { assignedStaffId: b.assignedStaffId }, after: { assignedStaffId: dto.staffId },
       });
+      await tx.notification.create({
+        data: {
+          userId: dto.staffId,
+          type: NotificationType.BOOKING,
+          title: 'Booking mới được phân công',
+          body: `Bạn được giao phụ trách booking #${id.slice(0, 8)} — ${updated.listing.title}.`,
+          data: { bookingId: id },
+        },
+      });
       return toItem(updated);
     });
   }
@@ -84,6 +93,15 @@ export class AdminStaffBookingsService {
       await this.audit.log(tx, ctx, {
         action: 'BOOKING_STAFF_AUTO_ASSIGNED', entityType: 'Booking', entityId: id,
         before: { assignedStaffId: b.assignedStaffId }, after: { assignedStaffId: rule.staffId, ruleId: rule.id },
+      });
+      await tx.notification.create({
+        data: {
+          userId: rule.staffId,
+          type: NotificationType.BOOKING,
+          title: 'Booking mới được phân công',
+          body: `Bạn được tự động giao phụ trách booking #${id.slice(0, 8)} — ${updated.listing.title}.`,
+          data: { bookingId: id },
+        },
       });
       return { booking: toItem(updated), rule: { id: rule.id, name: rule.name } };
     });

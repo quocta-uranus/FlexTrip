@@ -24,8 +24,8 @@ describe('SystemConfigService', () => {
   it('returns defaults when nothing stored', async () => {
     expect(await svc.get('platform_fee')).toBe(10);
     const groups = await svc.getAll();
-    expect(groups.map((g) => g.group)).toEqual(['fraud', 'moderation', 'policies', 'commission']);
-    expect(groups.flatMap((g) => g.items)).toHaveLength(12);
+    expect(groups.map((g) => g.group)).toEqual(['fraud', 'moderation', 'policies', 'commission', 'reputation']);
+    expect(groups.flatMap((g) => g.items)).toHaveLength(20);
   });
 
   it('update stores values and audits only changed keys', async () => {

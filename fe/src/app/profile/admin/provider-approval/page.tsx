@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SectionTitle } from "@/components/profile/ui";
+import { LISTING_CATEGORIES } from "@/constants/categories";
 
 /**
  * ADMIN-02 — Approve/Reject Provider Registration
@@ -75,11 +76,10 @@ const mockApplications: ProviderApplication[] = [
 ];
 
 const categoryLabels: Record<string, string> = {
-  CAMPING_TREKKING: "🏕️ Camping & Trekking",
-  VEHICLE: "🚗 Vehicle",
-  STAY: "🏨 Stay",
-  EXPERIENCE: "🎯 Experience",
-  OTHER: "📦 Other",
+  ...Object.fromEntries(LISTING_CATEGORIES.map((c) => [c.value, `${c.emoji} ${c.label}`])),
+  // legacy values
+  CAMPING_TREKKING: "🏕️ Camping & Trekking", VEHICLE: "🚗 Phương tiện",
+  STAY: "🏨 Lưu trú", EXPERIENCE: "🎯 Trải nghiệm", OTHER: "📦 Khác",
 };
 
 const statusConfig = {
@@ -119,7 +119,7 @@ export default function AdminProviderApprovalPage() {
   return (
     <div className="pb-20">
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <SectionTitle eyebrow="ADMIN-02" title="Duyệt đăng ký Provider" desc="Phê duyệt hoặc từ chối hồ sơ Provider mới" />
+        <SectionTitle eyebrow="Quản lý hồ sơ" title="Duyệt đăng ký Provider" desc="Phê duyệt hoặc từ chối hồ sơ Provider mới" />
 
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-3">

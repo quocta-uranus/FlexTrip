@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
 import { Navbar } from "@/components/navbar";
 import { AiChatLauncher } from "@/components/ai-chat-launcher";
+import { MarketplaceAccessBoundary } from "@/components/marketplace-access-boundary";
 import "./globals.css";
 
 const inter = Inter({
@@ -48,33 +49,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${inter.variable} ${bodyFont.variable} ${headingFont.variable} ${dmSans.variable} ${dmSerif.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const storedTheme = localStorage.getItem('flextrip-theme');
-                if (storedTheme === 'dark') {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.setAttribute('data-theme', 'dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
-      </head>
       <body
-        className="has-travel-bg min-h-full flex flex-col bg-[#f1faff] dark:bg-[#070b12] text-slate-900 dark:text-slate-100 transition-colors duration-200"
+        className="has-travel-bg min-h-full flex flex-col bg-[#f1faff] text-slate-900"
       >
         {/* Wrapper giữ layout flex, không che background */}
         <div className="relative min-h-full flex flex-col">
           <Providers>
             <AuthBootstrap />
             <Navbar />
-            {children}
+            <MarketplaceAccessBoundary>{children}</MarketplaceAccessBoundary>
             <AiChatLauncher />
           </Providers>
         </div>

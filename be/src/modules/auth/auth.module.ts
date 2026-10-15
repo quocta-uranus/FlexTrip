@@ -12,6 +12,7 @@ import {
   ResetPasswordRateLimitGuard,
 } from './guards/rate-limit.guard';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { AccessTokenGuard } from './guards/access-token.guard';
     ForgotPasswordRateLimitGuard,
     ResetPasswordRateLimitGuard,
     AccessTokenGuard,
+    RolesGuard,
   ],
-  exports: [AuthService, ResendService, JwtModule],
+  exports: [AuthService, ResendService, JwtModule, AccessTokenGuard, RolesGuard],
 })
 export class AuthModule {}

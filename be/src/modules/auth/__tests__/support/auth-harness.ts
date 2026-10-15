@@ -11,6 +11,15 @@ import { REDIS_CLIENT } from '../../../../common/redis/redis.module';
 import { Client } from 'pg';
 import request from 'supertest';
 import { jest } from '@jest/globals';
+import { getQueueToken } from '@nestjs/bullmq';
+import { REVIEW_MODERATION_QUEUE } from '../../../reviews/review-moderation.constants';
+import {
+  ReviewAiAnalyzerService,
+  ReviewAnalysis,
+} from '../../../reviews/review-ai-analyzer.service';
+import { ReviewModerationProcessor } from '../../../reviews/review-moderation.processor';
+import { BOOKING_QUEUE } from '../../../booking/booking.constants';
+import { BookingProcessor } from '../../../booking/booking.processor';
 
 export const password = 'Valid password 123!';
 
@@ -44,14 +53,30 @@ export async function resetDatabase(prisma: PrismaService): Promise<void> {
 
 export class FakeRedis {
   private store = new Map<string, string>();
-  async exists(key: string) { return this.store.has(key) ? 1 : 0; }
-  async get(key: string) { return this.store.get(key) ?? null; }
-  async set(key: string, value: string, ..._args: unknown[]) { this.store.set(key, value); return 'OK'; }
-  async del(key: string) { return this.store.delete(key) ? 1 : 0; }
-  keys() { return [...this.store.keys()]; }
-  clear() { this.store.clear(); }
+  async exists(key: string) {
+    return this.store.has(key) ? 1 : 0;
+  }
+  async get(key: string) {
+    return this.store.get(key) ?? null;
+  }
+  async set(key: string, value: string, ...args: unknown[]) {
+    void args;
+    this.store.set(key, value);
+    return 'OK';
+  }
+  async del(key: string) {
+    return this.store.delete(key) ? 1 : 0;
+  }
+  keys() {
+    return [...this.store.keys()];
+  }
+  clear() {
+    this.store.clear();
+  }
   disconnect() {}
-  quit() { return Promise.resolve('OK'); }
+  quit() {
+    return Promise.resolve('OK');
+  }
 }
 
 export class AuthHarness {
@@ -61,17 +86,44 @@ export class AuthHarness {
   jwt!: JwtService;
   config!: ConfigService;
   redis = new FakeRedis();
+  reviewQueue = {
+    add: jest.fn<
+      (name: string, data: unknown, options: unknown) => Promise<{ id: string }>
+    >(),
+    getJobs: jest
+      .fn<(...args: unknown[]) => Promise<never[]>>()
+      .mockResolvedValue([]),
+  };
+  bookingQueue = {
+    add: jest.fn(),
+    remove: jest.fn(),
+    getJob: jest.fn(),
+  };
+  reviewAnalyzer = {
+    analyze:
+      jest.fn<
+        (input: {
+          reviewId?: string;
+          comment: string;
+          rating: number;
+        }) => Promise<ReviewAnalysis>
+      >(),
+  };
 
   resend = {
     sendOtp: jest.fn<(email: string, code: string) => Promise<boolean>>(),
-    sendPasswordReset: jest.fn<(email: string, url: string) => Promise<boolean>>(),
-    sendStaffInvite: jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
-    sendProviderApproved: jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+    sendPasswordReset:
+      jest.fn<(email: string, url: string) => Promise<boolean>>(),
+    sendStaffInvite:
+      jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+    sendProviderApproved:
+      jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
   };
 
   otp = {
     generate: jest.fn<(ns: string, key: string) => Promise<string>>(),
-    verify: jest.fn<(ns: string, key: string, code: string) => Promise<boolean>>(),
+    verify:
+      jest.fn<(ns: string, key: string, code: string) => Promise<boolean>>(),
     canResend: jest.fn<(ns: string, key: string) => Promise<boolean>>(),
   };
 
@@ -83,7 +135,9 @@ export class AuthHarness {
     process.env.JWT_REFRESH_SECRET = 'auth01-test-refresh-secret-32-characters';
     process.env.JWT_ACCESS_EXPIRES = '15m';
     process.env.JWT_REFRESH_EXPIRES = '7d';
-    process.env.TWO_FACTOR_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+    process.env.TWO_FACTOR_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString(
+      'base64',
+    );
     process.env.TWO_FACTOR_CHALLENGE_SECRET =
       'auth04-test-challenge-secret-32-characters';
     process.env.KYC_ENCRYPTION_KEY = Buffer.alloc(32, 9).toString('base64');
@@ -98,6 +152,14 @@ export class AuthHarness {
     this.otp.generate.mockResolvedValue('123456');
     this.otp.verify.mockResolvedValue(true);
     this.otp.canResend.mockResolvedValue(true);
+    this.reviewQueue.add.mockResolvedValue({ id: 'review-test-job' });
+    this.reviewAnalyzer.analyze.mockResolvedValue({
+      sentiment: 'POSITIVE',
+      spamScore: 5,
+      toxicityScore: 2,
+      suspicionScore: 5,
+      reasons: [],
+    });
 
     const builder = Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(ResendService)
@@ -105,7 +167,17 @@ export class AuthHarness {
       .overrideProvider(OtpService)
       .useValue(this.otp)
       .overrideProvider(REDIS_CLIENT)
-      .useValue(this.redis);
+      .useValue(this.redis)
+      .overrideProvider(ReviewAiAnalyzerService)
+      .useValue(this.reviewAnalyzer)
+      .overrideProvider(getQueueToken(REVIEW_MODERATION_QUEUE))
+      .useValue(this.reviewQueue)
+      .overrideProvider(ReviewModerationProcessor)
+      .useValue({ process: jest.fn() })
+      .overrideProvider(getQueueToken(BOOKING_QUEUE))
+      .useValue(this.bookingQueue)
+      .overrideProvider(BookingProcessor)
+      .useValue({ process: jest.fn() });
     const module = await configure(builder).compile();
 
     this.app = module.createNestApplication();

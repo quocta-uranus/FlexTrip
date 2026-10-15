@@ -5,12 +5,49 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useLogout } from '@/hooks/useAuthMutations';
+import { useCart } from '@/hooks/useCart';
+import { NotificationBell } from '@/components/notification-bell';
+import { PillButton } from '@/components/ui/pill-button';
+import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, MessageSquare, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
+import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
 const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/bookings', label: 'Đặt thuê', icon: '📋' },
   { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
+
+const PROVIDER_NAV_LINKS = [
+  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/dashboard/bookings', label: 'Đơn thuê', icon: '📋' },
+  { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' },
+  { href: '/dashboard/reviews', label: 'Đánh giá', icon: '⭐' },
+  { href: '/messages', label: 'Tin nhắn', icon: '💬' },
+];
+
+const STAFF_NAV_LINKS = [
+  { href: '/staff', label: 'Lịch vận hành', icon: '🗓️' },
+  { href: '/staff#mediations', label: 'Tranh chấp tại chỗ', icon: '⚖️' },
+];
+
+function CartIcon() {
+  const { data: cart } = useCart();
+  const count = cart?.items.length ?? 0;
+  return (
+    <Link
+      href="/cart"
+      className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#68655E] hover:text-[#141312] hover:bg-black/5 transition-colors"
+      title="Giỏ hàng"
+    >
+      <ShoppingBag className="h-5 w-5" strokeWidth={2} />
+      {count > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full text-[10px] font-black bg-[#F4B942] text-[#141312] shadow-xs">
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -19,139 +56,145 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isProvider = user?.roles?.includes('PROVIDER') ?? false;
-  const NAV_LINKS = isProvider
-    ? [...BASE_NAV_LINKS, { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' }]
-    : BASE_NAV_LINKS;
+  const isStaff = user?.roles?.includes('STAFF') ?? false;
+  const isAdmin = user?.roles?.includes('ADMIN') ?? false;
+  const NAV_LINKS = isAdmin
+    ? [{ href: '/search', label: 'Xem marketplace', icon: '🔍' }]
+    : isStaff
+      ? STAFF_NAV_LINKS
+      : isProvider
+        ? PROVIDER_NAV_LINKS
+        : BASE_NAV_LINKS;
 
-  // Hide on auth pages and landing page (LandingHeader handles those)
-  if (pathname === '/' ||
-      pathname.startsWith('/login') || pathname.startsWith('/register') ||
-      pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password') ||
-      pathname.startsWith('/2fa-challenge')) {
+  // Hide on pages that render LandingHeader, auth pages, and admin
+  if (
+    pathname === '/' ||
+    pathname === '/register-provider' ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/2fa-challenge')
+  ) {
     return null;
   }
 
   return (
-    <nav
-      className="sticky top-0 z-50 border-b backdrop-blur-md"
-      style={{ background: 'rgba(255,255,255,0.92)', borderColor: '#DCEFFB' }}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: 'linear-gradient(135deg, #2a7bd9 0%, #92eee8 100%)' }}
-          >
-            <svg className="h-4.5 w-4.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-            </svg>
+    <nav className="sticky top-0 z-50 border-b border-[rgba(20,19,18,0.06)] bg-white/90 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        {/* Brand Logo */}
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
+          <div className="h-8 w-8 rounded-full bg-[#161513] text-[#F4B942] flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+            <Compass className="h-4 w-4" strokeWidth={2.5} />
           </div>
-          <span className="text-lg font-bold tracking-tight" style={{ color: '#0f1729' }}>FlexTrip</span>
+          <span className="text-lg font-extrabold tracking-tight text-[#141312]">
+            Flex<span className="text-[#F4B942]">Trip</span>
+          </span>
         </Link>
 
-        {/* Search bar (desktop) */}
-        <Link
-          href="/search"
-          className="hidden sm:flex flex-1 max-w-sm items-center gap-2 rounded-full border px-4 py-2 text-sm transition-all hover:shadow-md"
-          style={{ borderColor: '#DCEFFB', background: '#f1f5fa', color: '#8694ad' }}
-        >
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span>Tìm thiết bị, địa điểm, trải nghiệm…</span>
-        </Link>
-
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-1">
+        {/* Desktop Nav Links */}
+        <div className="hidden md:flex items-center gap-1.5">
           {NAV_LINKS.map((link) => {
-            const active = pathname.startsWith(link.href);
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all"
-                style={{
-                  color: active ? '#2a7bd9' : '#5a6b85',
-                  background: active ? 'rgba(42,123,217,0.08)' : 'transparent',
-                }}
+                style={{ color: active ? '#ffffff' : undefined }}
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-all ${
+                  active
+                    ? 'bg-[#161513] !text-white shadow-xs'
+                    : 'text-[#68655E] hover:text-[#141312] hover:bg-black/4'
+                }`}
               >
                 <span>{link.icon}</span>
-                {link.label}
+                <span>{link.label}</span>
               </Link>
             );
           })}
         </div>
 
         {/* Right: user / auth */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
+          {isAuthenticated && user && <NotificationBell isProvider={isProvider} />}
+          {isAuthenticated && !isAdmin && !isStaff && <CartIcon />}
+          <WishlistHeaderLink />
 
           {isAuthenticated && user ? (
             <div className="relative">
               <button
                 id="nav-user-menu-btn"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:shadow-sm"
-                style={{ borderColor: '#DCEFFB', color: '#0f1729' }}
+                className="flex items-center gap-2 rounded-full border border-black/8 bg-white/80 pl-1.5 pr-2.5 py-1 text-sm font-semibold text-[#141312] hover:bg-white hover:border-black/15 transition-all shadow-xs cursor-pointer"
               >
                 {user.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
                 ) : (
-                  <div
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #2a7bd9, #92eee8)' }}
-                  >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EFECE6] text-xs font-bold text-[#141312]">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <span className="max-w-[100px] truncate hidden sm:block">{user.name}</span>
-                <svg className="h-3.5 w-3.5 text-[#8694ad]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown className="h-3.5 w-3.5 text-[#68655E]" />
               </button>
 
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                  <div
-                    className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border bg-white py-1.5 shadow-xl"
-                    style={{ borderColor: '#DCEFFB' }}
-                  >
-                    <div className="border-b px-4 py-2.5" style={{ borderColor: '#DCEFFB' }}>
-                      <p className="text-xs font-semibold" style={{ color: '#0f1729' }}>{user.name}</p>
-                      <p className="text-xs truncate" style={{ color: '#8694ad' }}>{user.email}</p>
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-black/8 bg-white py-2 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="border-b border-black/6 px-4 py-2.5">
+                      <p className="text-xs font-bold text-[#141312] truncate">{user.name}</p>
+                      <p className="text-xs text-[#68655E] truncate">{user.email}</p>
                     </div>
-                    {[
-                      { href: '/profile', label: 'Hồ sơ', icon: '👤' },
-                      { href: '/bookings', label: 'Đặt thuê của tôi', icon: '📋' },
-                      { href: '/messages', label: 'Tin nhắn', icon: '💬' },
-                      { href: '/profile/payments', label: 'Thanh toán & Ví', icon: '💳' },
-                      ...(isProvider ? [
-                        { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: '📦' },
-                        { href: '/dashboard', label: 'Provider Dashboard', icon: '🏕️' },
-                      ] : []),
-                    ].map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-[#f1f5fa]"
-                        style={{ color: '#0f1729' }}
-                      >
-                        <span>{item.icon}</span>
-                        {item.label}
-                      </Link>
-                    ))}
-                    <div className="mt-1 border-t pt-1" style={{ borderColor: '#DCEFFB' }}>
+
+                    <div className="py-1">
+                      {[
+                        ...(isAdmin
+                          ? [
+                              { href: '/admin', label: 'Bảng điều khiển Admin', icon: <Shield className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/profile', label: 'Hồ sơ & bảo mật', icon: <User className="h-4 w-4 text-[#68655E]" /> },
+                            ]
+                          : [
+                              { href: isStaff ? '/staff/complete-profile' : '/profile', label: 'Hồ sơ cá nhân', icon: <User className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/bookings', label: 'Đặt thuê của tôi', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/messages', label: 'Tin nhắn', icon: <MessageSquare className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/wishlist', label: 'Danh sách yêu thích', icon: <Heart className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/profile/payments', label: 'Thanh toán & Ví', icon: <CreditCard className="h-4 w-4 text-[#68655E]" /> },
+                            ]),
+                        ...(!isAdmin && isStaff
+                          ? [{ href: '/staff', label: 'Bảng điều phối', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> }]
+                          : []),
+                        ...(!isAdmin && isProvider
+                          ? [
+                              { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: <Package className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/dashboard/reviews', label: 'Quản lý đánh giá', icon: <Star className="h-4 w-4 text-[#68655E]" /> },
+                              { href: '/dashboard', label: 'Provider Dashboard', icon: <Compass className="h-4 w-4 text-[#68655E]" /> },
+                            ]
+                          : []),
+                      ].map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#141312] rounded-xl mx-1 transition-colors hover:bg-[#F7F5F0]"
+                        >
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="mt-1 border-t border-black/6 pt-1">
                       <button
                         id="nav-logout-btn"
-                        onClick={() => { setMenuOpen(false); logout(); }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-red-50"
-                        style={{ color: '#dc2626' }}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          logout();
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 rounded-xl mx-1 transition-colors hover:bg-red-50 cursor-pointer"
                       >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
+                        <LogOut className="h-4 w-4 text-red-500" />
                         Đăng xuất
                       </button>
                     </div>
@@ -163,50 +206,47 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <Link
                 href="/login"
-                className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-[#f1f5fa]"
-                style={{ color: '#2a7bd9' }}
+                className="hidden sm:inline-flex text-sm font-semibold text-[#141312] hover:text-black px-3.5 py-1.5 rounded-full hover:bg-black/4 transition-colors"
               >
                 Đăng nhập
               </Link>
-              <Link
-                href="/register"
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-                style={{ background: '#2a7bd9' }}
-              >
+              <PillButton href="/register" variant="primary" size="sm">
                 Đăng ký
-              </Link>
+              </PillButton>
             </div>
           )}
 
-          {/* Mobile menu button */}
+          {/* Mobile menu toggle */}
           <button
             id="nav-mobile-menu-btn"
-            className="flex h-9 w-9 items-center justify-center rounded-lg md:hidden"
-            style={{ color: '#5a6b85' }}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#141312] hover:bg-black/5 md:hidden cursor-pointer"
             onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Menu"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {/* Mobile nav links */}
       {menuOpen && (
-        <div className="border-t md:hidden" style={{ borderColor: '#DCEFFB', background: '#fff' }}>
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-3 px-6 py-3 text-sm font-medium"
-              style={{ color: '#0f1729' }}
-            >
-              <span>{link.icon}</span>
-              {link.label}
-            </Link>
-          ))}
+        <div className="border-t border-black/6 bg-white px-4 py-3 md:hidden flex flex-col gap-1 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150">
+          {NAV_LINKS.map((link) => {
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  active ? 'bg-[#161513] text-white' : 'text-[#141312] hover:bg-[#F7F5F0]'
+                }`}
+              >
+                <span>{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            );
+          })}
         </div>
       )}
     </nav>

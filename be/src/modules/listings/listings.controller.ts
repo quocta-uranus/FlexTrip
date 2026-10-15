@@ -1,17 +1,47 @@
 import {
-  Body, Controller, Delete, Get, HttpCode, Param, Patch, Post,
-  Query, Req, UploadedFile, UseGuards, UseInterceptors,
+  ListingReadGuard,
+  ListingReadRequest,
+} from '../listing-access/listing-read.guard';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import * as XLSX from 'xlsx';
 import { ListingsService } from './listings.service';
 import {
-  CreateListingDto, UpdateListingDto, FlagListingDto,
-  AiSuggestDto, AiDescriptionDto, AiOptimizeDto, AiQualityDto,
+  CreateListingDto,
+  UpdateListingDto,
+  FlagListingDto,
+  AiSuggestDto,
+  AiDescriptionDto,
+  AiOptimizeDto,
+  AiQualityDto,
+  PublicListingsQueryDto,
 } from './listings.dto';
-import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-token.guard';
+import {
+  AccessTokenGuard,
+  AuthenticatedRequest,
+} from '../auth/guards/access-token.guard';
 
 @ApiTags('listings')
 @Controller('listings')
@@ -27,20 +57,8 @@ export class ListingsController {
   @ApiQuery({ name: 'category', required: false })
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'location', required: false })
-  findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('category') category?: string,
-    @Query('keyword') keyword?: string,
-    @Query('location') location?: string,
-  ) {
-    return this.svc.findAll({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      category,
-      keyword,
-      location,
-    });
+  findAll(@Query() query: PublicListingsQueryDto) {
+    return this.svc.findAll(query);
   }
 
   @Get('me')
@@ -59,9 +77,13 @@ export class ListingsController {
   }
 
   @Get(':id')
+  @UseGuards(ListingReadGuard)
   @ApiOperation({ summary: 'Public: single listing detail' })
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: ListingReadRequest) {
+    return this.svc.findOne(
+      id,
+      req.listingReadOwner ? req.authUserId : undefined,
+    );
   }
 
   // ─── Provider CRUD ────────────────────────────────────────────────────────
@@ -99,7 +121,11 @@ export class ListingsController {
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)
   @ApiOperation({ summary: 'ADMIN-03: Người dùng báo cáo vi phạm tin đăng' })
-  flag(@Param('id') id: string, @Body() dto: FlagListingDto, @Req() req: AuthenticatedRequest) {
+  flag(
+    @Param('id') id: string,
+    @Body() dto: FlagListingDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.svc.flag(id, req.authUserId, dto);
   }
 
@@ -174,8 +200,16 @@ export class ListingsController {
         currency: String(r['currency'] ?? 'VND'),
         location: String(r['location']),
         category: String(r['category']) as any,
-        amenities: r['amenities'] ? String(r['amenities']).split('|').map((s) => s.trim()) : [],
-        imageUrls: r['imageUrls'] ? String(r['imageUrls']).split('|').map((s) => s.trim()) : ['https://placehold.co/800x600?text=No+Image'],
+        amenities: r['amenities']
+          ? String(r['amenities'])
+              .split('|')
+              .map((s) => s.trim())
+          : [],
+        imageUrls: r['imageUrls']
+          ? String(r['imageUrls'])
+              .split('|')
+              .map((s) => s.trim())
+          : ['https://placehold.co/800x600?text=No+Image'],
       }));
 
     return this.svc.bulkCreate(req.authUserId, dtos);

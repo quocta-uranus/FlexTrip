@@ -10,7 +10,7 @@ import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { RequestContext } from '../../../common/request-context';
 import { CreateStaffDto, ListStaffQueryDto, UpdateStaffDto } from './dto/admin-staff.dto';
 
-export const OPEN_BOOKING_STATUSES: BookingStatus[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+export const OPEN_BOOKING_STATUSES: BookingStatus[] = [BookingStatus.PENDING_APPROVAL, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS];
 const INVITE_TTL_MS = 48 * 3600_000;
 
 const STAFF_SELECT = {
@@ -60,7 +60,7 @@ export class AdminStaffService {
       id: u.id, name: u.name, email: u.email, phone: p.phone, employeeCode: p.employeeCode, regions: p.regions,
       isActive: p.isActive, userStatus: u.status, ...c,
       lastActiveAt: u.authSessions[0]?.lastUsedAt ?? null,
-      passwordSet: Boolean(u.providerSetupToken?.usedAt),
+      passwordSet: !u.providerSetupToken || Boolean(u.providerSetupToken.usedAt),
     };
   }
 
@@ -103,37 +103,32 @@ export class AdminStaffService {
   async create(dto: CreateStaffDto, ctx: RequestContext) {
     if (await this.prisma.user.findUnique({ where: { email: dto.email }, select: { id: true } }))
       throw new ConflictException({ code: 'EMAIL_TAKEN', message: 'Email đã được sử dụng.' });
-    if (await this.prisma.staffProfile.findUnique({ where: { employeeCode: dto.employeeCode }, select: { id: true } }))
-      throw new ConflictException({ code: 'EMPLOYEE_CODE_TAKEN', message: 'Mã nhân viên đã tồn tại.' });
-    const token = this.newToken();
-    const unusablePassword = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
+    const password = await bcrypt.hash(dto.password, 12);
     const userId = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          email: dto.email, name: dto.name, phone: dto.phone, password: unusablePassword,
+          email: dto.email, name: dto.name, phone: dto.phone, password,
           status: UserStatus.ACTIVE, emailVerifiedAt: new Date(),
           roles: { create: { role: Role.STAFF } },
-          staffProfile: { create: { employeeCode: dto.employeeCode, phone: dto.phone, regions: dto.regions } },
-          providerSetupToken: { create: { tokenHash: token.hash, expiresAt: token.expiresAt } },
         },
+      });
+      const employeeCode = `STF-${user.id.toUpperCase()}`;
+      await tx.staffProfile.create({
+        data: { userId: user.id, employeeCode, phone: dto.phone, regions: dto.regions },
       });
       await this.audit.log(tx, ctx, {
         action: 'STAFF_CREATED', entityType: 'User', entityId: user.id,
-        after: { email: dto.email, name: dto.name, employeeCode: dto.employeeCode, regions: dto.regions },
+        after: { email: dto.email, name: dto.name, employeeCode, regions: dto.regions },
       });
       return user.id;
     });
-    const emailSent = await this.resend.sendStaffInvite(dto.email, dto.name, this.setupUrl(token.plain));
-    return { staff: await this.getOne(userId), emailSent };
+    return { staff: await this.getOne(userId) };
   }
 
   async update(id: string, dto: UpdateStaffDto, ctx: RequestContext) {
     await this.prisma.$transaction(async (tx) => {
       const before = await tx.user.findFirst({ where: { id, ...isStaff }, select: STAFF_SELECT });
       if (!before) throw notFound();
-      if (dto.employeeCode && dto.employeeCode !== before.staffProfile!.employeeCode &&
-          (await tx.staffProfile.findUnique({ where: { employeeCode: dto.employeeCode }, select: { id: true } })))
-        throw new ConflictException({ code: 'EMPLOYEE_CODE_TAKEN', message: 'Mã nhân viên đã tồn tại.' });
       const { name, isActive, ...profile } = dto;
       await tx.user.update({
         where: { id },

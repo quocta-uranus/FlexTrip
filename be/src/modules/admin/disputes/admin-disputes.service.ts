@@ -10,7 +10,7 @@ import {
 } from './dto/admin-disputes.dto';
 
 const CLOSED: DisputeStatus[] = [DisputeStatus.RESOLVED, DisputeStatus.REJECTED];
-const REFUNDABLE: BookingStatus[] = [BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.CANCELLED];
+const REFUNDABLE: BookingStatus[] = [BookingStatus.PENDING_APPROVAL, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED, BookingStatus.CANCELLED];
 
 const PARTIES = {
   booking: {
@@ -89,7 +89,7 @@ export class AdminDisputesService {
       include: {
         listing: { select: { id: true, title: true, location: true } },
         payment: true,
-        contract: { select: { status: true, signedAt: true, checkInPhoto: true, checkOutPhoto: true } },
+        contract: { select: { status: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
       },
     });
     const history = await this.prisma.auditLog.findMany({

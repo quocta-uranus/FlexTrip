@@ -22,6 +22,13 @@ export const adminApi = {
       api.patch(`/admin/listings/${id}/moderate`, note ? { action, note } : { action }) as Promise<{ id: string; status: string; flagsUpdated: number }>,
   },
 
+  reviews: {
+    list: (q: Q) => api.get(`/admin/reviews${toQuery(q)}`) as Promise<T.Paginated<T.AdminReview>>,
+    moderate: (id: string, decision: 'APPROVE' | 'REJECT', note?: string) =>
+      api.patch(`/admin/reviews/${id}/moderate`, note ? { decision, note } : { decision }) as Promise<T.AdminReview>,
+    reanalyze: (id: string) => api.post(`/admin/reviews/${id}/reanalyze`, {}) as Promise<{ id: string; status: 'PENDING'; queued: boolean }>,
+  },
+
   disputes: {
     list: (q: Q) => api.get(`/admin/disputes${toQuery(q)}`) as Promise<T.Paginated<T.AdminDispute>>,
     stats: () => api.get('/admin/disputes/stats') as Promise<T.DisputeStats>,
@@ -65,11 +72,10 @@ export const adminApi = {
   staff: {
     list: (q: Q) => api.get(`/admin/staff${toQuery(q)}`) as Promise<T.Paginated<T.AdminStaff>>,
     stats: () => api.get('/admin/staff/stats') as Promise<T.StaffStats>,
-    create: (body: { name: string; email: string; phone?: string; employeeCode: string; regions: string[] }) =>
-      api.post('/admin/staff', body) as Promise<{ staff: T.AdminStaff; emailSent: boolean }>,
-    update: (id: string, body: Partial<{ name: string; phone: string; employeeCode: string; regions: string[]; isActive: boolean }>) =>
+    create: (body: { name: string; email: string; phone?: string; password: string; regions: string[] }) =>
+      api.post('/admin/staff', body) as Promise<{ staff: T.AdminStaff }>,
+    update: (id: string, body: Partial<{ name: string; phone: string; regions: string[]; isActive: boolean }>) =>
       api.patch(`/admin/staff/${id}`, body) as Promise<T.AdminStaff>,
-    resendInvite: (id: string) => api.post(`/admin/staff/${id}/resend-invite`, {}) as Promise<{ emailSent: boolean }>,
     rules: () => api.get('/admin/staff-rules') as Promise<T.StaffRule[]>,
     createRule: (body: { name: string; region: string; staffId: string; priority: number; isActive?: boolean }) =>
       api.post('/admin/staff-rules', body) as Promise<T.StaffRule>,
@@ -81,5 +87,11 @@ export const adminApi = {
     autoAssign: (bookingId: string) =>
       api.post(`/admin/bookings/${bookingId}/auto-assign`, {}) as Promise<{ booking: T.AssignableBooking; rule: { id: string; name: string } }>,
     unassign: (bookingId: string) => api.delete(`/admin/bookings/${bookingId}/assign`) as Promise<T.AssignableBooking>,
+  },
+
+  bookings: {
+    stats: () => api.get('/admin/bookings-overview/stats') as Promise<T.AdminBookingStats>,
+    list: (q: Q) => api.get(`/admin/bookings-overview${toQuery(q)}`) as Promise<T.Paginated<T.AdminBookingRow>>,
+    detail: (id: string) => api.get(`/admin/bookings-overview/${id}`) as Promise<T.AdminBookingDetail>,
   },
 };

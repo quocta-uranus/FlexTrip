@@ -2,9 +2,14 @@
 
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import dynamic from 'next/dynamic';
+import { WishlistSync } from '@/components/wishlist-sync';
+import { WishlistToastProvider } from '@/components/wishlist-toast';
 
-import { ThemeProvider } from '@/context/theme-context';
+const ReactQueryDevtools = dynamic(
+  () => import('@tanstack/react-query-devtools').then((module) => module.ReactQueryDevtools),
+  { ssr: false },
+);
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,9 +26,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+      <WishlistToastProvider>
+        <WishlistSync />
         {children}
-      </ThemeProvider>
+      </WishlistToastProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

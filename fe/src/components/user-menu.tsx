@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, LogOut, User, Wallet, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -17,7 +16,6 @@ function getInitials(name: string): string {
 }
 
 export function UserMenu() {
-  const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const { mutate: logout, isPending } = useLogout();
   const [open, setOpen] = useState(false);
@@ -34,11 +32,6 @@ export function UserMenu() {
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, [open]);
-
-  // Đóng khi đổi route
-  useEffect(() => {
-    setOpen(false);
-  }, [router]);
 
   // Chưa đăng nhập → 2 nút Đăng nhập / Đăng ký
   if (!isAuthenticated || !user) {
@@ -64,7 +57,8 @@ export function UserMenu() {
 
   const roles = (user.roles ?? []) as string[];
   const isProvider = roles.includes('PROVIDER');
-  const profileHref = isProvider ? '/profile/shop' : '/profile/travel';
+  const isStaff = roles.includes('STAFF');
+  const profileHref = isStaff ? '/staff/complete-profile' : isProvider ? '/profile/shop' : '/profile/travel';
   const initials = getInitials(user.name);
 
   function handleLogout() {
