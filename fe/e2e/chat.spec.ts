@@ -44,7 +44,7 @@ async function fetchProviderListing(): Promise<Listing> {
     const me = await call('/users/me', { token: accessToken });
     let totalPages = 1;
     for (let page = 1; page <= totalPages; page++) {
-      const res = await call(`/listings?page=${page}&limit=100`);
+      const res = await call(`/listings?page=${page}&limit=50`);
       totalPages = res.totalPages ?? 1;
       const hit = (res.items as Listing[]).find((l) => l.providerId === me.id && (l.status ?? 'ACTIVE') === 'ACTIVE');
       if (hit) return hit;
