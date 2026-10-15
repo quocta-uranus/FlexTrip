@@ -10,6 +10,8 @@ import { REDIS_CLIENT } from '../../common/redis/redis.module';
 
 export type MessageEvent = 'message:new' | 'message:updated' | 'message:deleted' | 'message:read';
 
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
 export const userRoom = (userId: string) => `user:${userId}`;
 
 @WebSocketGateway({
@@ -28,12 +30,13 @@ export class MessagesGateway implements OnGatewayConnection {
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
-  // The token is verified once at handshake; clients reconnect with a fresh token after expiry.
+  // The token is verified at handshake and the socket is dropped when it expires (same lifetime as HTTP
+  // access); clients then refresh the token and reconnect.
   async handleConnection(client: Socket): Promise<void> {
     try {
       const token: unknown = client.handshake.auth?.token;
       if (typeof token !== 'string') throw new Error('no token');
-      const payload: { sub?: unknown } = await this.jwt.verifyAsync(token, {
+      const payload: { sub?: unknown; exp?: number } = await this.jwt.verifyAsync(token, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         algorithms: ['HS256'],
       });
@@ -41,6 +44,11 @@ export class MessagesGateway implements OnGatewayConnection {
         throw new Error('rejected');
       }
       await client.join(userRoom(payload.sub));
+      // The client may have left during the awaits above; its 'disconnect' event already fired.
+      if (client.disconnected) return;
+      const ms = Math.min(Math.max((payload.exp ?? 0) * 1000 - Date.now(), 0), MAX_TIMEOUT_MS);
+      const timer = setTimeout(() => client.disconnect(true), ms);
+      client.once('disconnect', () => clearTimeout(timer));
       client.emit('ready');
     } catch {
       client.disconnect(true);

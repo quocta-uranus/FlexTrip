@@ -60,4 +60,26 @@ describe('MSG gateway', () => {
     expect(spyA).not.toHaveBeenCalled();
     expect(spyB).not.toHaveBeenCalled();
   });
+
+  it('disconnects a socket when its access token expires and stops delivering to it', async () => {
+    const a = await h.createUser('a@example.com', [Role.TRAVELER]);
+    const shortLived = await h.jwt.signAsync(
+      { sub: a.userId },
+      { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '2s' },
+    );
+    const expiring = await connect(url, shortLived);
+    const durable = await connect(url, a.accessToken);
+    sockets.push(expiring, durable);
+    const spy = jest.fn();
+    expiring.on('message:new', spy);
+
+    const reason = await new Promise<string>((resolve) => expiring.once('disconnect', resolve));
+    expect(reason).toBe('io server disconnect');
+
+    const received = nextEvent(durable, 'message:new');
+    h.app.get(MessagesGateway).emitToUsers([a.userId], 'message:new', { after: true });
+    await received;
+    expect(spy).not.toHaveBeenCalled();
+    expect(durable.connected).toBe(true);
+  }, 10_000);
 });
