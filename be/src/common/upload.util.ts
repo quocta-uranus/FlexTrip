@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createHash } from 'crypto';
+import { uniqueObjectName } from './object-name.util';
 import { WebSocket as NodeWebSocket } from 'ws';
 
 // Node.js <22 không có native WebSocket — polyfill trước khi Supabase client khởi tạo
@@ -30,7 +30,7 @@ export async function uploadToSupabase(
   contentType?: string,
 ): Promise<string> {
   const ext = filename.split('.').pop() || 'jpg';
-  const uniqueName = `${Date.now()}-${createHash('sha1').update(buffer).digest('hex').slice(0, 8)}.${ext}`;
+  const uniqueName = uniqueObjectName(ext);
 
   const { error } = await supabaseAdmin.storage
     .from(bucket)
