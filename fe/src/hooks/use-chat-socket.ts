@@ -19,7 +19,11 @@ export function useChatSocket() {
     let retry: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
 
-    socket.on('ready', () => setConnected(true));
+    socket.on('ready', () => {
+      setConnected(true);
+      // Polling stops once connected, so anything sent while the socket was down must be refetched here.
+      for (const key of ['messages', 'conversations', 'conversation', 'shared']) qc.invalidateQueries({ queryKey: [key] });
+    });
     socket.on('disconnect', (reason) => {
       setConnected(false);
       // The server drops sockets with a stale token and socket.io does not auto-reconnect those:

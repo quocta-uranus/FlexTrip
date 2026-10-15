@@ -71,6 +71,19 @@ describe('useChatSocket', () => {
     expect(socket.connect).not.toHaveBeenCalled();
   });
 
+  it('refetches chat queries when the socket becomes ready', () => {
+    const client = new QueryClient();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    const w = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    renderHook(() => useChatSocket(), { wrapper: w });
+    handlers.get('ready')!();
+    const keys = spy.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey[0]);
+    expect(keys).toEqual(expect.arrayContaining(['messages', 'conversations', 'conversation', 'shared']));
+    expect(useChatStore.getState().connected).toBe(true);
+  });
+
   it('tracks connected state', () => {
     const { unmount } = renderHook(() => useChatSocket(), { wrapper });
     handlers.get('ready')!();
