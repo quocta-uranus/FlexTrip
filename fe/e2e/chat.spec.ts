@@ -82,17 +82,23 @@ test('traveler opens a listing, contacts the provider and both chat in realtime'
     await provider.page.goto(`/messages?c=${c}`);
     await expect(composer(provider.page)).toBeVisible();
 
-    // Earlier runs reuse this conversation: wait until history stops loading, then remember the existing ids.
+    // Earlier runs reuse this conversation (a fresh one is empty): wait until history stops loading, then remember the existing ids.
+    // The list renders before the fetch finishes, so an empty list only counts as settled after the network is idle and two reads agree.
+    await expect(provider.page.getByRole('log', { name: 'Tin nhắn' })).toBeVisible();
+    await expect(provider.page.getByText('Đang tải...')).toHaveCount(0);
+    await provider.page.waitForLoadState('networkidle');
     const ids = () => provider.page.getByTestId('message').evaluateAll((els) => els.map((e) => e.id));
     let known: string[] = [];
     await expect
-      .poll(async () => {
-        const first = await ids();
-        await provider.page.waitForTimeout(500);
-        const stable = JSON.stringify(first) === JSON.stringify(await ids());
-        known = first;
-        return stable && first.length > 0;
-      })
+      .poll(
+        async () => {
+          const first = await ids();
+          await provider.page.waitForTimeout(500);
+          known = first;
+          return JSON.stringify(first) === JSON.stringify(await ids());
+        },
+        { timeout: 15_000 },
+      )
       .toBe(true);
     await traveler.page.getByRole('button', { name: 'Gửi', exact: true }).click();
     // provider receives a NEW bubble in realtime (no reload) carrying this listing link + card
