@@ -82,16 +82,26 @@ test('traveler opens a listing, contacts the provider and both chat in realtime'
     await provider.page.goto(`/messages?c=${c}`);
     await expect(composer(provider.page)).toBeVisible();
 
-    // earlier runs reuse this conversation, so count what is already there and require exactly one more
-    const all = provider.page.getByTestId('message');
-    const countBefore = await all.count();
+    // Earlier runs reuse this conversation: wait until history stops loading, then remember the existing ids.
+    const ids = () => provider.page.getByTestId('message').evaluateAll((els) => els.map((e) => e.id));
+    let known: string[] = [];
+    await expect
+      .poll(async () => {
+        const first = await ids();
+        await provider.page.waitForTimeout(500);
+        const stable = JSON.stringify(first) === JSON.stringify(await ids());
+        known = first;
+        return stable && first.length > 0;
+      })
+      .toBe(true);
     await traveler.page.getByRole('button', { name: 'Gửi', exact: true }).click();
-    // provider receives the link + preview card in realtime (no reload)
-    await expect(all).toHaveCount(countBefore + 1);
-    const newest = all.last();
-    expect(await newest.getAttribute('id')).toMatch(/^msg-/);
+    // provider receives a NEW bubble in realtime (no reload) carrying this listing link + card
+    await expect.poll(async () => (await ids()).filter((i) => !known.includes(i)).length).toBe(1);
+    const newId = (await ids()).find((i) => !known.includes(i))!;
+    expect(newId).toMatch(/^msg-/);
+    const newest = provider.page.locator(`[id="${newId}"]`);
     await expect(newest).toContainText(`/listings/${listing.id}`);
-    await expect(newest.getByRole('link', { name: new RegExp(listing.title.slice(0, 20)) }).first()).toBeVisible();
+    await expect(newest.getByRole('link', { name: listing.title.slice(0, 20) }).first()).toBeVisible();
 
     await composer(traveler.page).fill(unique);
     await composer(traveler.page).press('Enter');
