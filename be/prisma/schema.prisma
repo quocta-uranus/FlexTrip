@@ -480,6 +480,7 @@ model Listing {
   wishlistItems Wishlist[]
   priceHistory  PriceHistory[]
   priceConfig   ListingPriceConfig?
+  embedding     ListingEmbedding?
 
   @@index([providerId])
   @@index([status])
@@ -503,6 +504,17 @@ model Wishlist {
 }
 
 // ─── Booking ─────────────────────────────────────────────────────────────────
+
+// AIREC: vector ngữ nghĩa của listing để gợi ý "tương tự" / "dành cho bạn"
+model ListingEmbedding {
+  listingId   String   @id
+  vector      Float[]
+  contentHash String
+  model       String
+  updatedAt   DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
 
 model Booking {
   id              String        @id @default(cuid())
