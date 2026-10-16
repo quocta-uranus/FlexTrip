@@ -7,5 +7,6 @@ import { RecommendationsService } from './recommendations.service';
   imports: [AuthModule],
   controllers: [RecommendationsController],
   providers: [RecommendationsService],
+  exports: [RecommendationsService],
 })
 export class RecommendationsModule {}

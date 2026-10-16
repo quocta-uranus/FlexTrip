@@ -107,3 +107,17 @@ export function buildDateAnchors(now: Date): { date: string; anchors: string } {
   ].join('\n');
   return { date, anchors };
 }
+
+// Short product phrases the LLM thinks the traveler may need; used as semantic queries, so keep them tight
+export function sanitizeNeeds(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const needs = (raw as { needs?: unknown }).needs;
+  if (!Array.isArray(needs)) return [];
+  const seen = new Set<string>();
+  for (const n of needs) {
+    const text = cleanText(n, 40);
+    if (text) seen.add(text);
+    if (seen.size >= 5) break;
+  }
+  return [...seen];
+}

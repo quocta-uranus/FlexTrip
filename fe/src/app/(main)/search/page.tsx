@@ -8,6 +8,7 @@ import { listingApi } from '@/lib/api/client';
 import { useSearchStore } from '@/store/search.store';
 import { ListingCard } from '@/components/listing-card';
 import { AiSearchBox } from '@/components/search/ai-search-box';
+import type { AiSearchResult } from '@/lib/api/ai-search';
 import { RecommendationRow } from '@/components/recommendations/recommendation-row';
 import { useForYouListings } from '@/hooks/useRecommendations';
 import { useAuthStore } from '@/store/auth.store';
@@ -392,12 +393,13 @@ function SearchPageInner() {
   const totalPages = searchData?.totalPages ?? 1;
   const currentPage = filters.page ?? 1;
 
+  const [aiNeeds, setAiNeeds] = useState<AiSearchResult | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasAnyFilter = Boolean(
     filters.keyword || filters.location || filters.category || filters.minPrice != null ||
     filters.maxPrice != null || filters.dateFrom || filters.dateTo,
   );
-  const forYou = useForYouListings(isAuthenticated && !hasAnyFilter);
+  const forYou = useForYouListings(isAuthenticated && !hasAnyFilter && !aiNeeds);
 
   const activeFiltersCount = [
     filters.location,
@@ -472,7 +474,13 @@ function SearchPageInner() {
           </div>
 
           <AiSearchBox
-            onResult={({ filters: f }) => {
+            onResult={(result) => {
+              if (result.mode === 'needs') {
+                setAiNeeds(result);
+                return;
+              }
+              setAiNeeds(null);
+              const f = result.filters;
               setLocalKeyword(f.keyword ?? '');
               updateFilters({
                 keyword: f.keyword ?? '',
@@ -485,7 +493,10 @@ function SearchPageInner() {
                 sort: f.sort ?? 'newest',
               });
             }}
-            onClear={resetFilters}
+            onClear={() => {
+              setAiNeeds(null);
+              resetFilters();
+            }}
           />
 
           {/* Category pills */}
@@ -518,7 +529,7 @@ function SearchPageInner() {
       {/* ── Results ── */}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
 
-        {isAuthenticated && !hasAnyFilter && (
+        {isAuthenticated && !hasAnyFilter && !aiNeeds && (
           <RecommendationRow
             title="Dành cho bạn"
             subtitle="Gợi ý từ danh sách yêu thích và đơn thuê của bạn"
@@ -527,6 +538,15 @@ function SearchPageInner() {
           />
         )}
 
+        {aiNeeds ? (
+          <RecommendationRow
+            title="Gợi ý cho nhu cầu của bạn"
+            subtitle="Các sản phẩm phù hợp, thuộc nhiều nhóm khác nhau"
+            items={aiNeeds.items}
+            isLoading={false}
+          />
+        ) : (
+        <>
         {/* Result count + sort + active chips */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -644,6 +664,8 @@ function SearchPageInner() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
