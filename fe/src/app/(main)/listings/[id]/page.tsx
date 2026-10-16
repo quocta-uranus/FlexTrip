@@ -13,6 +13,8 @@ import { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META } from '@/types/listing'
 import { useListingReviews } from '@/hooks/useReviews';
 import { ReputationBadge } from '@/components/reputation/reputation-badge';
 import { WishlistButton } from '@/components/wishlist-button';
+import { RecommendationRow } from '@/components/recommendations/recommendation-row';
+import { useSimilarListings } from '@/hooks/useRecommendations';
 
 function StarRating({ rating, count, size = 'md' }: { rating: number; count?: number; size?: 'sm' | 'md' | 'lg' }) {
   const sz = size === 'lg' ? 'h-5 w-5' : size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
@@ -51,6 +53,7 @@ export default function ListingDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const similar = useSimilarListings(id);
 
   if (isLoading) {
     return (
@@ -482,6 +485,14 @@ export default function ListingDetailPage() {
 
             <BookingWidget listing={listing} />
           </div>
+        </div>
+
+        <div className="mt-10">
+          <RecommendationRow
+            title="Sản phẩm tương tự"
+            items={similar.data?.items}
+            isLoading={similar.isLoading}
+          />
         </div>
       </div>
     </div>
