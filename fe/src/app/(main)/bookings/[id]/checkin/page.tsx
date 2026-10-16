@@ -69,6 +69,18 @@ export default function CheckinPage() {
     );
   }
 
+  if (booking.assignedStaff) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f6fbfe] px-4 text-center">
+        <p className="max-w-md text-sm text-slate-500">
+          Nhân viên <strong className="text-slate-800">{booking.assignedStaff.name}</strong> được giao bàn giao thiết bị cho đơn này,
+          nên bạn không cần checkin. Nhân viên sẽ xác nhận và bắt đầu cuộc thuê.
+        </p>
+        <Link href={`/bookings/${bookingId}`} className="text-sm font-medium text-[#2a7bd9]">← Về chi tiết đơn</Link>
+      </div>
+    );
+  }
+
   if (!canCheckin) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4" style={{ background: '#f6fbfe' }}>

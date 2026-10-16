@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RequestContext } from '../../common/request-context';
 import { uploadImage } from '../../common/upload.util';
 import { AuditService } from '../audit/audit.service';
+import { PaymentsService } from '../payments/payments.service';
 import { RENTAL_UNPAID_MESSAGE, isRentalSettled } from '../booking/booking.constants';
 import { paginate, skipTake } from '../../common/dto/pagination.dto';
 import {
@@ -19,7 +20,7 @@ import {
 const DETAIL_INCLUDE = {
   listing: { select: { id: true, title: true, location: true, imageUrls: true, provider: { select: { id: true, name: true, phone: true } } } },
   traveler: { select: { id: true, name: true, phone: true, email: true } },
-  contract: { select: { status: true, checkInPhotos: true, checkOutPhotos: true } },
+  contract: { select: { status: true, terms: true, penaltyRules: true, productConditionNote: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
   payment: { select: { rentalAmount: true, rentalPaidAt: true } },
   staffMediations: { orderBy: { createdAt: 'desc' as const } },
 } satisfies Prisma.BookingInclude;
@@ -29,7 +30,15 @@ export class StaffOperationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly payments: PaymentsService,
   ) {}
+
+  // The checklist is stored inside the condition text so the record stays readable in contracts and disputes
+  private conditionText(dto: ConfirmConditionDto): string {
+    if (!dto.checklist?.length) return dto.conditionNote;
+    const lines = dto.checklist.map((i) => `${i.ok ? '✓' : '✗'} ${i.label}`).join('\n');
+    return `Kiểm tra:\n${lines}\n\nGhi chú: ${dto.conditionNote}`;
+  }
 
   private async assignedBooking(staffId: string, bookingId: string) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: DETAIL_INCLUDE });
@@ -113,7 +122,7 @@ export class StaffOperationsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.booking.update({
         where: { id: bookingId },
-        data: { status: BookingStatus.IN_PROGRESS, checkedInAt: now, handoverCondition: dto.conditionNote },
+        data: { status: BookingStatus.IN_PROGRESS, checkedInAt: now, handoverCondition: this.conditionText(dto) },
       });
       await tx.contract.upsert({
         where: { bookingId },
@@ -144,13 +153,25 @@ export class StaffOperationsService {
       throw new ConflictException({ code: 'INVALID_BOOKING_STATUS', message: 'Chỉ xác nhận nhận lại sau khi đã bàn giao.' });
     if (booking.checkedOutAt)
       throw new ConflictException({ code: 'RETURN_ALREADY_CONFIRMED', message: 'Tác vụ nhận lại đã hoàn thành.' });
+    const failed = dto.checklist?.filter((i) => !i.ok) ?? [];
+    if (failed.length > 0 && booking.status !== BookingStatus.DISPUTED)
+      throw new ConflictException({
+        code: 'INSPECTION_NOT_PASSED',
+        message: `Còn hạng mục chưa đạt: ${failed.map((i) => i.label).join(', ')}. Hãy lập biên bản thương lượng hoặc chuyển Admin trước khi hoàn thành.`,
+      });
     const now = new Date();
     const targetStatus = booking.status === BookingStatus.DISPUTED ? BookingStatus.DISPUTED : BookingStatus.COMPLETED;
     const contractStatus = booking.status === BookingStatus.DISPUTED ? ContractStatus.DISPUTED : ContractStatus.CLOSED;
     await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.contract.findUnique({ where: { bookingId }, select: { checkOutPhotos: true } });
+      // Same shape the provider/traveler checkout writes, so every party renders one list
+      const returnPhotos = [
+        ...(Array.isArray(existing?.checkOutPhotos) ? (existing.checkOutPhotos as Prisma.JsonArray) : []),
+        { url: dto.photoUrl, uploadedBy: 'STAFF', uploadedAt: now.toISOString() },
+      ];
       await tx.booking.update({
         where: { id: bookingId },
-        data: { status: targetStatus, checkedOutAt: now, returnCondition: dto.conditionNote },
+        data: { status: targetStatus, checkedOutAt: now, returnCondition: this.conditionText(dto) },
       });
       await tx.contract.upsert({
         where: { bookingId },
@@ -158,11 +179,11 @@ export class StaffOperationsService {
           bookingId,
           terms: `Biên bản giao nhận cho booking ${bookingId}`,
           status: contractStatus,
-          checkOutPhotos: dto.photoUrl ? [dto.photoUrl] : [],
+          checkOutPhotos: returnPhotos,
         },
         update: {
           status: contractStatus,
-          checkOutPhotos: dto.photoUrl ? { push: dto.photoUrl } : undefined,
+          checkOutPhotos: returnPhotos,
         },
       });
       await this.audit.log(tx, ctx, {
@@ -172,6 +193,8 @@ export class StaffOperationsService {
       });
       await this.notifyParties(tx, booking, 'Đã xác nhận nhận lại', `Nhân viên vận hành đã xác nhận nhận lại "${booking.listing.title}".`, bookingId);
     });
+    // Same hook the provider flow uses: splits commission and schedules the deposit release
+    if (targetStatus === BookingStatus.COMPLETED) await this.payments.onBookingCompleted(bookingId);
     return this.assignedBooking(staffId, bookingId);
   }
 

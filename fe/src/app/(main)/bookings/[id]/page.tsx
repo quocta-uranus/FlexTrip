@@ -272,7 +272,7 @@ function BookingDetailContent() {
           )}
 
           {/* Assigned staff card */}
-          {booking.assignedStaff && !['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
+          {booking.assignedStaff && !['PENDING_PAYMENT', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Staff phụ trách</span>
@@ -310,7 +310,7 @@ function BookingDetailContent() {
 
               <div className="mt-4 rounded-xl px-3 py-2.5 text-xs leading-relaxed" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
                 <span className="mr-1.5 text-base">🛡️</span>
-                Staff sẽ đảm nhận bàn giao thiết bị, hỗ trợ giải quyết tranh chấp và theo sát đơn thuê của bạn.
+                Staff trực tiếp bàn giao thiết bị để bắt đầu thuê, kiểm tra và nhận lại khi kết thúc. Đơn chỉ được bắt đầu và hoàn thành khi staff xác nhận, đồng thời staff hỗ trợ giải quyết tranh chấp nếu có.
               </div>
             </div>
           )}
@@ -503,7 +503,14 @@ function BookingDetailContent() {
             )}
 
             {/* Provider: start rental */}
-            {isProvider && booking.status === 'CONFIRMED' && (
+            {isProvider && booking.assignedStaff && ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && (
+              <p className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-800">
+                Nhân viên <strong>{booking.assignedStaff.name}</strong> sẽ{' '}
+                {booking.status === 'CONFIRMED' ? 'bàn giao thiết bị và bắt đầu cuộc thuê' : 'kiểm tra, nhận lại thiết bị và hoàn thành cuộc thuê'}.
+                Bạn không cần thao tác bước này.
+              </p>
+            )}
+            {isProvider && !booking.assignedStaff && booking.status === 'CONFIRMED' && (
               <button
                 onClick={() => startBooking.mutate(booking.id)}
                 disabled={startBooking.isPending || rentalUnpaid}
@@ -515,7 +522,7 @@ function BookingDetailContent() {
             )}
 
             {/* Provider: complete rental */}
-            {isProvider && booking.status === 'IN_PROGRESS' && (
+            {isProvider && !booking.assignedStaff && booking.status === 'IN_PROGRESS' && (
               <button
                 onClick={() => completeBooking.mutate(booking.id)}
                 disabled={completeBooking.isPending}
@@ -801,6 +808,46 @@ function BookingDetailContent() {
           )}
         </div>
       </div>
+
+      {/* Handover / return record confirmed by the assigned staff */}
+      {booking.assignedStaff && (booking.checkedInAt || booking.checkedOutAt) && (() => {
+        // Early staff returns stored `{ push: url }` instead of a list, so tolerate non-array values
+        const rawReturn: unknown = contract?.checkOutPhotos;
+        const returnPhotos = (Array.isArray(rawReturn) ? rawReturn : [rawReturn])
+          .map((p) => (typeof p === 'string' ? p : (p as { url?: string; push?: string } | null)?.url ?? (p as { push?: string } | null)?.push))
+          .filter((u): u is string => typeof u === 'string');
+        const records = [
+          { key: 'in', title: 'Biên bản bàn giao', at: booking.checkedInAt, note: booking.handoverCondition, photos: contract?.checkInPhotos ?? [] },
+          { key: 'out', title: 'Biên bản nhận lại', at: booking.checkedOutAt, note: booking.returnCondition, photos: returnPhotos },
+        ].filter((r) => r.at);
+        return (
+          <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: '#DCEFFB' }}>
+            <div className="px-5 py-4" style={{ background: '#f6fbfe', borderBottom: '1px solid #DCEFFB' }}>
+              <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Biên bản giao nhận do nhân viên xác nhận</span>
+            </div>
+            <div className="space-y-5 px-5 py-4">
+              {records.map((r) => (
+                <div key={r.key}>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>{r.title}</p>
+                  <p className="mt-1 text-xs" style={{ color: '#15803d' }}>
+                    ✓ {booking.assignedStaff?.name} xác nhận lúc {new Date(r.at as string).toLocaleString('vi-VN')}
+                  </p>
+                  {r.note && <p className="mt-2 whitespace-pre-line text-sm" style={{ color: '#5a6b85' }}>{r.note}</p>}
+                  {r.photos.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {r.photos.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noreferrer">
+                          <img src={url} alt={`${r.title} ${i + 1}`} className="h-24 w-24 rounded-lg object-cover ring-1 ring-[#DCEFFB]" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Contract section — visible throughout rental */}
       {contract && (

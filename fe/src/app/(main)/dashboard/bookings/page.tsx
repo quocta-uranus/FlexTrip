@@ -285,7 +285,13 @@ export default function ProviderBookingsPage() {
                       </div>
                     )}
 
-                    {booking.status === 'CONFIRMED' && (
+                    {booking.assignedStaff && ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && (
+                      <span className="ml-auto rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
+                        Staff {booking.assignedStaff.name} phụ trách bàn giao &amp; nhận lại
+                      </span>
+                    )}
+
+                    {!booking.assignedStaff && booking.status === 'CONFIRMED' && (
                       <Link
                         href={`/bookings/${booking.id}/checkin`}
                         className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
@@ -295,7 +301,7 @@ export default function ProviderBookingsPage() {
                       </Link>
                     )}
 
-                    {booking.status === 'IN_PROGRESS' && (
+                    {!booking.assignedStaff && booking.status === 'IN_PROGRESS' && (
                       <Link
                         href={`/bookings/${booking.id}/checkout`}
                         className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"

@@ -2,8 +2,8 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { BookingStatus, DisputePriority, DisputeType, StaffMediationStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, IsArray, IsDateString, IsEnum, IsNumber, IsOptional,
-  IsString, IsUrl, Length, MaxLength, Min,
+  ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional,
+  IsString, IsUrl, Length, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination.dto';
 
@@ -13,9 +13,18 @@ export class ListStaffTasksQueryDto {
   date?: string;
 }
 
+export class InspectionItemDto {
+  @ApiProperty() @IsString() @Length(1, 120) label!: string;
+  @ApiProperty() @IsBoolean() ok!: boolean;
+}
+
 export class ConfirmConditionDto {
   @ApiProperty() @IsUrl({ require_protocol: true }) photoUrl!: string;
   @ApiProperty() @IsString() @Length(2, 2000) conditionNote!: string;
+
+  @ApiPropertyOptional({ type: [InspectionItemDto], description: 'Danh mục kiểm tra thiết bị; khi nhận lại, mọi hạng mục phải đạt' })
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => InspectionItemDto)
+  checklist?: InspectionItemDto[];
 }
 
 export class CreateMediationDto {
