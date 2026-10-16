@@ -19,6 +19,8 @@ import { BookingModule } from './modules/booking/booking.module';
 import { CartModule } from './modules/cart/cart.module';
 import { ModifyBookingModule } from './modules/modify-booking/modify-booking.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { AiSearchModule } from './modules/ai-search/ai-search.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -58,6 +60,8 @@ import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
     CartModule,
     ModifyBookingModule,
     AiChatModule,
+    AiSearchModule,
+    RecommendationsModule,
     AdminModule,
     StaffModule,
     NotificationsModule,

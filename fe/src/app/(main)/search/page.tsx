@@ -7,6 +7,10 @@ import { Search, SlidersHorizontal, MapPin, ChevronLeft, ChevronRight, X, Chevro
 import { listingApi } from '@/lib/api/client';
 import { useSearchStore } from '@/store/search.store';
 import { ListingCard } from '@/components/listing-card';
+import { AiSearchBox } from '@/components/search/ai-search-box';
+import { RecommendationRow } from '@/components/recommendations/recommendation-row';
+import { useForYouListings } from '@/hooks/useRecommendations';
+import { useAuthStore } from '@/store/auth.store';
 import type { SearchFilters, ListingCategory } from '@/types/listing';
 import { LISTING_CATEGORIES, CATEGORY_META } from '@/constants/categories';
 import {
@@ -388,6 +392,13 @@ function SearchPageInner() {
   const totalPages = searchData?.totalPages ?? 1;
   const currentPage = filters.page ?? 1;
 
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hasAnyFilter = Boolean(
+    filters.keyword || filters.location || filters.category || filters.minPrice != null ||
+    filters.maxPrice != null || filters.dateFrom || filters.dateTo,
+  );
+  const forYou = useForYouListings(isAuthenticated && !hasAnyFilter);
+
   const activeFiltersCount = [
     filters.location,
     filters.minPrice,
@@ -460,6 +471,23 @@ function SearchPageInner() {
             </div>
           </div>
 
+          <AiSearchBox
+            onResult={({ filters: f }) => {
+              setLocalKeyword(f.keyword ?? '');
+              updateFilters({
+                keyword: f.keyword ?? '',
+                location: f.location ?? '',
+                category: f.category ?? '',
+                minPrice: f.minPrice,
+                maxPrice: f.maxPrice,
+                dateFrom: f.dateFrom ?? '',
+                dateTo: f.dateTo ?? '',
+                sort: f.sort ?? 'newest',
+              });
+            }}
+            onClear={resetFilters}
+          />
+
           {/* Category pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-hide">
             {CATEGORIES.map((cat) => {
@@ -489,6 +517,15 @@ function SearchPageInner() {
 
       {/* ── Results ── */}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+
+        {isAuthenticated && !hasAnyFilter && (
+          <RecommendationRow
+            title="Dành cho bạn"
+            subtitle="Gợi ý từ danh sách yêu thích và đơn thuê của bạn"
+            items={forYou.data?.items}
+            isLoading={forYou.isLoading}
+          />
+        )}
 
         {/* Result count + sort + active chips */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
