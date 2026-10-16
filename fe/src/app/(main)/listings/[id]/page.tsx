@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ContactProviderButton } from '@/components/listing/contact-provider-button';
 import {
   MapPin, Star, ChevronLeft, ChevronRight, Share2,
-  Shield, Clock, Tag, MessageCircle, Package,
+  Shield, Clock, Tag, Package,
 } from 'lucide-react';
 import { useListing } from '@/hooks/useListings';
 import { BookingWidget } from '@/components/listing/booking-widget';
@@ -352,14 +353,7 @@ export default function ListingDetailPage() {
                         {providerBadges.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
                       </div>
                     )}
-                    <Link
-                      href={`/messages?to=${listing.provider.id}`}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-all hover:shadow-sm"
-                      style={{ borderColor: '#2a7bd9', color: '#2a7bd9' }}
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      Liên hệ ngay
-                    </Link>
+                    <ContactProviderButton providerId={listing.provider.id} listingId={listing.id} />
                   </div>
                 </div>
 

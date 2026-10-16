@@ -1,5 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -127,7 +127,9 @@ export class AuthHarness {
     canResend: jest.fn<(ns: string, key: string) => Promise<boolean>>(),
   };
 
-  async open(): Promise<void> {
+  async open(
+    configure: (builder: TestingModuleBuilder) => TestingModuleBuilder = (b) => b,
+  ): Promise<void> {
     process.env.DATABASE_URL = assertTestDatabase();
     process.env.JWT_ACCESS_SECRET = 'auth01-test-access-secret-32-characters';
     process.env.JWT_REFRESH_SECRET = 'auth01-test-refresh-secret-32-characters';
@@ -159,7 +161,7 @@ export class AuthHarness {
       reasons: [],
     });
 
-    const module = await Test.createTestingModule({ imports: [AppModule] })
+    const builder = Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(ResendService)
       .useValue(this.resend)
       .overrideProvider(OtpService)
@@ -175,8 +177,8 @@ export class AuthHarness {
       .overrideProvider(getQueueToken(BOOKING_QUEUE))
       .useValue(this.bookingQueue)
       .overrideProvider(BookingProcessor)
-      .useValue({ process: jest.fn() })
-      .compile();
+      .useValue({ process: jest.fn() });
+    const module = await configure(builder).compile();
 
     this.app = module.createNestApplication();
     this.app.setGlobalPrefix('api/v1');

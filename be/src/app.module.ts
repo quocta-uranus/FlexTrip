@@ -22,6 +22,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AiSearchModule } from './modules/ai-search/ai-search.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MessagesModule } from './modules/messages/messages.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -63,6 +64,7 @@ import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
     AiSearchModule,
     RecommendationsModule,
     AdminModule,
+    MessagesModule,
     StaffModule,
     NotificationsModule,
     ReviewsModule,
