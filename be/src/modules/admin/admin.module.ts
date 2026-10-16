@@ -25,6 +25,7 @@ import { AdminStaffRulesService } from './staff/admin-staff-rules.service';
 import { AdminStaffBookingsController } from './staff/admin-staff-bookings.controller';
 import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
 import { AdminBookingsController } from './bookings/admin-bookings.controller';
@@ -33,7 +34,7 @@ import { AdminCommissionsController } from './finance/admin-commissions.controll
 import { AdminCommissionsService } from './finance/admin-commissions.service';
 
 @Module({
-  imports: [AuthModule, ReviewsModule],
+  imports: [AuthModule, ReviewsModule, PaymentsModule],
   controllers: [
     AdminUsersController,
     AdminListingsController,

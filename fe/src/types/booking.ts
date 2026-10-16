@@ -55,6 +55,10 @@ export interface Booking {
   cancellationReason?: string | null;
   cancelledAt?: string | null;
   holdExpiresAt?: string | null;
+  checkedInAt?: string | null;
+  checkedOutAt?: string | null;
+  handoverCondition?: string | null;
+  returnCondition?: string | null;
   balanceDueAt?: string | null;
   travelerId: string;
   listingId: string;

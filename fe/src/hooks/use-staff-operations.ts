@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { staffApi } from '@/lib/api/staff';
+import { staffApi, type InspectionItem } from '@/lib/api/staff';
 import type { StaffMediationStatus, StaffTaskType } from '@/types/staff';
 
 const KEY = ['staff-operations'] as const;
@@ -35,16 +35,17 @@ export function useStaffMediations(status?: StaffMediationStatus) {
 export function useConfirmStaffTask() {
   const invalidate = useInvalidateStaff();
   return useMutation({
-    mutationFn: async ({ bookingId, type, conditionNote, file }: {
+    mutationFn: async ({ bookingId, type, conditionNote, file, checklist }: {
       bookingId: string;
       type: StaffTaskType;
       conditionNote: string;
       file: File;
+      checklist?: InspectionItem[];
     }) => {
       const { url } = await staffApi.uploadEvidence(file);
       return type === 'HANDOVER'
-        ? staffApi.confirmHandover(bookingId, { photoUrl: url, conditionNote })
-        : staffApi.confirmReturn(bookingId, { photoUrl: url, conditionNote });
+        ? staffApi.confirmHandover(bookingId, { photoUrl: url, conditionNote, checklist })
+        : staffApi.confirmReturn(bookingId, { photoUrl: url, conditionNote, checklist });
     },
     onSuccess: invalidate,
   });

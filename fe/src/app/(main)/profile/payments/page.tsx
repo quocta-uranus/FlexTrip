@@ -17,6 +17,7 @@ const FILTER_TABS: { label: string; types: WalletTxType[] | null }[] = [
   { label: 'Nạp tiền', types: ['TOPUP'] },
   { label: 'Thanh toán', types: ['DEBIT', 'FREEZE', 'FORFEIT'] },
   { label: 'Hoàn tiền', types: ['REFUND', 'UNFREEZE', 'CREDIT'] },
+  { label: 'Thu nhập', types: ['COMMISSION_SPLIT'] },
   { label: 'Rút tiền', types: ['PAYOUT'] },
 ];
 

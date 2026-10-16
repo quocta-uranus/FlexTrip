@@ -1,5 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CancelledBy, BookingStatus, RefundReason, RefundStatus, WalletTxType } from '@prisma/client';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  CancelledBy, BookingStatus, PaymentGateway, PaymentStatus, Prisma, RefundReason, RefundStatus, WalletTxType,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -8,67 +10,44 @@ export class RefundService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // Release frozen deposit back to traveler 72h after COMPLETED (skip if open dispute)
-  async releaseDeposit(bookingId: string) {
-    const booking = await this.prisma.booking.findUnique({
+  /** Pays an admin-approved dispute refund into the traveler's wallet inside the caller's transaction */
+  async refundDispute(tx: Prisma.TransactionClient, bookingId: string, amount: number, note: string) {
+    const booking = await tx.booking.findUniqueOrThrow({
       where: { id: bookingId },
-      include: { payment: true },
+      select: { travelerId: true, payment: true },
     });
-    if (!booking?.payment) return;
-    if (booking.status !== BookingStatus.COMPLETED) return;
+    const payment = booking.payment;
+    if (!payment) throw new BadRequestException('Booking chưa có thanh toán để hoàn tiền');
 
-    // Do not release deposit while an unresolved dispute exists
-    const openDispute = await this.prisma.dispute.findFirst({
-      where: {
-        bookingId,
-        status: { notIn: ['RESOLVED', 'REJECTED'] },
+    // A wallet-paid deposit is still frozen until the balance is paid, so the hold ends with the refund
+    const depositStillFrozen = payment.gateway === PaymentGateway.WALLET && !payment.rentalPaidAt;
+    const wallet = await tx.wallet.upsert({
+      where: { userId: booking.travelerId },
+      create: { userId: booking.travelerId, availableBalance: amount },
+      update: {
+        availableBalance: { increment: amount },
+        ...(depositStillFrozen ? { frozenBalance: { decrement: Number(payment.depositAmount) } } : {}),
       },
     });
-    if (openDispute) {
-      this.logger.warn(`Deposit release deferred — open dispute ${openDispute.id} on booking ${bookingId}`);
-      return;
-    }
-
-    const depositAmount = Number(booking.payment.depositAmount);
-    if (depositAmount <= 0) return;
-
-    await this.prisma.$transaction(async (tx) => {
-      const wallet = await tx.wallet.upsert({
-        where: { userId: booking.travelerId },
-        create: { userId: booking.travelerId, availableBalance: depositAmount },
-        update: {
-          frozenBalance: { decrement: depositAmount },
-          availableBalance: { increment: depositAmount },
-        },
-      });
-
-      await tx.walletTransaction.create({
-        data: {
-          walletId: wallet.walletId,
-          type: WalletTxType.UNFREEZE,
-          amount: depositAmount,
-          balanceAfter: wallet.availableBalance,
-          refType: 'booking',
-          refId: bookingId,
-          note: 'Hoàn trả cọc sau 72h hoàn thành',
-        },
-      });
-
-      await tx.refundRecord.create({
-        data: {
-          paymentId: booking.payment!.id,
-          amount: depositAmount,
-          reason: RefundReason.SYSTEM,
-          status: RefundStatus.PROCESSED,
-          note: 'Deposit released 72h post-completion',
-          processedAt: new Date(),
-        },
-      });
-
-      await tx.payment.update({
-        where: { id: booking.payment!.id },
-        data: { refundedAmount: { increment: depositAmount } },
-      });
+    await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.walletId, type: WalletTxType.REFUND, amount,
+        balanceAfter: wallet.availableBalance, refType: 'booking', refId: bookingId, note,
+      },
+    });
+    await tx.refundRecord.create({
+      data: {
+        paymentId: payment.id, amount, reason: RefundReason.DISPUTE,
+        status: RefundStatus.PROCESSED, note, processedAt: new Date(),
+      },
+    });
+    const refunded = Number(payment.refundedAmount) + amount;
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        refundedAmount: refunded,
+        ...(refunded >= Number(payment.totalAmount) ? { status: PaymentStatus.REFUNDED } : {}),
+      },
     });
   }
 
@@ -88,6 +67,7 @@ export class RefundService {
     // Tiền thuê chỉ thu sau khi provider duyệt nên có thể chưa trả khi huỷ
     const rentalPaid = !!booking.payment.rentalPaidAt;
     const totalPaid = depositAmount + (rentalPaid ? rentalAmount : 0);
+    const depositStillFrozen = booking.payment.gateway === PaymentGateway.WALLET && !rentalPaid;
     const daysUntilStart = Math.ceil(
       (booking.startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
     );
@@ -107,7 +87,11 @@ export class RefundService {
       const wallet = await tx.wallet.upsert({
         where: { userId: booking.travelerId },
         create: { userId: booking.travelerId, availableBalance: refundAmount },
-        update: { availableBalance: { increment: refundAmount } },
+        update: {
+          availableBalance: { increment: refundAmount },
+          // A wallet-paid deposit is still frozen until the balance is paid, so the hold ends with the cancellation
+          ...(depositStillFrozen ? { frozenBalance: { decrement: depositAmount } } : {}),
+        },
       });
 
       await tx.walletTransaction.create({

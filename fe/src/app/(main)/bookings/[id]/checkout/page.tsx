@@ -150,7 +150,14 @@ export default function CheckoutPage() {
               </button>
             )}
 
-            {isProvider && (
+            {isProvider && booking.assignedStaff && (
+              <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                Nhân viên <strong>{booking.assignedStaff.name}</strong> sẽ kiểm tra, nhận lại thiết bị và hoàn thành cuộc thuê.
+                Bạn không cần thao tác bước này.
+              </p>
+            )}
+
+            {isProvider && !booking.assignedStaff && (
               <>
                 <button
                   onClick={() => handleSubmit('complete')}
