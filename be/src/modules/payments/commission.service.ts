@@ -28,21 +28,27 @@ export class CommissionService {
     });
     if (existing?.status === LedgerStatus.SETTLED) return existing;
 
-    const rentalAmount = Number(booking.payment.rentalAmount);
+    // Deposit + balance together make up the price, so the commission applies to 100% of what the
+    // traveler actually kept paying (a partial dispute refund is not the provider's money)
+    const totalAmount = Number(booking.payment.totalAmount) - Number(booking.payment.refundedAmount);
     const hasStaff = !!booking.assignedStaffId;
 
-    const platformFee = rentalAmount * (hasStaff ? COMMISSION_RATES.PLATFORM_BASE : COMMISSION_RATES.PLATFORM_NO_STAFF);
-    const staffFee = hasStaff ? rentalAmount * COMMISSION_RATES.STAFF_SHARE : 0;
-    const providerNet = rentalAmount - platformFee - staffFee;
+    const platformFee = totalAmount * (hasStaff ? COMMISSION_RATES.PLATFORM_BASE : COMMISSION_RATES.PLATFORM_NO_STAFF);
+    const staffFee = hasStaff ? totalAmount * COMMISSION_RATES.STAFF_SHARE : 0;
+    const providerNet = totalAmount - platformFee - staffFee;
+
+    // Escrow only holds what the traveler paid from the wallet; gateway money never entered it
+    const walletPaid =
+      (booking.payment.gateway === PaymentGateway.WALLET ? Number(booking.payment.depositAmount) : 0) +
+      (booking.payment.rentalGateway === PaymentGateway.WALLET ? Number(booking.payment.rentalAmount) : 0);
+    const originalTotal = Number(booking.payment.totalAmount);
+    const escrowOut = originalTotal > 0 ? ((providerNet + staffFee) * walletPaid) / originalTotal : 0;
 
     const providerId = booking.listing.providerId;
 
     return this.prisma.$transaction(async (tx) => {
-      // Debit escrow for wallet-paid bookings (provider + staff amounts flow out of escrow)
-      // Platform keeps its share (platformFee) inside escrow — it never leaves
-      if ((booking.payment?.rentalGateway ?? booking.payment?.gateway) === PaymentGateway.WALLET) {
-        await this.escrow.debit(providerNet + staffFee, tx);
-      }
+      // Provider + staff amounts flow out of escrow; the platform keeps its share (platformFee) inside it
+      if (escrowOut > 0) await this.escrow.debit(escrowOut, tx);
 
       const providerWallet = await tx.wallet.upsert({
         where: { userId: providerId },

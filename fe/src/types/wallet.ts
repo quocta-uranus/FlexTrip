@@ -8,8 +8,8 @@ export interface PaymentMethod {
   isDefault: boolean;
 }
 
-export type WalletTxType = 'CREDIT' | 'DEBIT' | 'FREEZE' | 'UNFREEZE' | 'FORFEIT' | 'PAYOUT' | 'TOPUP' | 'REFUND';
-export type WalletTxStatus = 'COMPLETED' | 'PENDING' | 'FAILED';
+export type WalletTxType = 'CREDIT' | 'DEBIT' | 'FREEZE' | 'UNFREEZE' | 'FORFEIT' | 'PAYOUT' | 'TOPUP' | 'REFUND' | 'COMMISSION_SPLIT';
+export type WalletTxStatus = 'SETTLED' | 'COMPLETED' | 'PENDING' | 'FAILED';
 
 export interface WalletTransaction {
   id: string;

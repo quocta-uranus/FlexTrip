@@ -19,6 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "seed:admin": "node --env-file=.env --require ts-node/register/transpile-only prisma/seed-admin.ts",
+    "fix:deposit-as-price": "node --env-file=.env --require ts-node/register/transpile-only prisma/fix-deposit-as-price.ts",
+    "fix:refund-declined": "node --env-file=.env --require ts-node/register/transpile-only prisma/refund-declined-bookings.ts",
     "seed:review-bookings": "node --env-file=.env --require ts-node/register/transpile-only prisma/seed-review-bookings.ts",
     "cleanup:review-bookings": "node --env-file=.env --require ts-node/register/transpile-only prisma/cleanup-review-bookings.ts",
     "eval:reviews": "ts-node --project evals/reviews/tsconfig.json --transpile-only evals/reviews/runner/review-eval.runner.ts"

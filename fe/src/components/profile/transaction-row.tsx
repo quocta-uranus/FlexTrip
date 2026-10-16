@@ -13,13 +13,15 @@ const TX_LABEL: Record<WalletTxType, string> = {
   PAYOUT: 'Rút tiền',
   TOPUP: 'Nạp ví',
   REFUND: 'Hoàn tiền',
+  COMMISSION_SPLIT: 'Thu nhập',
 };
 
-const INCOMING_TYPES_SET = new Set<WalletTxType>(['CREDIT', 'UNFREEZE', 'TOPUP', 'REFUND']);
+const INCOMING_TYPES_SET = new Set<WalletTxType>(['CREDIT', 'UNFREEZE', 'TOPUP', 'REFUND', 'COMMISSION_SPLIT']);
 
 export function TransactionRow({ transaction }: { transaction: WalletTransaction }) {
   const isIncoming = INCOMING_TYPES_SET.has(transaction.type);
   const label = transaction.note ?? TX_LABEL[transaction.type] ?? transaction.type;
+  const isDone = transaction.status === 'SETTLED' || transaction.status === 'COMPLETED';
 
   const Icon = transaction.type === 'FREEZE' || transaction.type === 'FORFEIT'
     ? Lock
@@ -46,14 +48,14 @@ export function TransactionRow({ transaction }: { transaction: WalletTransaction
       </span>
       <Badge
         className={cn(
-          transaction.status === 'COMPLETED'
+          isDone
             ? 'bg-secondary text-secondary-foreground'
             : transaction.status === 'FAILED'
             ? 'bg-red-50 text-red-600 ring-1 ring-inset ring-red-200'
             : 'bg-sec-50 text-sec-300 ring-1 ring-inset ring-sec-200',
         )}
       >
-        {transaction.status === 'COMPLETED' ? 'Thành công' : transaction.status === 'FAILED' ? 'Thất bại' : 'Đang xử lý'}
+        {isDone ? 'Thành công' : transaction.status === 'FAILED' ? 'Thất bại' : 'Đang xử lý'}
       </Badge>
     </div>
   );
