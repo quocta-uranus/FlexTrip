@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional,
+  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BookingStatus, CancelledBy, DeliveryMethod, NotificationType, Prisma } from '@prisma/client';
@@ -13,7 +13,7 @@ import {
   DeclineBookingDto, ListBookingsQueryDto,
 } from './dto/booking.dto';
 import {
-  BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, RENTAL_UNPAID_MESSAGE, isRentalSettled,
+  BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, RENTAL_UNPAID_MESSAGE, STAFF_ASSIGNED_MESSAGE, isRentalSettled,
 } from './booking.constants';
 import { PaymentsService } from '../payments/payments.service';
 
@@ -296,10 +296,15 @@ export class BookingService {
         booking.travelerId,
         NotificationType.BOOKING,
         'Đặt chỗ bị từ chối',
-        `Provider từ chối đơn thuê "${booking.listing.title}": ${dto.reason}. Tiền sẽ được hoàn trong 3–5 ngày.`,
+        `Provider từ chối đơn thuê "${booking.listing.title}": ${dto.reason}. Tiền đã được hoàn về ví FlexTrip của bạn.`,
         { bookingId },
       ),
     ]);
+
+    // The status flip above does not move money; the refund job credits the wallet and releases the frozen deposit
+    if (booking.payment && this.paymentsSvc) {
+      await this.paymentsSvc.onBookingCancelled(bookingId, CancelledBy.PROVIDER, BookingStatus.PENDING_APPROVAL);
+    }
 
     return { message: 'Đã từ chối và hoàn tiền cho Traveler' };
   }
@@ -311,6 +316,8 @@ export class BookingService {
 
     if (booking.status !== BookingStatus.CONFIRMED)
       throw new BadRequestException('Chỉ có thể bắt đầu booking đang ở trạng thái CONFIRMED');
+    if (booking.assignedStaffId)
+      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
     if (booking.payment && !isRentalSettled(booking.payment))
       throw new BadRequestException(RENTAL_UNPAID_MESSAGE);
 
@@ -340,6 +347,8 @@ export class BookingService {
 
     if (booking.status !== BookingStatus.IN_PROGRESS)
       throw new BadRequestException('Chỉ có thể hoàn thành booking đang ở trạng thái IN_PROGRESS');
+    if (booking.assignedStaffId)
+      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
 
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },

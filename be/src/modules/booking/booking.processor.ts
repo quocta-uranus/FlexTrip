@@ -125,12 +125,14 @@ export class BookingProcessor extends WorkerHost {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       select: {
-        id: true, status: true, travelerId: true,
+        id: true, status: true, travelerId: true, assignedStaffId: true,
         listing: { select: { title: true, providerId: true } },
         payment: { select: { rentalAmount: true, rentalPaidAt: true } },
       },
     });
     if (!booking || booking.status !== BookingStatus.CONFIRMED) return;
+    // Có staff phụ trách thì chỉ staff mới được bắt đầu cuộc thuê
+    if (booking.assignedStaffId) return;
     // Chưa trả nốt thì giữ CONFIRMED; job balance-expiry sẽ huỷ khi hết hạn
     if (booking.payment && !isRentalSettled(booking.payment)) return;
 
@@ -224,11 +226,13 @@ export class BookingProcessor extends WorkerHost {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       select: {
-        id: true, status: true, travelerId: true,
+        id: true, status: true, travelerId: true, assignedStaffId: true,
         listing: { select: { title: true, providerId: true } },
       },
     });
     if (!booking || booking.status !== 'IN_PROGRESS') return;
+    // Có staff phụ trách thì chỉ staff mới được hoàn thành sau khi kiểm tra thiết bị
+    if (booking.assignedStaffId) return;
 
     await this.prisma.$transaction([
       this.prisma.booking.update({

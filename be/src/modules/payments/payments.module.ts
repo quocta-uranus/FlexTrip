@@ -32,6 +32,6 @@ import { BOOKING_QUEUE } from '../booking/booking.constants';
     PayOsGateway,
     PaymentAiService,
   ],
-  exports: [PaymentsService, WalletService, EscrowService],
+  exports: [PaymentsService, WalletService, EscrowService, RefundService],
 })
 export class PaymentsModule {}

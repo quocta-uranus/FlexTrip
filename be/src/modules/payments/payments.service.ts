@@ -11,7 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from './wallet.service';
 import { EscrowService } from './escrow.service';
 import { PayOsGateway } from './gateways/payos.gateway';
-import { DEPOSIT_HOLD_MS, PAYMENT_QUEUE, PaymentJob } from './constants';
+import { PAYMENT_QUEUE, PaymentJob } from './constants';
 import { BOOKING_QUEUE } from '../booking/booking.constants';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { TopupDto } from './dto/topup.dto';
@@ -383,6 +383,36 @@ export class PaymentsService implements OnApplicationBootstrap {
     throw new BadRequestException('Gateway không được hỗ trợ');
   }
 
+  // The deposit is the first installment of the price, so once the balance is paid it stops being a hold:
+  // a wallet-paid deposit leaves the frozen balance and joins the rental money in escrow
+  private async applyDepositToPrice(paymentId: string) {
+    const payment = await this.prisma.payment.findUniqueOrThrow({
+      where: { id: paymentId },
+      select: { gateway: true, depositAmount: true, booking: { select: { id: true, travelerId: true } } },
+    });
+    const deposit = Number(payment.depositAmount);
+    if (payment.gateway !== PaymentGateway.WALLET || deposit <= 0) return;
+
+    await this.prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.update({
+        where: { userId: payment.booking.travelerId },
+        data: { frozenBalance: { decrement: deposit } },
+      });
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.walletId,
+          type: WalletTxType.DEBIT,
+          amount: deposit,
+          balanceAfter: wallet.availableBalance,
+          refType: 'payment',
+          refId: paymentId,
+          note: `Cọc được tính vào tiền thuê booking ${payment.booking.id}`,
+        },
+      });
+      await this.escrowSvc.credit(deposit, tx);
+    });
+  }
+
   // Shared by wallet / webhook / confirmPayosReturn; only the first caller flips the state
   private async markRentalPaid(
     paymentId: string,
@@ -401,6 +431,8 @@ export class PaymentsService implements OnApplicationBootstrap {
       },
     });
     if (count === 0) return;
+
+    await this.applyDepositToPrice(paymentId);
 
     const booking = await this.prisma.booking.update({
       where: { id: bookingId },
@@ -427,16 +459,6 @@ export class PaymentsService implements OnApplicationBootstrap {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
     });
-
-    await this.paymentQueue.add(
-      PaymentJob.DEPOSIT_RELEASE,
-      { bookingId },
-      {
-        delay: DEPOSIT_HOLD_MS,
-        removeOnComplete: true,
-        attempts: 3,
-      },
-    );
   }
 
   // ─── Called by BookingService when booking is cancelled ──────────────────

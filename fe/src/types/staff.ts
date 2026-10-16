@@ -1,3 +1,5 @@
+import type { PenaltyRule } from './contract';
+
 export type StaffTaskType = 'HANDOVER' | 'RETURN';
 export type StaffMediationStatus = 'OPEN' | 'RESOLVED' | 'ESCALATED';
 
@@ -62,7 +64,16 @@ export interface StaffBooking {
     provider: { id: string; name: string; phone: string | null };
   };
   traveler: { id: string; name: string; phone: string | null; email: string };
-  contract: { status: string; checkInPhotos: string[]; checkOutPhotos: string[] | null } | null;
+  contract: {
+    status: string;
+    terms: string;
+    penaltyRules: PenaltyRule[] | null;
+    productConditionNote: string | null;
+    travelerSignedAt: string | null;
+    providerSignedAt: string | null;
+    checkInPhotos: string[];
+    checkOutPhotos: Array<string | { url: string }> | null;
+  } | null;
   staffMediations: StaffMediation[];
 }
 

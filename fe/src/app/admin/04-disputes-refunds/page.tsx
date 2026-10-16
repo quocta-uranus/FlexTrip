@@ -198,6 +198,11 @@ export default function DisputesRefundsPage() {
                 </td>
                 <td className="px-6 py-4 text-right font-bold tabular-nums" style={{ color: "#dc2626" }}>
                   {formatVnd(d.amount)}
+                  {d.refundAmount != null && (
+                    <div className="mt-0.5 text-xs font-semibold" style={{ color: "#16a34a" }}>
+                      Đã hoàn {formatVnd(d.refundAmount)}
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span

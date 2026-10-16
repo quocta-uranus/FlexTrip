@@ -477,6 +477,9 @@ export const listingApi = {
     imageUrls?: string[];
     latitude?: number;
     longitude?: number;
+    conditionNote?: string;
+    marketValue?: number | null;
+    penaltyRules?: Array<{ item: string; description: string; minAmount: number; maxAmount: number }>;
   }) => api.post('/listings', data) as Promise<Listing>,
 
   update: (id: string, data: Partial<{
@@ -485,8 +488,14 @@ export const listingApi = {
     price: number;
     location: string;
     category: ListingCategory;
+    currency: string;
     amenities: string[];
     imageUrls: string[];
+    latitude: number;
+    longitude: number;
+    conditionNote: string;
+    marketValue: number | null;
+    penaltyRules: Array<{ item: string; description: string; minAmount: number; maxAmount: number }>;
     status: string;
   }>) => api.patch(`/listings/${id}`, data) as Promise<Listing>,
 

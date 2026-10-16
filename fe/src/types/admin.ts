@@ -152,13 +152,13 @@ export interface AdminDispute {
   provider: Ref & { shopName: string | null };
   amount: number;
   requestedAmount: number | null;
+  refundAmount: number | null;
   reason: string;
   createdAt: string;
 }
 export interface AdminDisputeDetail extends AdminDispute {
   description: string | null;
   resolution: string | null;
-  refundAmount: number | null;
   openedBy: Ref;
   handledBy: Ref | null;
   resolvedAt: string | null;
@@ -174,15 +174,18 @@ export interface AdminDisputeDetail extends AdminDispute {
     id: string;
     amount: number;
     platformFee: number;
+    refundedAmount: number | null;
     status: PaymentStatus;
     method: string;
     transactionId: string | null;
   } | null;
   contract: {
     status: string;
-    signedAt: string | null;
-    checkInPhoto: string | null;
-    checkOutPhoto: string | null;
+    travelerSignedAt: string | null;
+    providerSignedAt: string | null;
+    checkInPhotos: string[];
+    // Older staff returns stored a bare URL or `{ push }`, so entries are not always `{ url }`
+    checkOutPhotos: unknown;
   } | null;
   history: AuditLogItem[];
 }

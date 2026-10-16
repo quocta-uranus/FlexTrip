@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listingApi } from '@/lib/api/client';
-import type { ListingInput } from '@/lib/validators/listing.schema';
+import type { ListingFormPayload } from '@/components/listing/listing-form';
 
 export function useListings(params?: { status?: string; page?: number; limit?: number }) {
   return useQuery({
@@ -27,7 +27,7 @@ export function useListing(id: string) {
 export function useCreateListing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: ListingInput) =>
+    mutationFn: (data: ListingFormPayload) =>
       listingApi.create({
         ...data,
         price: Number(data.price),
@@ -42,8 +42,8 @@ export function useCreateListing() {
 export function useUpdateListing(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<ListingInput>) =>
-      listingApi.update(id, data as any),
+    mutationFn: (data: ListingFormPayload) =>
+      listingApi.update(id, { ...data, price: Number(data.price) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['listing', id] });
       qc.invalidateQueries({ queryKey: ['my-listings'] });

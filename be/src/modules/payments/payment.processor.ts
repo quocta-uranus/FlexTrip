@@ -8,7 +8,6 @@ import { CancelledBy, BookingStatus, NotificationType, Prisma } from '@prisma/cl
 import { PrismaService } from '../../prisma/prisma.service';
 
 interface CommissionJobData { bookingId: string; }
-interface DepositJobData { bookingId: string; }
 interface RefundJobData { bookingId: string; cancelledBy: CancelledBy; bookingStatus: BookingStatus; }
 
 const MIN_PAYOUT_NOTIFY = 50_000; // only notify if availableBalance ≥ 50k VND
@@ -30,9 +29,6 @@ export class PaymentProcessor extends WorkerHost {
       case PaymentJob.COMMISSION_SPLIT:
         await this.handleCommissionSplit(job.data as CommissionJobData);
         break;
-      case PaymentJob.DEPOSIT_RELEASE:
-        await this.handleDepositRelease(job.data as DepositJobData);
-        break;
       case PaymentJob.AUTO_REFUND:
         await this.handleAutoRefund(job.data as RefundJobData);
         break;
@@ -47,11 +43,6 @@ export class PaymentProcessor extends WorkerHost {
   private async handleCommissionSplit({ bookingId }: CommissionJobData) {
     this.logger.log(`Splitting commission for booking ${bookingId}`);
     await this.commission.split(bookingId);
-  }
-
-  private async handleDepositRelease({ bookingId }: DepositJobData) {
-    this.logger.log(`Releasing deposit for booking ${bookingId}`);
-    await this.refund.releaseDeposit(bookingId);
   }
 
   private async handleAutoRefund({ bookingId, cancelledBy, bookingStatus }: RefundJobData) {

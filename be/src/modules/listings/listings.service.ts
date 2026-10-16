@@ -391,8 +391,26 @@ export class ListingsService {
   }
 
   async remove(id: string, providerId: string) {
-    await this.assertOwner(id, providerId);
-    await this.prisma.listing.delete({ where: { id } });
+    const listing = await this.assertOwner(id, providerId);
+    if (listing.status === ListingStatus.ACTIVE) {
+      throw new ConflictException({
+        code: 'LISTING_ACTIVE',
+        message: 'Sản phẩm đang cho thuê nên không thể xoá. Hãy tạm ẩn sản phẩm trước.',
+      });
+    }
+    // Bookings keep contracts, invoices and payments, so a listing with any booking history can only be paused
+    const bookings = await this.prisma.booking.count({ where: { listingId: id } });
+    if (bookings > 0) {
+      throw new ConflictException({
+        code: 'LISTING_HAS_BOOKINGS',
+        message: 'Sản phẩm đã có đơn thuê nên không thể xoá. Hãy tạm ẩn để ngừng cho thuê.',
+      });
+    }
+    // Other travelers' cart lines have no cascade and would otherwise block the delete
+    await this.prisma.$transaction([
+      this.prisma.cartItem.deleteMany({ where: { listingId: id } }),
+      this.prisma.listing.delete({ where: { id } }),
+    ]);
     return { ok: true };
   }
 

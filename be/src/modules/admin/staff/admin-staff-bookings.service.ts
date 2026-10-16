@@ -10,7 +10,7 @@ import { AssignStaffDto, ListAssignableBookingsQueryDto } from './dto/admin-staf
 
 const BOOKING_SELECT = {
   id: true, status: true, startDate: true, endDate: true, assignedStaffId: true,
-  listing: { select: { id: true, title: true, location: true } },
+  listing: { select: { id: true, title: true, location: true, providerId: true } },
   traveler: { select: { id: true, name: true } },
   assignedStaff: { select: { id: true, name: true, staffProfile: { select: { employeeCode: true } } } },
 } satisfies Prisma.BookingSelect;
@@ -22,6 +22,22 @@ const toItem = (b: BookingRow) => ({
     ? { id: b.assignedStaff.id, name: b.assignedStaff.name, employeeCode: b.assignedStaff.staffProfile?.employeeCode ?? null }
     : null,
 });
+
+// Traveler and provider both need to know who will hand over and take back the equipment
+const notifyParties = (tx: Prisma.TransactionClient, b: BookingRow, staffName: string) =>
+  Promise.all(
+    [b.traveler.id, b.listing.providerId].map((userId) =>
+      tx.notification.create({
+        data: {
+          userId,
+          type: NotificationType.BOOKING,
+          title: 'Đã có nhân viên phụ trách đơn thuê',
+          body: `${staffName} sẽ phụ trách bàn giao và nhận lại thiết bị "${b.listing.title}".`,
+          data: { bookingId: b.id },
+        },
+      }),
+    ),
+  );
 
 @Injectable()
 export class AdminStaffBookingsService {
@@ -71,6 +87,7 @@ export class AdminStaffBookingsService {
           data: { bookingId: id },
         },
       });
+      await notifyParties(tx, updated, updated.assignedStaff?.name ?? 'Nhân viên vận hành');
       return toItem(updated);
     });
   }
@@ -103,6 +120,7 @@ export class AdminStaffBookingsService {
           data: { bookingId: id },
         },
       });
+      await notifyParties(tx, updated, updated.assignedStaff?.name ?? 'Nhân viên vận hành');
       return { booking: toItem(updated), rule: { id: rule.id, name: rule.name } };
     });
   }

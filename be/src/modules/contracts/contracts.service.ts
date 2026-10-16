@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -10,7 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ContractParams, renderContract } from './contracts.templates';
 import { CheckinDto, CheckoutDto, PenaltyRule } from './dto/contract.dto';
 import {
-  BALANCE_DUE_MS, BOOKING_QUEUE, BookingJob, RENTAL_UNPAID_MESSAGE, isRentalSettled,
+  BALANCE_DUE_MS, BOOKING_QUEUE, BookingJob, RENTAL_UNPAID_MESSAGE, STAFF_ASSIGNED_MESSAGE, isRentalSettled,
 } from '../booking/booking.constants';
 
 const HIGH_VALUE_THRESHOLD = 5_000_000;
@@ -324,7 +324,7 @@ export class ContractsService {
       include: {
         booking: {
           select: {
-            status: true, travelerId: true,
+            status: true, travelerId: true, assignedStaffId: true,
             listing: { select: { providerId: true, title: true } },
             payment: { select: { rentalAmount: true, rentalPaidAt: true } },
           },
@@ -335,6 +335,8 @@ export class ContractsService {
     if (contract.booking.listing.providerId !== providerId) throw new ForbiddenException();
     if (contract.booking.status !== 'CONFIRMED')
       throw new BadRequestException('Chỉ có thể checkin khi booking đã xác nhận (CONFIRMED)');
+    if (contract.booking.assignedStaffId)
+      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
     if (contract.booking.payment && !isRentalSettled(contract.booking.payment))
       throw new BadRequestException(RENTAL_UNPAID_MESSAGE);
 
@@ -400,7 +402,7 @@ export class ContractsService {
       include: {
         booking: {
           select: {
-            status: true, travelerId: true,
+            status: true, travelerId: true, assignedStaffId: true,
             listing: { select: { providerId: true, title: true } },
           },
         },
@@ -413,6 +415,9 @@ export class ContractsService {
     if (!isProvider && !isTraveler) throw new ForbiddenException();
     if (contract.booking.status !== 'IN_PROGRESS')
       throw new BadRequestException('Chỉ có thể checkout khi đang trong kỳ thuê');
+
+    if (isProvider && dto.action === 'complete' && contract.booking.assignedStaffId)
+      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
 
     const role = isProvider ? 'PROVIDER' : 'TRAVELER';
     const now = new Date().toISOString();
