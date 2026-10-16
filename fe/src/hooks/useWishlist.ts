@@ -20,8 +20,12 @@ function canUseAccountWishlist(roles: readonly string[] | undefined) {
   return roles.includes('TRAVELER') || roles.includes('PROVIDER');
 }
 
+// useSyncExternalStore requires a referentially stable server snapshot
+const SERVER_GUEST_IDS: string[] = [];
+const getServerGuestWishlist = () => SERVER_GUEST_IDS;
+
 export function useGuestWishlistIds() {
-  return useSyncExternalStore(subscribeGuestWishlist, getGuestWishlist, () => [] as string[]);
+  return useSyncExternalStore(subscribeGuestWishlist, getGuestWishlist, getServerGuestWishlist);
 }
 
 export function useWishlistIds() {
