@@ -45,6 +45,13 @@ const priorityBadge: Record<string, string> = {
   LOW: 'bg-green-100 text-green-700',
 };
 
+function photoUrls(raw: unknown): string[] {
+  const list = Array.isArray(raw) ? raw : [raw];
+  return list
+    .map((p) => (typeof p === 'string' ? p : (p as { url?: string; push?: string } | null)?.url ?? (p as { push?: string } | null)?.push))
+    .filter((u): u is string => typeof u === 'string');
+}
+
 export default function DisputeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, error } = useDisputeDetail(id);
@@ -150,6 +157,7 @@ export default function DisputeDetailPage() {
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
                 <div><dt className="text-slate-500">Amount</dt><dd className="font-medium">{formatVnd(data.payment.amount)}</dd></div>
                 <div><dt className="text-slate-500">Platform fee</dt><dd className="font-medium">{formatVnd(data.payment.platformFee)}</dd></div>
+                <div><dt className="text-slate-500">Đã hoàn</dt><dd className="font-medium">{formatVnd(data.payment.refundedAmount ?? 0)}</dd></div>
                 <div><dt className="text-slate-500">Status</dt><dd className="font-medium">{data.payment.status}</dd></div>
                 <div><dt className="text-slate-500">Method</dt><dd className="font-medium">{data.payment.method}</dd></div>
                 <div className="sm:col-span-2"><dt className="text-slate-500">Txn</dt><dd className="font-medium">{data.payment.transactionId ?? '—'}</dd></div>
@@ -165,21 +173,28 @@ export default function DisputeDetailPage() {
             {data.contract ? (
               <div className="space-y-3">
                 <p className="text-sm">Status: <span className="font-medium">{data.contract.status}</span></p>
-                <p className="text-sm">Signed: <span className="font-medium">{formatDateTime(data.contract.signedAt)}</span></p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {data.contract.checkInPhoto && (
-                    <a href={data.contract.checkInPhoto} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={data.contract.checkInPhoto} alt="Check-in" className="h-32 w-full rounded-lg object-cover" />
-                    </a>
-                  )}
-                  {data.contract.checkOutPhoto && (
-                    <a href={data.contract.checkOutPhoto} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={data.contract.checkOutPhoto} alt="Check-out" className="h-32 w-full rounded-lg object-cover" />
-                    </a>
-                  )}
-                </div>
+                <p className="text-sm">
+                  Traveler ký: <span className="font-medium">{data.contract.travelerSignedAt ? formatDateTime(data.contract.travelerSignedAt) : 'Chưa ký'}</span>
+                </p>
+                <p className="text-sm">
+                  Provider ký: <span className="font-medium">{data.contract.providerSignedAt ? formatDateTime(data.contract.providerSignedAt) : 'Chưa ký'}</span>
+                </p>
+                {[
+                  { label: 'Ảnh bàn giao', urls: data.contract.checkInPhotos },
+                  { label: 'Ảnh nhận lại', urls: photoUrls(data.contract.checkOutPhotos) },
+                ].map(({ label, urls }) => urls.length > 0 && (
+                  <div key={label}>
+                    <p className="mb-2 text-xs font-semibold text-slate-500">{label} ({urls.length})</p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {urls.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`${label} ${i + 1}`} className="h-32 w-full rounded-lg object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-slate-500">Chưa có hợp đồng</p>
@@ -356,7 +371,7 @@ export default function DisputeDetailPage() {
                         {...form.register('refundAmount', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })}
                       />
                       <p className="mt-1 text-xs text-slate-500">
-                        Tối đa {formatVnd(data.payment.amount)}. Booking sẽ chuyển sang REFUNDING.
+                        Tối đa {formatVnd(data.payment.amount)}. Tiền được hoàn ngay vào ví traveler và booking chuyển sang REFUNDED.
                       </p>
                       {form.formState.errors.refundAmount && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.refundAmount.message}</p>
