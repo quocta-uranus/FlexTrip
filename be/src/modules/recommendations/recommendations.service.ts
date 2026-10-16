@@ -14,6 +14,9 @@ const CANDIDATE_LIMIT = 500;
 const EMBED_BATCH = 40;
 // Gemini cosine: related items land ~0.7+, unrelated ones ~0.5, so only claim similarity above this
 const RELATED_SIMILARITY = 0.6;
+// Measured with gemini-embedding-001: real need-to-item matches score 0.67-0.80, unrelated pairs top out near 0.62
+const NEED_SIMILARITY = 0.66;
+const PER_NEED = 3;
 
 const candidateSelect = {
   id: true, title: true, description: true, category: true, location: true, amenities: true, providerId: true,
@@ -123,6 +126,62 @@ export class RecommendationsService implements OnApplicationBootstrap {
       .slice(0, limit);
 
     return { source: 'personalized', items: await this.hydrate(ranked) };
+  }
+
+  // ─── AI search by need ────────────────────────────────────────────────────
+
+  async embedTexts(texts: string[]): Promise<number[][] | null> {
+    if (!this.embedder || texts.length === 0) return null;
+    try {
+      const res = await this.embedder.batchEmbedContents({
+        requests: texts.map((t) => ({
+          content: { role: 'user', parts: [{ text: t }] },
+          outputDimensionality: EMBEDDING_DIM,
+        })),
+      });
+      const vectors = res.embeddings.map((e) => e.values);
+      return vectors.every((v) => v.length > 0) ? vectors : null;
+    } catch (error) {
+      this.logger.warn(`Need embedding failed: ${error instanceof Error ? error.message : error}`);
+      return null;
+    }
+  }
+
+  // Mixes the best matches for each need (round-robin) so a "baby + trip" query yields a stroller AND a suitcase, not one category
+  async rankByNeeds(candidateIds: string[], needs: string[], limit: number) {
+    if (candidateIds.length === 0 || needs.length === 0) return [];
+    const rows = await this.prisma.listing.findMany({
+      where: { id: { in: candidateIds }, status: ListingStatus.ACTIVE },
+      select: candidateSelect,
+    });
+    // ensureEmbeddings handles EMBED_BATCH rows per pass
+    for (let pass = 0; pass < Math.ceil(rows.length / EMBED_BATCH); pass++) await this.ensureEmbeddings(rows);
+
+    const needVectors = await this.embedTexts(needs);
+    if (!needVectors) return [];
+
+    const perNeed = needs.map((need, i) =>
+      rows
+        .map((r) => ({ id: r.id, score: cosine(needVectors[i], r.embedding?.vector ?? []), need }))
+        .filter((x) => x.score >= NEED_SIMILARITY)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, PER_NEED),
+    );
+
+    const picked = new Map<string, { id: string; reason: string }>();
+    for (let rank = 0; rank < PER_NEED && picked.size < limit; rank++) {
+      for (const list of perNeed) {
+        const hit = list[rank];
+        if (hit && !picked.has(hit.id) && picked.size < limit) {
+          picked.set(hit.id, { id: hit.id, reason: `Hợp với nhu cầu: ${hit.need}` });
+        }
+      }
+    }
+    return [...picked.values()];
+  }
+
+  toListings(ranked: Array<{ id: string; reason: string }>) {
+    return this.hydrate(ranked);
   }
 
   // ─── internals ────────────────────────────────────────────────────────────

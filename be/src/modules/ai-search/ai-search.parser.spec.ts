@@ -1,4 +1,4 @@
-import { buildDateAnchors, extractJson, sanitizeFilters } from './ai-search.parser';
+import { buildDateAnchors, extractJson, sanitizeFilters, sanitizeNeeds } from './ai-search.parser';
 
 const TODAY = '2026-10-16';
 
@@ -61,5 +61,16 @@ describe('buildDateAnchors', () => {
 
   it('uses Vietnam date near midnight UTC', () => {
     expect(buildDateAnchors(new Date('2026-10-15T18:00:00Z')).date).toBe('2026-10-16');
+  });
+});
+
+describe('sanitizeNeeds', () => {
+  it('keeps up to 5 unique short phrases', () => {
+    expect(sanitizeNeeds({ needs: [' xe đẩy em bé ', 'vali', 'vali', 5, '', 'a', 'b', 'c', 'd'] })).toEqual(['xe đẩy em bé', 'vali', 'a', 'b', 'c']);
+  });
+  it('returns [] for missing or malformed needs', () => {
+    expect(sanitizeNeeds({})).toEqual([]);
+    expect(sanitizeNeeds({ needs: 'vali' })).toEqual([]);
+    expect(sanitizeNeeds(null)).toEqual([]);
   });
 });
