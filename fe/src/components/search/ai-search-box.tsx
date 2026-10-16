@@ -78,6 +78,11 @@ export function AiSearchBox({ onResult, onClear }: Props) {
           <p className="leading-relaxed">
             <span className="font-semibold">AI hiểu:</span>{' '}
             {result.fallback ? `${result.summary} (AI chưa phân tích được, đang tìm theo từ khoá.)` : result.summary}
+            {result.relaxed.length > 0 && (
+              <span className="mt-1 block text-amber-700">
+                Chưa có sản phẩm khớp hoàn toàn nên đã bỏ điều kiện: {result.relaxed.join(', ')}.
+              </span>
+            )}
           </p>
           <button type="button" onClick={clear} aria-label="Xoá kết quả AI" className="shrink-0 rounded-full p-0.5 hover:bg-violet-100">
             <X className="h-3.5 w-3.5" />
