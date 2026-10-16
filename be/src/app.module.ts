@@ -27,6 +27,8 @@ import { ReputationModule } from './modules/reputation/reputation.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { PriceAiModule } from './modules/price-ai/price-ai.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { PriceAiModule } from './modules/price-ai/price-ai.module';
     ContractsModule,
     WishlistModule,
     PriceAiModule,
+    PaymentsModule,
+    PaymentAiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

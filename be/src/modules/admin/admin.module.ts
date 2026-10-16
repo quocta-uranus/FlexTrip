@@ -11,6 +11,8 @@ import { AdminDisputesService } from './disputes/admin-disputes.service';
 import { AdminFinanceController } from './finance/admin-finance.controller';
 import { AdminTransactionsService } from './finance/admin-transactions.service';
 import { AdminPayoutsService } from './finance/admin-payouts.service';
+import { AdminWithdrawService } from './finance/admin-withdraw.service';
+import { EscrowService } from '../payments/escrow.service';
 import { AdminAnalyticsController } from './analytics/admin-analytics.controller';
 import { AdminAnalyticsService } from './analytics/admin-analytics.service';
 import { AdminConfigController } from './config/admin-config.controller';
@@ -27,6 +29,8 @@ import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
 import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
+import { AdminCommissionsController } from './finance/admin-commissions.controller';
+import { AdminCommissionsService } from './finance/admin-commissions.service';
 
 @Module({
   imports: [AuthModule, ReviewsModule],
@@ -43,6 +47,7 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminStaffBookingsController,
     AdminReviewsController,
     AdminBookingsController,
+    AdminCommissionsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -52,6 +57,8 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminDisputesService,
     AdminTransactionsService,
     AdminPayoutsService,
+    AdminWithdrawService,
+    EscrowService,
     AdminAnalyticsService,
     AdminAuditLogsService,
     AdminStaffService,
@@ -59,6 +66,7 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminStaffBookingsService,
     AdminReviewsService,
     AdminBookingsService,
+    AdminCommissionsService,
   ],
 })
 export class AdminModule {}

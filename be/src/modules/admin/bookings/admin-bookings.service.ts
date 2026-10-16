@@ -16,7 +16,7 @@ const LIST_SELECT = {
       staffProfile: { select: { employeeCode: true } },
     },
   },
-  payment: { select: { status: true, method: true } },
+  payment: { select: { status: true, gateway: true } },
   _count: { select: { staffMediations: true } },
 } satisfies Prisma.BookingSelect;
 
@@ -36,7 +36,7 @@ const DETAIL_SELECT = {
       staffProfile: { select: { employeeCode: true, phone: true, regions: true } },
     },
   },
-  payment: { select: { id: true, status: true, method: true, amount: true, transactionId: true } },
+  payment: { select: { id: true, status: true, gateway: true, totalAmount: true, gatewayTransId: true } },
   contract: { select: { id: true, status: true, travelerSignedAt: true, providerSignedAt: true } },
   staffMediations: {
     select: { id: true, status: true, issue: true, resolution: true, createdAt: true },

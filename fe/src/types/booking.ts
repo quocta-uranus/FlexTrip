@@ -55,6 +55,7 @@ export interface Booking {
   cancellationReason?: string | null;
   cancelledAt?: string | null;
   holdExpiresAt?: string | null;
+  balanceDueAt?: string | null;
   travelerId: string;
   listingId: string;
   createdAt: string;
@@ -75,9 +76,15 @@ export interface Booking {
   } | null;
   payment?: {
     id: string;
-    amount: number;
-    status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
-    method: string;
+    totalAmount: number;
+    rentalAmount?: number;
+    depositAmount?: number;
+    rentalPaidAt?: string | null;
+    amount?: number;
+    status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+    gateway?: string | null;
+    method?: string | null;
+    gatewayTransId?: string | null;
     transactionId?: string | null;
   } | null;
   contract?: {

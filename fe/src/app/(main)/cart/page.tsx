@@ -7,11 +7,8 @@ import { useCart, useRemoveCartItem, useCartCheckout } from '@/hooks/useCart';
 import type { CartItem } from '@/types/booking';
 
 const PAYMENT_METHODS = [
-  { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng', icon: '🏦' },
-  { value: 'MOMO', label: 'Ví MoMo', icon: '🟣' },
-  { value: 'ZALOPAY', label: 'ZaloPay', icon: '🔵' },
-  { value: 'VNPAY', label: 'VNPay', icon: '🟠' },
-  { value: 'CASH', label: 'Tiền mặt khi nhận', icon: '💵' },
+  { value: 'PAYOS', label: 'PayOS', icon: '💳' },
+  { value: 'WALLET', label: 'Ví FlexTrip', icon: '👜' },
 ];
 
 function HoldCountdown({ expiresAt }: { expiresAt: string | null | undefined }) {

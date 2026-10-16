@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { Role, WithdrawStatus } from '@prisma/client';
 import { AccessTokenGuard, AuthenticatedRequest } from '../../auth/guards/access-token.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -8,6 +8,7 @@ import { requestContext } from '../../../common/request-context';
 import { DateRangeQueryDto } from '../../../common/dto/date-range.dto';
 import { AdminTransactionsService } from './admin-transactions.service';
 import { AdminPayoutsService } from './admin-payouts.service';
+import { AdminWithdrawService, ProcessWithdrawDto } from './admin-withdraw.service';
 import {
   GeneratePayoutsDto, ListPayoutsQueryDto, ListTransactionsQueryDto, UpdatePayoutDto,
 } from './dto/admin-finance.dto';
@@ -21,6 +22,7 @@ export class AdminFinanceController {
   constructor(
     private readonly tx: AdminTransactionsService,
     private readonly payouts: AdminPayoutsService,
+    private readonly withdraws: AdminWithdrawService,
   ) {}
 
   @Get('transactions')
@@ -68,5 +70,27 @@ export class AdminFinanceController {
   @ApiOperation({ summary: 'ADMIN-05: Ghi nhận chi trả / đổi trạng thái payout' })
   updatePayout(@Param('id') id: string, @Body() dto: UpdatePayoutDto, @Req() req: AuthenticatedRequest) {
     return this.payouts.update(id, dto, requestContext(req));
+  }
+
+  // ── Withdraw requests (individual cash-out from provider/staff wallet) ──
+
+  @Get('platform-summary')
+  @ApiOperation({ summary: 'ADMIN-05: Tổng quan ví nền tảng — escrow + doanh thu + pending withdrawals' })
+  platformSummary() {
+    return this.withdraws.platformSummary();
+  }
+
+  @Get('withdraw-requests')
+  @ApiOperation({ summary: 'ADMIN-05: Danh sách yêu cầu rút tiền' })
+  listWithdraws(@Query('status') status?: string) {
+    const s = status && status !== 'ALL' ? (status as WithdrawStatus) : undefined;
+    return this.withdraws.list(s);
+  }
+
+  @Patch('withdraw-requests/:id')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'ADMIN-05: Duyệt hoặc từ chối yêu cầu rút tiền' })
+  processWithdraw(@Param('id') id: string, @Body() dto: ProcessWithdrawDto, @Req() req: AuthenticatedRequest) {
+    return this.withdraws.process(id, dto, requestContext(req));
   }
 }

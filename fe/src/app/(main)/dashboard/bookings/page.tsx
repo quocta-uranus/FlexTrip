@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useProviderBookings, useApproveBooking, useDeclineBooking, useStartBooking, useCompleteBooking } from '@/hooks/useBookings';
+import { useProviderBookings, useApproveBooking, useDeclineBooking, useCompleteBooking } from '@/hooks/useBookings';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus } from '@/types/booking';
 
@@ -69,7 +69,6 @@ export default function ProviderBookingsPage() {
   const [tab, setTab] = useState<Tab>('PENDING_APPROVAL');
   const [declineTarget, setDeclineTarget] = useState<string | null>(null);
   const approve = useApproveBooking();
-  const startBooking = useStartBooking();
   const completeBooking = useCompleteBooking();
 
   const { data: bookings, isLoading } = useProviderBookings({
@@ -287,25 +286,23 @@ export default function ProviderBookingsPage() {
                     )}
 
                     {booking.status === 'CONFIRMED' && (
-                      <button
-                        onClick={() => startBooking.mutate(booking.id)}
-                        disabled={startBooking.isPending && startBooking.variables === booking.id}
-                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                      <Link
+                        href={`/bookings/${booking.id}/checkin`}
+                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
                         style={{ background: '#16a34a' }}
                       >
-                        ▶ Bắt đầu cho thuê
-                      </button>
+                        📷 Checkin & Giao hàng
+                      </Link>
                     )}
 
                     {booking.status === 'IN_PROGRESS' && (
-                      <button
-                        onClick={() => completeBooking.mutate(booking.id)}
-                        disabled={completeBooking.isPending && completeBooking.variables === booking.id}
-                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                      <Link
+                        href={`/bookings/${booking.id}/checkout`}
+                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
                         style={{ background: '#2a7bd9' }}
                       >
-                        ✓ Hoàn thành
-                      </button>
+                        📦 Checkout & Nhận lại
+                      </Link>
                     )}
                   </div>
                 </div>

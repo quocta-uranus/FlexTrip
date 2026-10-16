@@ -5,6 +5,7 @@ import {
   ArrayMaxSize, IsArray, IsDateString, IsEnum, IsNumber, IsOptional,
   IsString, IsUrl, Length, MaxLength, Min,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../../common/dto/pagination.dto';
 
 export class ListStaffTasksQueryDto {
   @ApiPropertyOptional({ example: '2026-09-29' })

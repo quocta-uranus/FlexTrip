@@ -20,6 +20,7 @@ import {
 import { resolveDisputeSchema, type ResolveDisputeInput } from '@/lib/validators/admin.schema';
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format';
 import type { DisputePriority } from '@/types/admin';
+import { useDisputeAssist } from '@/hooks/usePaymentAi';
 
 const typeLabels: Record<string, string> = {
   REFUND_REQUEST: 'Yêu cầu hoàn tiền',
@@ -47,6 +48,7 @@ const priorityBadge: Record<string, string> = {
 export default function DisputeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, error } = useDisputeDetail(id);
+  const { data: aiAssist, isLoading: aiLoading } = useDisputeAssist(id, !!id);
   const setStatus = useSetDisputeStatus();
   const setPriority = useSetDisputePriority();
   const resolve = useResolveDispute();
@@ -208,6 +210,58 @@ export default function DisputeDetailPage() {
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* AI Dispute Assist */}
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-base">🤖</span>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-800">AI Phân tích</h2>
+            </div>
+            {aiLoading ? (
+              <div className="space-y-2">
+                <div className="h-4 w-3/4 animate-pulse rounded bg-blue-100" />
+                <div className="h-4 w-full animate-pulse rounded bg-blue-100" />
+              </div>
+            ) : aiAssist ? (
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
+                    style={
+                      aiAssist.recommendation === 'full_refund'    ? { background: '#fee2e2', color: '#b91c1c' } :
+                      aiAssist.recommendation === 'partial_refund' ? { background: '#fef3c7', color: '#92400e' } :
+                      aiAssist.recommendation === 'no_refund'      ? { background: '#dcfce7', color: '#15803d' } :
+                                                                     { background: '#ede9fe', color: '#6d28d9' }
+                    }
+                  >
+                    {aiAssist.recommendation === 'full_refund'    && 'Hoàn toàn bộ'}
+                    {aiAssist.recommendation === 'partial_refund' && `Hoàn ${aiAssist.suggestedRefundPct}%`}
+                    {aiAssist.recommendation === 'no_refund'      && 'Không hoàn'}
+                    {aiAssist.recommendation === 'provider_wins'  && 'Provider thắng'}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Độ tin cậy: {Math.round(aiAssist.confidence * 100)}%
+                  </span>
+                </div>
+                <p className="text-slate-600 leading-relaxed">{aiAssist.reasoning}</p>
+                {aiAssist.keyEvidence.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-xs font-semibold text-slate-500">Bằng chứng chính:</p>
+                    <ul className="space-y-1">
+                      {aiAssist.keyEvidence.map((e, i) => (
+                        <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600">
+                          <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
+                          {e}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">Không thể tải phân tích AI.</p>
+            )}
+          </div>
+
           {closed ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Kết quả</h2>
