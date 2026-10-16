@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ForbiddenException, Injectable, NotFoundException,
+  BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BookingStatus, CancelledBy, DeliveryMethod, NotificationType, Prisma } from '@prisma/client';
@@ -12,7 +12,10 @@ import {
   CancelBookingDto, ConfirmPaymentDto, CreateBookingDto,
   DeclineBookingDto, ListBookingsQueryDto,
 } from './dto/booking.dto';
-import { BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE } from './booking.constants';
+import {
+  BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, RENTAL_UNPAID_MESSAGE, isRentalSettled,
+} from './booking.constants';
+import { PaymentsService } from '../payments/payments.service';
 
 const BOOKING_INCLUDE = {
   listing: {
@@ -23,7 +26,7 @@ const BOOKING_INCLUDE = {
     },
   },
   traveler: { select: { id: true, name: true, avatarUrl: true, email: true } },
-  payment: { select: { id: true, status: true, method: true, amount: true, transactionId: true } },
+  payment: { select: { id: true, status: true, gateway: true, totalAmount: true, gatewayTransId: true, rentalAmount: true, depositAmount: true, rentalPaidAt: true } },
   assignedStaff: {
     select: {
       id: true, name: true, avatarUrl: true, email: true, phone: true,
@@ -39,6 +42,7 @@ export class BookingService {
     private readonly availabilitySvc: AvailabilityService,
     private readonly contractsSvc: ContractsService,
     @InjectQueue(BOOKING_QUEUE) private readonly bookingQueue: Queue,
+    @Optional() private readonly paymentsSvc?: PaymentsService,
   ) {}
 
   // ─── BOOK-01: Create booking → PENDING_PAYMENT ───────────────────────────
@@ -173,17 +177,21 @@ export class BookingService {
         include: BOOKING_INCLUDE,
       });
 
+      const depositAmt = Number(booking.depositAmount);
+      const totalAmt = Number(booking.totalPrice);
       await tx.payment.upsert({
         where: { bookingId },
         create: {
           bookingId,
-          amount: booking.totalPrice,
+          totalAmount: booking.totalPrice,
+          rentalAmount: totalAmt - depositAmt,
+          depositAmount: booking.depositAmount,
           currency: 'VND',
-          method: dto.method,
-          transactionId: dto.transactionRef ?? null,
+          gatewayTransId: dto.transactionRef ?? null,
           status: 'PAID',
+          rentalPaidAt: new Date(),
         },
-        update: { method: dto.method, transactionId: dto.transactionRef ?? null, status: 'PAID' },
+        update: { gatewayTransId: dto.transactionRef ?? null, status: 'PAID' },
       });
 
       return updatedBooking;
@@ -303,6 +311,8 @@ export class BookingService {
 
     if (booking.status !== BookingStatus.CONFIRMED)
       throw new BadRequestException('Chỉ có thể bắt đầu booking đang ở trạng thái CONFIRMED');
+    if (booking.payment && !isRentalSettled(booking.payment))
+      throw new BadRequestException(RENTAL_UNPAID_MESSAGE);
 
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
@@ -344,6 +354,9 @@ export class BookingService {
       `Đơn thuê "${booking.listing.title}" đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ!`,
       { bookingId },
     );
+
+    // Trigger commission split + deposit release timer
+    await this.paymentsSvc?.onBookingCompleted(bookingId);
 
     return updated;
   }
@@ -388,6 +401,11 @@ export class BookingService {
         if (isProvider) {
           await this.removeScheduledJobs(bookingId);
           await this.cancelWithRefund(bookingId, !!booking.payment, cancelledBy, dto.reason, true);
+          // Ghi strike cho provider — 3 strikes/tháng → tạm khóa listing (Phase 2)
+          await this.prisma.providerProfile.updateMany({
+            where: { userId: booking.listing.providerId },
+            data: { cancellationStrikes: { increment: 1 } },
+          }).catch(() => null); // non-critical: don't fail cancel if profile missing
           await this.notify(booking.travelerId, NotificationType.BOOKING, 'Provider huỷ booking',
             `Provider huỷ "${booking.listing.title}". Bạn sẽ được hoàn 100%.`, { bookingId });
           return { message: 'Đã huỷ, hoàn tiền 100%', refundAmount: Number(booking.depositAmount) };
@@ -424,6 +442,7 @@ export class BookingService {
     cancelledBy: CancelledBy,
     reason: string | null | undefined,
     doRefund: boolean,
+    preCancelStatus?: BookingStatus,
   ) {
     await this.prisma.$transaction([
       this.prisma.booking.update({
@@ -434,12 +453,21 @@ export class BookingService {
         ? [this.prisma.payment.update({ where: { bookingId }, data: { status: 'REFUNDED' } })]
         : []),
     ]);
+
+    if (hasPayment && doRefund && this.paymentsSvc) {
+      await this.paymentsSvc.onBookingCancelled(
+        bookingId,
+        cancelledBy,
+        preCancelStatus ?? BookingStatus.CONFIRMED,
+      );
+    }
   }
 
   private async removeScheduledJobs(bookingId: string) {
     await Promise.allSettled([
       this.bookingQueue.remove(`autostart-${bookingId}`),
       this.bookingQueue.remove(`reminder-${bookingId}`),
+      this.bookingQueue.remove(`balance-${bookingId}`),
     ]);
   }
 
@@ -448,7 +476,7 @@ export class BookingService {
       where: { id: bookingId },
       include: {
         listing: { select: { id: true, title: true, providerId: true } },
-        payment: { select: { id: true } },
+        payment: { select: { id: true, rentalAmount: true, rentalPaidAt: true } },
       },
     });
     if (!booking) throw new NotFoundException('Booking không tồn tại');

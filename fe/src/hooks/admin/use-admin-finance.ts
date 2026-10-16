@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
-import type { PaymentStatus, PayoutStatus, Reconciliation } from '@/types/admin';
+import type { LedgerStatus, PaymentStatus, PayoutStatus, Reconciliation } from '@/types/admin';
 
 export interface Period { from: string; to: string }
 
@@ -26,5 +26,27 @@ export function useUpdatePayout() {
     mutationFn: ({ id, ...body }: { id: string; status?: PayoutStatus; actualPaid?: number; transferRef?: string; note?: string }) =>
       adminApi.finance.updatePayout(id, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+  });
+}
+export function useCommissions(f: Period & { staffId: string; status: LedgerStatus | 'ALL'; page: number }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'commissions', f],
+    queryFn: () =>
+      adminApi.finance.commissions({
+        from: f.from,
+        to: f.to,
+        staffId: f.staffId === 'ALL' ? undefined : f.staffId,
+        status: f.status === 'ALL' ? undefined : f.status,
+        page: f.page,
+        limit: 20,
+      }),
+    placeholderData: keepPreviousData,
+  });
+}
+export function useStaffCommissions(staffId: string | null, p: Period) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'commissions', 'staff', staffId, p],
+    queryFn: () => adminApi.finance.staffCommissions(staffId!, { ...p }),
+    enabled: !!staffId,
   });
 }

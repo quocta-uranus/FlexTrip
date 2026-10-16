@@ -107,8 +107,8 @@ export class AdminDisputesService {
       },
       payment: booking.payment
         ? {
-            id: booking.payment.id, amount: toNumber(booking.payment.amount), platformFee: toNumber(booking.payment.platformFee),
-            status: booking.payment.status, method: booking.payment.method, transactionId: booking.payment.transactionId,
+            id: booking.payment.id, amount: toNumber(booking.payment.totalAmount), platformFee: toNumber(booking.payment.platformFee),
+            status: booking.payment.status, gateway: booking.payment.gateway, transactionId: booking.payment.gatewayTransId,
           }
         : null,
       contract: booking.contract,
@@ -119,7 +119,7 @@ export class AdminDisputesService {
   private async loadOpen(tx: Prisma.TransactionClient, id: string) {
     const d = await tx.dispute.findUnique({
       where: { id },
-      include: { booking: { select: { id: true, status: true, payment: { select: { amount: true } } } } },
+      include: { booking: { select: { id: true, status: true, payment: { select: { totalAmount: true } } } } },
     });
     if (!d) throw new NotFoundException({ code: 'DISPUTE_NOT_FOUND', message: 'Không tìm thấy tranh chấp.' });
     if (CLOSED.includes(d.status))
@@ -162,7 +162,7 @@ export class AdminDisputesService {
       const d = await this.loadOpen(tx, id);
       const refund = dto.refundAmount;
       if (refund !== undefined) {
-        const paid = d.booking.payment?.amount;
+        const paid = d.booking.payment?.totalAmount;
         if (dto.outcome === 'REJECTED' || !paid || new Prisma.Decimal(refund).gt(paid))
           throw new BadRequestException({
             code: 'INVALID_REFUND_AMOUNT',

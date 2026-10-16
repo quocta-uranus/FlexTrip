@@ -9,6 +9,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RequestContext } from '../../common/request-context';
 import { uploadImage } from '../../common/upload.util';
 import { AuditService } from '../audit/audit.service';
+import { RENTAL_UNPAID_MESSAGE, isRentalSettled } from '../booking/booking.constants';
+import { paginate, skipTake } from '../../common/dto/pagination.dto';
 import {
   ConfirmConditionDto, CreateMediationDto, EscalateMediationDto,
   ListMediationsQueryDto, ListMyBookingsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
@@ -18,6 +20,7 @@ const DETAIL_INCLUDE = {
   listing: { select: { id: true, title: true, location: true, imageUrls: true, provider: { select: { id: true, name: true, phone: true } } } },
   traveler: { select: { id: true, name: true, phone: true, email: true } },
   contract: { select: { status: true, checkInPhotos: true, checkOutPhotos: true } },
+  payment: { select: { rentalAmount: true, rentalPaidAt: true } },
   staffMediations: { orderBy: { createdAt: 'desc' as const } },
 } satisfies Prisma.BookingInclude;
 
@@ -104,6 +107,8 @@ export class StaffOperationsService {
       throw new ConflictException({ code: 'INVALID_BOOKING_STATUS', message: 'Chỉ xác nhận bàn giao cho booking đã được xác nhận.' });
     if (booking.checkedInAt)
       throw new ConflictException({ code: 'HANDOVER_ALREADY_CONFIRMED', message: 'Tác vụ bàn giao đã hoàn thành.' });
+    if (booking.payment && !isRentalSettled(booking.payment))
+      throw new ConflictException({ code: 'RENTAL_UNPAID', message: RENTAL_UNPAID_MESSAGE });
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
       await tx.booking.update({

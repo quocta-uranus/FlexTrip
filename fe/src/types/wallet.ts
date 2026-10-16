@@ -8,17 +8,32 @@ export interface PaymentMethod {
   isDefault: boolean;
 }
 
-export type WalletTransactionStatus = 'success' | 'processing';
+export type WalletTxType = 'CREDIT' | 'DEBIT' | 'FREEZE' | 'UNFREEZE' | 'FORFEIT' | 'PAYOUT' | 'TOPUP' | 'REFUND';
+export type WalletTxStatus = 'COMPLETED' | 'PENDING' | 'FAILED';
 
 export interface WalletTransaction {
   id: string;
-  description: string;
-  createdAt: string;
+  type: WalletTxType;
   amount: number;
-  status: WalletTransactionStatus;
+  note?: string | null;
+  refType?: string | null;
+  refId?: string | null;
+  status: WalletTxStatus;
+  balanceAfter?: number | null;
+  createdAt: string;
 }
 
 export interface WalletSummary {
-  balance: number;
-  updatedAt: string;
+  availableBalance: number;
+  frozenBalance: number;
+  pendingBalance: number;
+  updatedAt?: string;
+}
+
+export interface WalletTransactionsResult {
+  items: WalletTransaction[];
+  data?: WalletTransaction[];
+  total: number;
+  page: number;
+  limit: number;
 }

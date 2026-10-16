@@ -18,9 +18,9 @@ type PaymentRow = Prisma.PaymentGetPayload<{ include: typeof TX_INCLUDE }>;
 
 function toItem(p: PaymentRow) {
   return {
-    id: p.id, bookingId: p.bookingId, amount: toNumber(p.amount)!, platformFee: toNumber(p.platformFee)!,
-    providerNet: p.amount.minus(p.platformFee).toNumber(), status: p.status, method: p.method,
-    transactionId: p.transactionId, provider: p.booking.listing.provider, createdAt: p.createdAt,
+    id: p.id, bookingId: p.bookingId, amount: toNumber(p.totalAmount)!, platformFee: toNumber(p.platformFee)!,
+    providerNet: toNumber(p.providerNet)!, status: p.status, gateway: p.gateway,
+    transactionId: p.gatewayTransId, provider: p.booking.listing.provider, createdAt: p.createdAt,
   };
 }
 
@@ -63,7 +63,7 @@ export class AdminTransactionsService {
       { header: 'Phí sàn', value: (r) => r.platformFee },
       { header: 'Provider nhận', value: (r) => r.providerNet },
       { header: 'Trạng thái', value: (r) => r.status },
-      { header: 'Phương thức', value: (r) => r.method },
+      { header: 'Cổng thanh toán', value: (r) => r.gateway },
       { header: 'Ngày tạo', value: (r) => r.createdAt },
     ]);
   }
@@ -71,12 +71,12 @@ export class AdminTransactionsService {
   private async totals(from: Date, to: Date) {
     const createdAt = { gte: from, lte: to };
     const [paid, refunded] = await Promise.all([
-      this.prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, createdAt }, _sum: { amount: true, platformFee: true } }),
-      this.prisma.payment.aggregate({ where: { status: PaymentStatus.REFUNDED, createdAt }, _sum: { amount: true } }),
+      this.prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, createdAt }, _sum: { totalAmount: true, platformFee: true } }),
+      this.prisma.payment.aggregate({ where: { status: PaymentStatus.REFUNDED, createdAt }, _sum: { refundedAmount: true } }),
     ]);
-    const revenue = toNumber(paid._sum.amount) ?? 0;
+    const revenue = toNumber(paid._sum.totalAmount) ?? 0;
     const commission = toNumber(paid._sum.platformFee) ?? 0;
-    return { totalRevenue: revenue, platformCommission: commission, providerPayouts: revenue - commission, refundVolume: toNumber(refunded._sum.amount) ?? 0 };
+    return { totalRevenue: revenue, platformCommission: commission, providerPayouts: revenue - commission, refundVolume: toNumber(refunded._sum.refundedAmount) ?? 0 };
   }
 
   async summary(q: DateRangeQueryDto) {

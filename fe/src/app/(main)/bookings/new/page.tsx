@@ -4,19 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useListing } from '@/hooks/useListings';
-import { useCreateBooking, useConfirmPayment } from '@/hooks/useBookings';
-import { useContractPreview } from '@/hooks/useContracts';
+import { useCreateBooking } from '@/hooks/useBookings';
+import { useContractPreview, useTravelerSignContract } from '@/hooks/useContracts';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
-
-const PAYMENT_METHODS = [
-  { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng', icon: '🏦' },
-  { value: 'MOMO', label: 'Ví MoMo', icon: '💜' },
-  { value: 'ZALOPAY', label: 'ZaloPay', icon: '💙' },
-  { value: 'VNPAY', label: 'VNPay', icon: '🟡' },
-  { value: 'CASH', label: 'Tiền mặt khi nhận', icon: '💵' },
-];
+import { DepositAiBadge } from '@/components/payment/DepositAiBadge';
 
 function BookingCheckoutForm() {
   const router = useRouter();
@@ -31,10 +24,9 @@ function BookingCheckoutForm() {
 
   const { data: listing, isLoading } = useListing(listingId);
   const createBooking = useCreateBooking();
-  const confirmPayment = useConfirmPayment();
+  const travelerSign = useTravelerSignContract();
 
-  const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
-  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1); // 1=info+payment, 2=contract
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1); // 1=info, 2=contract
   const [contractAgreed, setContractAgreed] = useState(false);
   const [step, setStep] = useState<'form' | 'processing' | 'done'>('form');
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -85,17 +77,14 @@ function BookingCheckoutForm() {
     }
   }
 
-  async function handleConfirmAndPay() {
+  async function handleSignAndProceed() {
     if (!bookingId || !contractAgreed) return;
     setStep('processing');
     setFatalError(null);
     try {
-      await confirmPayment.mutateAsync({
-        id: bookingId,
-        data: { method: paymentMethod },
-      });
-      setStep('done');
-      setTimeout(() => router.push(`/bookings/${bookingId}?created=1`), 1500);
+      await travelerSign.mutateAsync(bookingId);
+      // Redirect to booking detail — payment is done there via VNPay
+      router.push(`/bookings/${bookingId}?pay=1`);
     } catch (err) {
       setFatalError((err as Error).message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.');
       setStep('form');
@@ -114,17 +103,6 @@ function BookingCheckoutForm() {
     );
   }
 
-  if (step === 'done') {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 min-h-screen" style={{ background: '#f6fbfe' }}>
-        <div className="flex h-20 w-20 items-center justify-center rounded-full text-4xl mb-4" style={{ background: '#f0fdf4' }}>
-          ✓
-        </div>
-        <h2 className="text-xl font-bold mb-2" style={{ color: '#0f1729' }}>Đặt thuê thành công!</h2>
-        <p className="text-sm" style={{ color: '#8694ad' }}>Đang chuyển đến trang chi tiết…</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
@@ -162,85 +140,54 @@ function BookingCheckoutForm() {
                   className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                   style={{ background: checkoutStep >= 2 ? '#2a7bd9' : '#e2e8f3', color: checkoutStep >= 2 ? '#fff' : '#8694ad' }}
                 >2</div>
-                <span style={{ color: checkoutStep === 2 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 2 ? 600 : 400 }}>Xem & ký hợp đồng</span>
+                <span style={{ color: checkoutStep === 2 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 2 ? 600 : 400 }}>Ký hợp đồng</span>
               </div>
             </div>
           </div>
 
         <div className="lg:col-span-2 space-y-5">
-            {/* Step 1: trip info + payment */}
-            {checkoutStep === 1 && <><div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin chuyến thuê</h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Ngày bắt đầu</p>
-                  <p className="font-semibold" style={{ color: '#0f1729' }}>
-                    {new Date(from).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Ngày kết thúc</p>
-                  <p className="font-semibold" style={{ color: '#0f1729' }}>
-                    {new Date(to).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Số lượng</p>
-                  <p className="font-semibold" style={{ color: '#0f1729' }}>{qty} thiết bị</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Nhận hàng</p>
-                  <p className="font-semibold" style={{ color: '#0f1729' }}>
-                    {delivery === 'PICKUP' ? '🏪 Lấy tại nơi' : '🚚 Giao hàng'}
-                  </p>
-                </div>
-                {delivery === 'DELIVERY' && address && (
-                  <div className="col-span-2">
-                    <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Địa chỉ giao</p>
-                    <p className="font-semibold" style={{ color: '#0f1729' }}>{address}</p>
+            {/* Step 1: trip info */}
+            {checkoutStep === 1 && (
+              <><div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
+                <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin chuyến thuê</h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Ngày bắt đầu</p>
+                    <p className="font-semibold" style={{ color: '#0f1729' }}>
+                      {new Date(from).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
                   </div>
-                )}
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Ngày kết thúc</p>
+                    <p className="font-semibold" style={{ color: '#0f1729' }}>
+                      {new Date(to).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Số lượng</p>
+                    <p className="font-semibold" style={{ color: '#0f1729' }}>{qty} thiết bị</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Nhận hàng</p>
+                    <p className="font-semibold" style={{ color: '#0f1729' }}>
+                      {delivery === 'PICKUP' ? '🏪 Lấy tại nơi' : '🚚 Giao hàng'}
+                    </p>
+                  </div>
+                  {delivery === 'DELIVERY' && address && (
+                    <div className="col-span-2">
+                      <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Địa chỉ giao</p>
+                      <p className="font-semibold" style={{ color: '#0f1729' }}>{address}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* Payment method */}
-            <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Phương thức thanh toán</h2>
-              <div className="space-y-2">
-                {PAYMENT_METHODS.map((m) => (
-                  <label
-                    key={m.value}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-all"
-                    style={{
-                      borderColor: paymentMethod === m.value ? '#2a7bd9' : '#DCEFFB',
-                      background: paymentMethod === m.value ? 'rgba(42,123,217,0.04)' : '#fff',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={m.value}
-                      checked={paymentMethod === m.value}
-                      onChange={() => setPaymentMethod(m.value)}
-                      className="sr-only"
-                    />
-                    <span className="text-xl">{m.icon}</span>
-                    <span className="text-sm font-medium" style={{ color: '#0f1729' }}>{m.label}</span>
-                    {paymentMethod === m.value && (
-                      <span className="ml-auto text-[#2a7bd9]">✓</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Cancellation notice */}
-            <div className="rounded-xl border p-4 text-sm" style={{ borderColor: '#DCEFFB', background: '#f6fbfe' }}>
-              <p className="font-medium mb-1" style={{ color: '#0f1729' }}>Chính sách huỷ</p>
-              <p style={{ color: '#5a6b85' }}>
-                Huỷ trước 3 ngày: hoàn tiền đặt cọc. Huỷ sau 3 ngày hoặc khi đang thuê: mất cọc.
-              </p>
-            </div></>}
+              <div className="rounded-xl border p-4 text-sm" style={{ borderColor: '#DCEFFB', background: '#f6fbfe' }}>
+                <p className="font-medium mb-1" style={{ color: '#0f1729' }}>Chính sách huỷ</p>
+                <p style={{ color: '#5a6b85' }}>
+                  Huỷ trước 3 ngày: hoàn tiền đặt cọc. Huỷ sau 3 ngày hoặc khi đang thuê: mất cọc.
+                </p>
+              </div></>
+            )}
 
             {/* Step 2: Contract review */}
             {checkoutStep === 2 && (
@@ -321,10 +268,18 @@ function BookingCheckoutForm() {
                       <span>{deposit.toLocaleString('vi-VN')}</span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
-                    <span style={{ color: '#0f1729' }}>Tổng cộng</span>
-                    <span style={{ color: '#2a7bd9' }}>{subtotal.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
+                </div>
+
+                {/* AI deposit suggestion — shown in Step 1 while listing is loaded */}
+                {checkoutStep === 1 && listingId && (
+                  <div className="mt-3">
+                    <DepositAiBadge listingId={listingId} currentRate={depositRate} />
                   </div>
+                )}
+
+                <div className="flex justify-between border-t pt-2.5 mt-3 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
+                  <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                  <span style={{ color: '#2a7bd9' }}>{subtotal.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
                 </div>
 
                 {checkoutStep === 1 ? (
@@ -346,7 +301,7 @@ function BookingCheckoutForm() {
                   </button>
                 ) : (
                   <button
-                    onClick={handleConfirmAndPay}
+                    onClick={handleSignAndProceed}
                     disabled={step === 'processing' || !contractAgreed}
                     className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: contractAgreed ? '#2a7bd9' : '#94a3b8', boxShadow: contractAgreed ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none' }}
@@ -359,14 +314,14 @@ function BookingCheckoutForm() {
                         </svg>
                         Đang xử lý…
                       </span>
-                    ) : 'Xác nhận & Ký hợp đồng'}
+                    ) : 'Ký hợp đồng & Chọn thanh toán →'}
                   </button>
                 )}
 
                 <p className="mt-2 text-center text-xs" style={{ color: '#8694ad' }}>
                   {checkoutStep === 1
-                    ? 'Giữ chỗ 15 phút sau khi đặt. Provider xác nhận trong 24h.'
-                    : 'Ký điện tử có giá trị pháp lý theo Luật Giao dịch điện tử Việt Nam.'}
+                    ? 'Giữ chỗ 15 phút sau khi đặt. Thanh toán qua PayOS ở bước tiếp theo.'
+                    : 'Ký điện tử có giá trị pháp lý. Bạn sẽ chọn cổng thanh toán ở trang tiếp theo.'}
                 </p>
               </div>
 
