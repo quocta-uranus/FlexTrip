@@ -380,7 +380,7 @@ export interface AdminBookingRow {
   listing: { id: string; title: string; location: string; imageUrls: string[] };
   traveler: { id: string; name: string; email: string; phone: string | null; avatarUrl: string | null };
   assignedStaff: { id: string; name: string; avatarUrl: string | null; staffProfile: { employeeCode: string } | null } | null;
-  payment: { status: string; method: string } | null;
+  payment: { status: string; gateway: string } | null;
   _count: { staffMediations: number };
 }
 export interface AdminBookingDetail extends AdminBookingRow {
@@ -400,7 +400,42 @@ export interface AdminBookingDetail extends AdminBookingRow {
     phone: string | null;
     staffProfile: { employeeCode: string; phone: string | null; regions: string[] } | null;
   }) | null;
-  payment: { id: string; status: string; method: string; amount: number; transactionId: string | null } | null;
+  payment: { id: string; status: string; gateway: string; totalAmount: number; gatewayTransId: string | null } | null;
   contract: { id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null } | null;
   staffMediations: { id: string; status: string; issue: string; resolution: string | null; createdAt: string }[];
+}
+
+export type LedgerStatus = 'PENDING' | 'SETTLED' | 'CANCELLED';
+export interface CommissionRow {
+  id: string;
+  bookingId: string;
+  listingTitle: string | null;
+  travelerName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  gateway: string | null;
+  platformFee: number;
+  staffFee: number;
+  providerNet: number;
+  staffId: string | null;
+  staffName: string | null;
+  status: LedgerStatus;
+  settledAt: string | null;
+  createdAt: string;
+}
+export interface CommissionList extends Paginated<CommissionRow> {
+  summary: { count: number; platformFee: number; staffFee: number; providerNet: number };
+}
+export interface StaffCommissionSummary {
+  staff: { id: string; name: string; email: string } | null;
+  totalEarned: number;
+  bookingCount: number;
+  rows: {
+    bookingId: string;
+    listingTitle: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    staffFee: number;
+    settledAt: string | null;
+  }[];
 }

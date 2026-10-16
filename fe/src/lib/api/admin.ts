@@ -50,6 +50,9 @@ export const adminApi = {
       api.post('/admin/finance/payouts/generate', { periodStart, periodEnd }) as Promise<T.GeneratePayoutsResult>,
     updatePayout: (id: string, body: { status?: T.PayoutStatus; actualPaid?: number; transferRef?: string; note?: string }) =>
       api.patch(`/admin/finance/payouts/${id}`, body) as Promise<T.AdminPayout>,
+    commissions: (q: Q) => api.get(`/admin/finance/commissions${toQuery(q)}`) as Promise<T.CommissionList>,
+    staffCommissions: (staffId: string, q: Q) =>
+      api.get(`/admin/finance/commissions/staff/${staffId}${toQuery(q)}`) as Promise<T.StaffCommissionSummary>,
   },
 
   analytics: {

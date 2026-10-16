@@ -283,10 +283,11 @@ export class CartService {
         await tx.payment.create({
           data: {
             bookingId: booking.id,
-            amount: totalPrice,
+            totalAmount: totalPrice,
+            rentalAmount: totalPrice - depositAmount,
+            depositAmount,
             currency: 'VND',
-            method: dto.paymentMethod,
-            transactionId: dto.transactionRef ?? null,
+            gatewayTransId: dto.transactionRef ?? null,
             status: 'PAID',
           },
         });

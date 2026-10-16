@@ -8,6 +8,7 @@ import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { TrendingUp, Package, Clock, CheckCircle, DollarSign, ArrowRight, Plus, BarChart2, ShoppingBag, Store, MessageCircle } from 'lucide-react';
+import { CashflowForecastCard } from '@/components/payment/CashflowForecastCard';
 
 function StatCard({
   label, value, icon: Icon, sub, accent,
@@ -162,7 +163,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Main Grid ── */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        <div className="mb-8 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
 
           {/* Recent bookings */}
           <SectionCard title="Đơn đặt thuê gần đây" link="/dashboard/bookings" linkLabel="Xem tất cả">
@@ -224,6 +225,9 @@ export default function DashboardPage() {
               </ul>
             )}
           </SectionCard>
+
+          {/* AI Cashflow Forecast */}
+          <CashflowForecastCard />
 
           {/* My listings */}
           <SectionCard title="Sản phẩm của bạn" link="/dashboard/listings" linkLabel="Quản lý">
