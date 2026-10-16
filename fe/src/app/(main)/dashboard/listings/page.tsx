@@ -7,10 +7,14 @@ import {
   usePauseListing, useResumeListing, useBulkUpload,
 } from '@/hooks/useListings';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import type { Listing } from '@/types/listing';
 import {
   Plus, Upload, Eye, Pencil, Trash2, Play, Pause, Send,
-  ChevronRight, MapPin, Tent, Package, CheckCircle2, Loader2,
+  ChevronRight, MapPin, Tent, Package, CheckCircle2, Loader2, AlertTriangle,
 } from 'lucide-react';
 
 // ── Status config ────────────────────────────────────────────────────────────
@@ -47,13 +51,15 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function ActionBtn({
-  onClick, disabled, variant = 'default', icon: Icon, label,
+  onClick, disabled, variant = 'default', icon: Icon, label, blockedReason,
 }: {
   onClick?: () => void;
   disabled?: boolean;
   variant?: 'default' | 'green' | 'amber' | 'red' | 'blue';
   icon: React.ElementType;
   label: string;
+  /** When set the button is disabled and this text is shown as a tooltip */
+  blockedReason?: string;
 }) {
   const styles: Record<string, React.CSSProperties> = {
     default: { borderColor: '#e2e8f0', color: '#64748b' },
@@ -69,6 +75,29 @@ function ActionBtn({
     red:     'hover:bg-red-50',
     blue:    'hover:bg-blue-50',
   };
+  // A disabled button gets no hover events in some browsers, so the tooltip hangs off the wrapper
+  if (blockedReason) {
+    return (
+      <span className="group/tip relative inline-flex">
+        <button
+          type="button"
+          disabled
+          aria-label={`${label}: ${blockedReason}`}
+          className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-lg border opacity-40"
+          style={styles[variant]}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-52 rounded-lg bg-slate-800 px-3 py-2 text-center text-xs leading-snug text-white opacity-0 shadow-lg transition-opacity group-hover/tip:opacity-100"
+        >
+          {blockedReason}
+        </span>
+      </span>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -85,21 +114,72 @@ function ActionBtn({
   );
 }
 
-function ListingCard({ listing }: { listing: Listing }) {
+function DeleteListingDialog({ listing, onClose }: { listing: Listing | null; onClose: () => void }) {
+  const { mutate: del, isPending, error, reset } = useDeleteListing();
+  const { mutate: pause, isPending: pausing } = usePauseListing();
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const hasBookings = (error as { code?: string } | null)?.code === 'LISTING_HAS_BOOKINGS';
+
+  return (
+    <Dialog open={!!listing} onOpenChange={(open) => { if (!open && !isPending) handleClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Xoá sản phẩm?
+          </DialogTitle>
+          <DialogDescription>
+            Bạn sắp xoá vĩnh viễn <strong className="text-slate-800">&ldquo;{listing?.title}&rdquo;</strong>.
+            Ảnh, giá và lịch của sản phẩm sẽ bị xoá và không thể khôi phục.
+          </DialogDescription>
+        </DialogHeader>
+
+        {error && (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error.message}
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isPending || pausing}>Huỷ</Button>
+          {hasBookings && listing?.status === 'ACTIVE' ? (
+            <Button
+              disabled={pausing}
+              onClick={() => pause(listing.id, { onSuccess: handleClose })}
+            >
+              {pausing ? 'Đang xử lý…' : 'Tạm ẩn thay vì xoá'}
+            </Button>
+          ) : !hasBookings && listing ? (
+            <Button
+              variant="destructive"
+              disabled={isPending}
+              onClick={() => del(listing.id, { onSuccess: handleClose })}
+            >
+              {isPending ? 'Đang xoá…' : 'Xoá vĩnh viễn'}
+            </Button>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ListingCard({ listing, onDelete }: { listing: Listing; onDelete: (l: Listing) => void }) {
   const price = Number(listing.price);
   const cfg   = STATUS_CFG[listing.status] ?? STATUS_CFG.DRAFT;
 
-  const { mutate: del,     isPending: deleting   } = useDeleteListing();
   const { mutate: publish, isPending: publishing } = usePublishListing();
   const { mutate: pause,   isPending: pausing    } = usePauseListing();
   const { mutate: resume,  isPending: resuming   } = useResumeListing();
-  const busy = deleting || publishing || pausing || resuming;
+  const busy = publishing || pausing || resuming;
 
   return (
-    <div
-      className="group relative flex items-stretch gap-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.05] transition-all hover:shadow-md hover:-translate-y-0.5"
-      style={{ opacity: deleting ? 0.4 : 1 }}
-    >
+    <div className="group relative flex items-stretch gap-0 rounded-2xl bg-white hover:z-30 shadow-sm ring-1 ring-black/[0.05] transition-all hover:shadow-md hover:-translate-y-0.5">
       {/* Status accent bar */}
       <div className="w-1 shrink-0 rounded-l-2xl" style={{ background: cfg.accent }} />
 
@@ -172,11 +252,16 @@ function ListingCard({ listing }: { listing: Listing }) {
             <Pencil className="h-3.5 w-3.5" />
           </Link>
           <ActionBtn
-            onClick={() => { if (confirm(`Xoá "${listing.title}"?`)) del(listing.id); }}
+            onClick={() => onDelete(listing)}
             disabled={busy}
             variant="red"
             icon={Trash2}
             label="Xoá"
+            blockedReason={
+              listing.status === 'ACTIVE'
+                ? 'Sản phẩm đang cho thuê nên không thể xoá. Hãy tạm ẩn trước.'
+                : undefined
+            }
           />
         </div>
       </div>
@@ -214,6 +299,7 @@ export default function ManageListingsPage() {
   const { mutate: bulkUpload, isPending: uploading, data: uploadResult } = useBulkUpload();
   const fileRef = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<string>('ALL');
+  const [deleteTarget, setDeleteTarget] = useState<Listing | null>(null);
 
   const counts = listings?.reduce((acc, l) => {
     acc[l.status] = (acc[l.status] ?? 0) + 1;
@@ -341,11 +427,13 @@ export default function ManageListingsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
+            {filtered.map((listing) => <ListingCard key={listing.id} listing={listing} onDelete={setDeleteTarget} />)}
           </div>
         )}
 
       </div>
+
+      <DeleteListingDialog listing={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );
 }
