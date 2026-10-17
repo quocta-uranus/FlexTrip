@@ -59,7 +59,7 @@ export class PaymentAiService {
     const genAI = new GoogleGenerativeAI(
       this.config.get<string>('GEMINI_API_KEY', ''),
     );
-    this.gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
   }
 
   // ─── 9.1 Fraud risk scoring ─────────────────────────────────────────────
