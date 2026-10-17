@@ -29,8 +29,10 @@ export function RecommendationRow({ title, subtitle, items, isLoading }: Props) 
             ))
           : items?.map((item) => (
               <div key={item.id} className="flex flex-col gap-2">
-                <ListingCard listing={item} />
-                <p className="flex items-start gap-1.5 px-1 text-xs text-violet-700">
+                <div className="flex-1">
+                  <ListingCard listing={item} />
+                </div>
+                <p className="flex min-h-8 items-start gap-1.5 px-1 text-xs text-violet-700">
                   <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>{item.aiReason}</span>
                 </p>

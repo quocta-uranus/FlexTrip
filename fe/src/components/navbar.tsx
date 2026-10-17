@@ -8,13 +8,12 @@ import { useLogout } from '@/hooks/useAuthMutations';
 import { useCart } from '@/hooks/useCart';
 import { NotificationBell } from '@/components/notification-bell';
 import { PillButton } from '@/components/ui/pill-button';
-import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, MessageSquare, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
+import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
 import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
 const BASE_NAV_LINKS = [
   { href: '/search', label: 'Khám phá', icon: '🔍' },
   { href: '/bookings', label: 'Đặt thuê', icon: '📋' },
-  { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
 
 const PROVIDER_NAV_LINKS = [
@@ -22,13 +21,22 @@ const PROVIDER_NAV_LINKS = [
   { href: '/dashboard/bookings', label: 'Đơn thuê', icon: '📋' },
   { href: '/dashboard/listings', label: 'Sản phẩm', icon: '🏕️' },
   { href: '/dashboard/reviews', label: 'Đánh giá', icon: '⭐' },
-  { href: '/messages', label: 'Tin nhắn', icon: '💬' },
 ];
 
 const STAFF_NAV_LINKS = [
   { href: '/staff', label: 'Lịch vận hành', icon: '🗓️' },
   { href: '/staff#mediations', label: 'Tranh chấp tại chỗ', icon: '⚖️' },
 ];
+
+// Dashboard roots would otherwise stay active on every nested page (/dashboard/listings, /staff/bookings)
+const EXACT_ONLY_HREFS = ['/dashboard', '/staff'];
+
+function isLinkActive(pathname: string, href: string) {
+  if (href.includes('#')) return false;
+  const path = href;
+  if (EXACT_ONLY_HREFS.includes(path)) return pathname === path;
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
 
 function CartIcon() {
   const { data: cart } = useCart();
@@ -96,7 +104,7 @@ export function Navbar() {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-1.5">
           {NAV_LINKS.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = isLinkActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
@@ -155,16 +163,18 @@ export function Navbar() {
                               { href: '/admin', label: 'Bảng điều khiển Admin', icon: <Shield className="h-4 w-4 text-[#68655E]" /> },
                               { href: '/profile', label: 'Hồ sơ & bảo mật', icon: <User className="h-4 w-4 text-[#68655E]" /> },
                             ]
-                          : [
-                              { href: isStaff ? '/staff/complete-profile' : '/profile', label: 'Hồ sơ cá nhân', icon: <User className="h-4 w-4 text-[#68655E]" /> },
-                              { href: '/bookings', label: 'Đặt thuê của tôi', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
-                              { href: '/messages', label: 'Tin nhắn', icon: <MessageSquare className="h-4 w-4 text-[#68655E]" /> },
-                              { href: '/wishlist', label: 'Danh sách yêu thích', icon: <Heart className="h-4 w-4 text-[#68655E]" /> },
-                              { href: '/profile/payments', label: 'Thanh toán & Ví', icon: <CreditCard className="h-4 w-4 text-[#68655E]" /> },
-                            ]),
-                        ...(!isAdmin && isStaff
-                          ? [{ href: '/staff', label: 'Bảng điều phối', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> }]
-                          : []),
+                          : isStaff
+                            ? [
+                                { href: '/staff', label: 'Dashboard', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
+                                { href: '/staff/bookings', label: 'Booking của tôi', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
+                                { href: '/staff/complete-profile', label: 'Hồ sơ cá nhân', icon: <User className="h-4 w-4 text-[#68655E]" /> },
+                              ]
+                            : [
+                                { href: '/profile', label: 'Hồ sơ cá nhân', icon: <User className="h-4 w-4 text-[#68655E]" /> },
+                                { href: '/bookings', label: 'Đặt thuê của tôi', icon: <ClipboardList className="h-4 w-4 text-[#68655E]" /> },
+                                { href: '/wishlist', label: 'Danh sách yêu thích', icon: <Heart className="h-4 w-4 text-[#68655E]" /> },
+                                { href: '/profile/payments', label: 'Thanh toán & Ví', icon: <CreditCard className="h-4 w-4 text-[#68655E]" /> },
+                              ]),
                         ...(!isAdmin && isProvider
                           ? [
                               { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: <Package className="h-4 w-4 text-[#68655E]" /> },
@@ -232,7 +242,7 @@ export function Navbar() {
       {menuOpen && (
         <div className="border-t border-black/6 bg-white px-4 py-3 md:hidden flex flex-col gap-1 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150">
           {NAV_LINKS.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = isLinkActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
