@@ -36,7 +36,7 @@ export const adminApi = {
     setStatus: (id: string, status: 'UNDER_REVIEW' | 'PENDING_INFO' | 'ESCALATED', note?: string) =>
       api.patch(`/admin/disputes/${id}/status`, note ? { status, note } : { status }),
     setPriority: (id: string, priority: T.DisputePriority) => api.patch(`/admin/disputes/${id}/priority`, { priority }),
-    resolve: (id: string, body: { outcome: 'RESOLVED' | 'REJECTED'; resolution: string; refundAmount?: number }) =>
+    resolve: (id: string, body: { outcome: 'RESOLVED' | 'REJECTED'; resolution: string; refundAmount?: number; penaltyAmount?: number }) =>
       api.post(`/admin/disputes/${id}/resolve`, body),
   },
 

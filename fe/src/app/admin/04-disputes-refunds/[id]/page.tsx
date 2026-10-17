@@ -21,13 +21,19 @@ import { resolveDisputeSchema, type ResolveDisputeInput } from '@/lib/validators
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format';
 import type { DisputePriority } from '@/types/admin';
 import { useDisputeAssist } from '@/hooks/usePaymentAi';
+import {
+  BOOKING_STATUS_LABELS,
+  CONTRACT_STATUS_LABELS,
+  DISPUTE_ACTION_LABELS,
+  DISPUTE_FIELD_LABELS,
+  DISPUTE_PRIORITY_LABELS,
+  DISPUTE_STATUS_LABELS,
+  DISPUTE_TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_LABELS,
+  describeDisputeValue,
+} from '@/lib/dispute-labels';
 
-const typeLabels: Record<string, string> = {
-  REFUND_REQUEST: 'Yêu cầu hoàn tiền',
-  PAYMENT_DISPUTE: 'Tranh chấp thanh toán',
-  CANCELLATION_DISPUTE: 'Tranh chấp hủy đơn',
-  DAMAGE_CLAIM: 'Yêu cầu bồi thường',
-};
 
 const statusBadge: Record<string, string> = {
   OPEN: 'bg-red-50 text-red-700',
@@ -67,7 +73,7 @@ export default function DisputeDetailPage() {
   const schema = useMemo(() => resolveDisputeSchema(maxRefund), [maxRefund]);
   const form = useForm<ResolveDisputeInput>({
     resolver: zodResolver(schema),
-    defaultValues: { outcome: 'RESOLVED', resolution: '', refundAmount: undefined },
+    defaultValues: { outcome: 'RESOLVED', resolution: '', refundAmount: undefined, penaltyAmount: undefined },
   });
   const outcome = form.watch('outcome');
   const closed = data?.status === 'RESOLVED' || data?.status === 'REJECTED';
@@ -77,7 +83,7 @@ export default function DisputeDetailPage() {
       { id, status, note },
       {
         onSuccess: () => {
-          toast.success(`Đã chuyển sang ${status.replace(/_/g, ' ')}`);
+          toast.success(`Đã chuyển sang "${DISPUTE_STATUS_LABELS[status]}"`);
           setEscalateOpen(false);
         },
         onError: toast.error,
@@ -118,15 +124,15 @@ export default function DisputeDetailPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold text-slate-900">{data.id}</h1>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge[data.status]}`}>{data.status}</span>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityBadge[data.priority]}`}>{data.priority}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge[data.status]}`}>{DISPUTE_STATUS_LABELS[data.status]}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityBadge[data.priority]}`}>Ưu tiên: {DISPUTE_PRIORITY_LABELS[data.priority]}</span>
             </div>
-            <p className="mt-1 text-sm text-slate-500">{typeLabels[data.type]} · {formatDateTime(data.createdAt)}</p>
+            <p className="mt-1 text-sm text-slate-500">{DISPUTE_TYPE_LABELS[data.type]} · {formatDateTime(data.createdAt)}</p>
             <p className="mt-3 font-medium text-slate-900">{data.reason}</p>
             {data.description && <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{data.description}</p>}
             <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-              <div>Opened by: <span className="font-semibold text-slate-900">{data.openedBy.name}</span></div>
-              <div>Handled by: <span className="font-semibold text-slate-900">{data.handledBy?.name ?? 'Chưa ai nhận'}</span></div>
+              <div>Người mở: <span className="font-semibold text-slate-900">{data.openedBy.name}</span></div>
+              <div>Người xử lý: <span className="font-semibold text-slate-900">{data.handledBy?.name ?? 'Chưa ai nhận'}</span></div>
               <div>Traveler: <span className="font-semibold text-slate-900">{data.traveler.name}</span></div>
               <div>Provider: <span className="font-semibold text-slate-900">{data.provider.shopName ?? data.provider.name}</span></div>
             </div>
@@ -134,33 +140,33 @@ export default function DisputeDetailPage() {
 
           {/* Booking */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Booking</h2>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Đơn thuê</h2>
             <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div><dt className="text-slate-500">ID</dt><dd className="font-medium">{data.booking.id}</dd></div>
-              <div><dt className="text-slate-500">Status</dt><dd className="font-medium">{data.booking.status}</dd></div>
+              <div><dt className="text-slate-500">Mã đơn</dt><dd className="font-medium">{data.booking.id}</dd></div>
+              <div><dt className="text-slate-500">Trạng thái</dt><dd className="font-medium">{BOOKING_STATUS_LABELS[data.booking.status] ?? data.booking.status}</dd></div>
               <div className="sm:col-span-2">
-                <dt className="text-slate-500">Listing</dt>
+                <dt className="text-slate-500">Sản phẩm</dt>
                 <dd className="font-medium">{data.booking.listing.title} · {data.booking.listing.location}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">Dates</dt>
+                <dt className="text-slate-500">Thời gian thuê</dt>
                 <dd className="font-medium">{formatDate(data.booking.startDate)} – {formatDate(data.booking.endDate)}</dd>
               </div>
-              <div><dt className="text-slate-500">Total</dt><dd className="font-medium">{formatVnd(data.booking.totalPrice)}</dd></div>
+              <div><dt className="text-slate-500">Tổng tiền</dt><dd className="font-medium">{formatVnd(data.booking.totalPrice)}</dd></div>
             </dl>
           </div>
 
           {/* Payment */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Payment</h2>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Thanh toán</h2>
             {data.payment ? (
               <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-slate-500">Amount</dt><dd className="font-medium">{formatVnd(data.payment.amount)}</dd></div>
-                <div><dt className="text-slate-500">Platform fee</dt><dd className="font-medium">{formatVnd(data.payment.platformFee)}</dd></div>
+                <div><dt className="text-slate-500">Số tiền đã trả</dt><dd className="font-medium">{formatVnd(data.payment.amount)}</dd></div>
+                <div><dt className="text-slate-500">Phí nền tảng</dt><dd className="font-medium">{formatVnd(data.payment.platformFee)}</dd></div>
                 <div><dt className="text-slate-500">Đã hoàn</dt><dd className="font-medium">{formatVnd(data.payment.refundedAmount ?? 0)}</dd></div>
-                <div><dt className="text-slate-500">Status</dt><dd className="font-medium">{data.payment.status}</dd></div>
-                <div><dt className="text-slate-500">Method</dt><dd className="font-medium">{data.payment.method}</dd></div>
-                <div className="sm:col-span-2"><dt className="text-slate-500">Txn</dt><dd className="font-medium">{data.payment.transactionId ?? '—'}</dd></div>
+                <div><dt className="text-slate-500">Trạng thái</dt><dd className="font-medium">{PAYMENT_STATUS_LABELS[data.payment.status] ?? data.payment.status}</dd></div>
+                <div><dt className="text-slate-500">Phương thức</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[data.payment.method] ?? data.payment.method}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-slate-500">Mã giao dịch</dt><dd className="font-medium">{data.payment.transactionId ?? '—'}</dd></div>
               </dl>
             ) : (
               <p className="text-sm text-slate-500">Chưa có thanh toán</p>
@@ -169,10 +175,10 @@ export default function DisputeDetailPage() {
 
           {/* Contract */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Contract</h2>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Hợp đồng</h2>
             {data.contract ? (
               <div className="space-y-3">
-                <p className="text-sm">Status: <span className="font-medium">{data.contract.status}</span></p>
+                <p className="text-sm">Trạng thái: <span className="font-medium">{CONTRACT_STATUS_LABELS[data.contract.status] ?? data.contract.status}</span></p>
                 <p className="text-sm">
                   Traveler ký: <span className="font-medium">{data.contract.travelerSignedAt ? formatDateTime(data.contract.travelerSignedAt) : 'Chưa ký'}</span>
                 </p>
@@ -203,17 +209,18 @@ export default function DisputeDetailPage() {
 
           {/* History */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">History</h2>
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Lịch sử xử lý</h2>
+            {data.history.length === 0 && <p className="text-sm text-slate-500">Chưa có thao tác nào</p>}
             <ol className="space-y-4 border-l-2 border-slate-100 pl-4">
               {data.history.map((h) => (
                 <li key={h.id} className="relative">
                   <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-blue-500" />
                   <div className="text-xs text-slate-400">{formatDateTime(h.createdAt)} · {h.actor?.name ?? 'Hệ thống'}</div>
-                  <div className="text-sm font-semibold text-slate-900">{h.action}</div>
+                  <div className="text-sm font-semibold text-slate-900">{DISPUTE_ACTION_LABELS[h.action] ?? h.action}</div>
                   {h.after != null && typeof h.after === 'object' ? (
                     <div className="mt-1 space-y-0.5 text-xs text-slate-500">
                       {Object.entries(h.after as Record<string, unknown>).map(([k, v]) => (
-                        <div key={k}>{`${k}: ${String(v)}`}</div>
+                        <div key={k}>{`${DISPUTE_FIELD_LABELS[k] ?? k}: ${describeDisputeValue(k, v)}`}</div>
                       ))}
                     </div>
                   ) : null}
@@ -229,7 +236,7 @@ export default function DisputeDetailPage() {
           <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
             <div className="mb-3 flex items-center gap-2">
               <span className="text-base">🤖</span>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-800">AI Phân tích</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-800">AI phân tích</h2>
             </div>
             {aiLoading ? (
               <div className="space-y-2">
@@ -280,10 +287,13 @@ export default function DisputeDetailPage() {
           {closed ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Kết quả</h2>
-              <p className="text-sm font-semibold text-slate-900">{data.status}</p>
+              <p className="text-sm font-semibold text-slate-900">{DISPUTE_STATUS_LABELS[data.status]}</p>
               <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{data.resolution}</p>
               {data.refundAmount != null && (
-                <p className="mt-2 text-sm">Hoàn: <span className="font-semibold text-red-600">{formatVnd(data.refundAmount)}</span></p>
+                <p className="mt-2 text-sm">Hoàn cho traveler: <span className="font-semibold text-green-600">{formatVnd(data.refundAmount)}</span></p>
+              )}
+              {data.penaltyAmount != null && (
+                <p className="mt-1 text-sm">Phạt traveler, trả provider: <span className="font-semibold text-red-600">{formatVnd(data.penaltyAmount)}</span></p>
               )}
               <p className="mt-2 text-xs text-slate-400">{formatDateTime(data.resolvedAt)}</p>
             </div>
@@ -298,7 +308,7 @@ export default function DisputeDetailPage() {
                     onClick={() => changeStatus('UNDER_REVIEW')}
                     className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Under review
+                    Đang xem xét
                   </button>
                   <button
                     type="button"
@@ -306,7 +316,7 @@ export default function DisputeDetailPage() {
                     onClick={() => changeStatus('PENDING_INFO')}
                     className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
                   >
-                    Pending info
+                    Chờ bổ sung thông tin
                   </button>
                   <button
                     type="button"
@@ -314,11 +324,11 @@ export default function DisputeDetailPage() {
                     onClick={() => setEscalateOpen(true)}
                     className="rounded-xl border border-violet-200 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
                   >
-                    Escalate
+                    Chuyển cấp trên
                   </button>
                 </div>
                 <div className="mt-4">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority">Độ ưu tiên</Label>
                   <select
                     id="priority"
                     value={data.priority}
@@ -332,7 +342,7 @@ export default function DisputeDetailPage() {
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none"
                   >
                     {(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as DisputePriority[]).map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                      <option key={p} value={p}>{DISPUTE_PRIORITY_LABELS[p]}</option>
                     ))}
                   </select>
                 </div>
@@ -355,7 +365,7 @@ export default function DisputeDetailPage() {
                     </label>
                   </div>
                   <div>
-                    <Label htmlFor="resolution">Kết luận</Label>
+                    <Label htmlFor="resolution">Nội dung kết luận</Label>
                     <Textarea id="resolution" rows={4} {...form.register('resolution')} className="mt-1" />
                     {form.formState.errors.resolution && (
                       <p className="mt-1 text-xs text-red-600">{form.formState.errors.resolution.message}</p>
@@ -363,7 +373,7 @@ export default function DisputeDetailPage() {
                   </div>
                   {outcome === 'RESOLVED' && data.payment && (
                     <div>
-                      <Label htmlFor="refundAmount">Số tiền hoàn</Label>
+                      <Label htmlFor="refundAmount">Số tiền hoàn cho traveler (không bắt buộc)</Label>
                       <Input
                         id="refundAmount"
                         type="number"
@@ -371,10 +381,27 @@ export default function DisputeDetailPage() {
                         {...form.register('refundAmount', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })}
                       />
                       <p className="mt-1 text-xs text-slate-500">
-                        Tối đa {formatVnd(data.payment.amount)}. Tiền được hoàn ngay vào ví traveler và booking chuyển sang REFUNDED.
+                        Tối đa {formatVnd(data.payment.amount)}. Tiền được hoàn ngay vào ví traveler. Hoàn toàn bộ thì đơn chuyển sang "Đã hoàn tiền".
                       </p>
                       {form.formState.errors.refundAmount && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.refundAmount.message}</p>
+                      )}
+                    </div>
+                  )}
+                  {outcome === 'RESOLVED' && (
+                    <div>
+                      <Label htmlFor="penaltyAmount">Số tiền phạt traveler, trả cho provider (không bắt buộc)</Label>
+                      <Input
+                        id="penaltyAmount"
+                        type="number"
+                        className="mt-1"
+                        {...form.register('penaltyAmount', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })}
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Dùng khi traveler làm hư hỏng thiết bị. Tiền bị trừ từ ví FlexTrip của traveler (sau khi cộng khoản hoàn nếu có) và cộng vào ví provider. Ví không đủ số dư thì không thể phạt.
+                      </p>
+                      {form.formState.errors.penaltyAmount && (
+                        <p className="mt-1 text-xs text-red-600">{form.formState.errors.penaltyAmount.message}</p>
                       )}
                     </div>
                   )}
@@ -394,8 +421,8 @@ export default function DisputeDetailPage() {
       <ConfirmDialog
         open={escalateOpen}
         onOpenChange={setEscalateOpen}
-        title="Escalate tranh chấp này?"
-        confirmLabel="Escalate"
+        title="Chuyển tranh chấp này lên cấp trên?"
+        confirmLabel="Chuyển cấp trên"
         tone="danger"
         optionalReason
         pending={setStatus.isPending}
@@ -407,7 +434,7 @@ export default function DisputeDetailPage() {
         onOpenChange={(o) => !o && setPendingResolve(null)}
         title={
           pendingResolve?.outcome === 'RESOLVED'
-            ? `Chấp nhận tranh chấp${pendingResolve.refundAmount ? ` · hoàn ${formatVnd(pendingResolve.refundAmount)}` : ''}?`
+            ? `Chấp nhận tranh chấp${pendingResolve.refundAmount ? ` · hoàn ${formatVnd(pendingResolve.refundAmount)} cho traveler` : ''}${pendingResolve.penaltyAmount ? ` · phạt ${formatVnd(pendingResolve.penaltyAmount)} trả provider` : ''}?`
             : 'Từ chối tranh chấp?'
         }
         description={pendingResolve?.resolution}
