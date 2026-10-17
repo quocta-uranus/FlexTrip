@@ -8,15 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAdminDisputes, useDisputeStats } from "@/hooks/admin/use-admin-disputes";
 import { formatDate, formatVnd } from "@/lib/format";
+import { DISPUTE_PRIORITY_LABELS, DISPUTE_STATUS_LABELS, DISPUTE_TYPE_LABELS } from "@/lib/dispute-labels";
 import type { DisputePriority, DisputeStatus, DisputeType } from "@/types/admin";
 
 const statusStyles: Record<string, { label: string; color: string; bg: string }> = {
-  OPEN: { label: "Open", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
-  UNDER_REVIEW: { label: "Under Review", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
-  RESOLVED: { label: "Resolved", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
-  REJECTED: { label: "Rejected", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
-  ESCALATED: { label: "Escalated", color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
-  PENDING_INFO: { label: "Pending Info", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
+  OPEN: { label: DISPUTE_STATUS_LABELS.OPEN, color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
+  UNDER_REVIEW: { label: DISPUTE_STATUS_LABELS.UNDER_REVIEW, color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
+  RESOLVED: { label: DISPUTE_STATUS_LABELS.RESOLVED, color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
+  REJECTED: { label: DISPUTE_STATUS_LABELS.REJECTED, color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
+  ESCALATED: { label: DISPUTE_STATUS_LABELS.ESCALATED, color: "#7c3aed", bg: "rgba(124,58,237,0.1)" },
+  PENDING_INFO: { label: DISPUTE_STATUS_LABELS.PENDING_INFO, color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
 };
 
 const priorityStyles: Record<string, { color: string; bg: string }> = {
@@ -26,12 +27,7 @@ const priorityStyles: Record<string, { color: string; bg: string }> = {
   LOW: { color: "#16a34a", bg: "rgba(34,197,94,0.2)" },
 };
 
-const typeLabels: Record<string, string> = {
-  REFUND_REQUEST: "Yêu cầu hoàn tiền",
-  PAYMENT_DISPUTE: "Tranh chấp thanh toán",
-  CANCELLATION_DISPUTE: "Tranh chấp hủy đơn",
-  DAMAGE_CLAIM: "Yêu cầu bồi thường",
-};
+const typeLabels = DISPUTE_TYPE_LABELS;
 
 const STATUS_TABS: Array<DisputeStatus | "ALL"> = [
   "ALL",
@@ -66,19 +62,19 @@ export default function DisputesRefundsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="HANDLING" tone="red" />
+            <LiveDot label="ĐANG XỬ LÝ" tone="red" />
           </div>
-          <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Disputes & Refunds</h1>
+          <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Tranh chấp & Hoàn tiền</h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Theo dõi toàn bộ case tranh chấp và trạng thái xử lý</p>
         </div>
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-5">
         {[
-          { label: "Open", value: stats?.byStatus.OPEN ?? 0, color: "#dc2626" },
-          { label: "Under Review", value: stats?.byStatus.UNDER_REVIEW ?? 0, color: "#ca8a04" },
-          { label: "Escalated", value: stats?.byStatus.ESCALATED ?? 0, color: "#7c3aed" },
-          { label: "Resolved", value: stats?.byStatus.RESOLVED ?? 0, color: "#16a34a" },
+          { label: DISPUTE_STATUS_LABELS.OPEN, value: stats?.byStatus.OPEN ?? 0, color: "#dc2626" },
+          { label: DISPUTE_STATUS_LABELS.UNDER_REVIEW, value: stats?.byStatus.UNDER_REVIEW ?? 0, color: "#ca8a04" },
+          { label: DISPUTE_STATUS_LABELS.ESCALATED, value: stats?.byStatus.ESCALATED ?? 0, color: "#7c3aed" },
+          { label: DISPUTE_STATUS_LABELS.RESOLVED, value: stats?.byStatus.RESOLVED ?? 0, color: "#16a34a" },
           { label: "Đang tranh chấp", value: formatVnd(stats?.openAmount), color: "#2a7bd9" },
         ].map((stat) => (
           <Reveal key={stat.label}>
@@ -116,10 +112,9 @@ export default function DisputesRefundsPage() {
           className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none"
         >
           <option value="ALL">Tất cả ưu tiên</option>
-          <option value="CRITICAL">CRITICAL</option>
-          <option value="HIGH">HIGH</option>
-          <option value="MEDIUM">MEDIUM</option>
-          <option value="LOW">LOW</option>
+          {Object.entries(DISPUTE_PRIORITY_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
         </select>
       </div>
 
@@ -132,7 +127,7 @@ export default function DisputesRefundsPage() {
             className={`px-4 py-3 text-sm font-semibold transition-all ${status === tab ? "border-b-2 text-[#2a7bd9]" : "text-[#5a6b85] hover:text-[#0f1729]"}`}
             style={{ borderColor: status === tab ? "#2a7bd9" : "transparent" }}
           >
-            {tab.replace(/_/g, " ")}
+            {tab === "ALL" ? "Tất cả" : DISPUTE_STATUS_LABELS[tab]}
             {tab !== "ALL" && stats?.byStatus[tab] != null && (
               <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                 {stats.byStatus[tab]}
@@ -146,13 +141,13 @@ export default function DisputesRefundsPage() {
         <table className="w-full">
           <thead>
             <tr style={{ background: "#f8fafc" }}>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Dispute</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Type</th>
-              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Parties</th>
-              <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Amount</th>
-              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Priority</th>
-              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Status</th>
-              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Tranh chấp</th>
+              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Loại</th>
+              <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Các bên</th>
+              <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Số tiền</th>
+              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Ưu tiên</th>
+              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Trạng thái</th>
+              <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: "#e2e8f3" }}>
@@ -176,7 +171,7 @@ export default function DisputesRefundsPage() {
                 <td className="px-6 py-4">
                   <div className="flex flex-col gap-1">
                     <span className="font-semibold" style={{ color: "#0f1729" }}>{d.id}</span>
-                    <span className="text-xs" style={{ color: "#5a6b85" }}>Booking: {d.bookingId}</span>
+                    <span className="text-xs" style={{ color: "#5a6b85" }}>Đơn thuê: {d.bookingId}</span>
                     <span className="text-[10px]" style={{ color: "#8694ad" }}>📅 {formatDate(d.createdAt)}</span>
                   </div>
                 </td>
@@ -209,7 +204,7 @@ export default function DisputesRefundsPage() {
                     className="rounded-full px-2.5 py-1 text-xs font-semibold"
                     style={{ color: priorityStyles[d.priority].color, background: priorityStyles[d.priority].bg }}
                   >
-                    {d.priority}
+                    {DISPUTE_PRIORITY_LABELS[d.priority]}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -227,7 +222,7 @@ export default function DisputesRefundsPage() {
                       className="rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all hover:bg-[#eff6ff]"
                       style={{ borderColor: "#bfdbfe", color: "#2563eb" }}
                     >
-                      View Details
+                      Xem chi tiết
                     </Link>
                   </div>
                 </td>
