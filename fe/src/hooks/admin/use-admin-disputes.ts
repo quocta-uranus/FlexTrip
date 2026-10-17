@@ -39,7 +39,7 @@ export function useSetDisputePriority() {
 export function useResolveDispute() {
   const invalidate = useInvalidateDisputes();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; outcome: 'RESOLVED' | 'REJECTED'; resolution: string; refundAmount?: number }) =>
+    mutationFn: ({ id, ...body }: { id: string; outcome: 'RESOLVED' | 'REJECTED'; resolution: string; refundAmount?: number; penaltyAmount?: number }) =>
       adminApi.disputes.resolve(id, body),
     onSuccess: invalidate,
   });

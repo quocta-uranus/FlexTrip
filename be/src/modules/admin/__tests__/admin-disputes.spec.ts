@@ -43,6 +43,23 @@ describe('ADMIN-04 disputes', () => {
     expect(res.body.handledBy).not.toBeNull();
   });
 
+  it('resolve with a penalty moves money from the traveler wallet to the provider wallet', async () => {
+    const { api, dispute, booking } = await setup(BookingStatus.DISPUTED);
+    const listing = await h.prisma.listing.findUniqueOrThrow({ where: { id: booking.listingId } });
+
+    const noWallet = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Hư lều', penaltyAmount: 100000 });
+    expect(noWallet.body.code).toBe('INSUFFICIENT_WALLET_BALANCE');
+
+    await h.prisma.wallet.create({ data: { userId: booking.travelerId, availableBalance: 300000 } });
+    const ok = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Hư lều', penaltyAmount: 100000 });
+    expect(ok.status).toBe(201);
+    const traveler = await h.prisma.wallet.findUniqueOrThrow({ where: { userId: booking.travelerId } });
+    const provider = await h.prisma.wallet.findUniqueOrThrow({ where: { userId: listing.providerId } });
+    expect(Number(traveler.availableBalance)).toBe(200000);
+    expect(Number(provider.availableBalance)).toBe(100000);
+    expect((await api.get(`/admin/disputes/${dispute.id}`)).body.penaltyAmount).toBe(100000);
+  });
+
   it('resolve with refund credits the traveler wallet, sets booking REFUNDED and closes the dispute', async () => {
     const { api, dispute, booking } = await setup();
     const bad = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'x', refundAmount: 450001 });

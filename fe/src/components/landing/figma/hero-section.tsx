@@ -114,12 +114,11 @@ export function HeroSection() {
           </div>
 
           {/* ── Bottom: Precision-Aligned Quick Search Bar ── */}
-          <div className="mt-8 sm:mt-10 w-full max-w-[940px]">
+          {/* <div className="mt-8 sm:mt-10 w-full max-w-[940px]">
             <form
               onSubmit={handleSearch}
               className="bg-white/95 backdrop-blur-xl rounded-3xl lg:rounded-full p-2 sm:p-2 pl-3 sm:pl-3.5 pr-2 sm:pr-2.5 border border-slate-200/90 shadow-[0_16px_40px_rgba(10,24,38,0.22)] flex flex-col md:grid md:grid-cols-2 lg:flex lg:flex-row items-stretch lg:items-center gap-2 lg:gap-1 transition-all"
             >
-              {/* 1. Location */}
               <div className="flex-1 flex items-center gap-3 px-3.5 py-2 hover:bg-sky-50/50 rounded-2xl lg:rounded-full transition-colors min-w-0">
                 <div className="h-9 w-9 rounded-full bg-[#EBF7FD] flex items-center justify-center text-[#00A3FF] shrink-0">
                   <MapPin className="h-4 w-4" />
@@ -138,10 +137,8 @@ export function HeroSection() {
                 </div>
               </div>
 
-              {/* Vertical divider 1 */}
               <div className="hidden lg:block w-px h-8 bg-slate-200/90 shrink-0 mx-0.5" />
 
-              {/* 2. Category Select */}
               <div className="flex-1 flex items-center gap-3 px-3.5 py-2 hover:bg-sky-50/50 rounded-2xl lg:rounded-full transition-colors min-w-0">
                 <div className="h-9 w-9 rounded-full bg-[#EBF7FD] flex items-center justify-center text-[#00A3FF] shrink-0">
                   <Tent className="h-4 w-4" />
@@ -165,10 +162,7 @@ export function HeroSection() {
                 </div>
               </div>
 
-              {/* Vertical divider 2 */}
               <div className="hidden lg:block w-px h-8 bg-slate-200/90 shrink-0 mx-0.5" />
-
-              {/* 3. Dates (Snug fitted to prevent dead space) */}
               <div className="shrink-0 flex items-center gap-3 px-3.5 py-2 hover:bg-sky-50/50 rounded-2xl lg:rounded-full transition-colors min-w-0">
                 <div className="h-9 w-9 rounded-full bg-[#EBF7FD] flex items-center justify-center text-[#00A3FF] shrink-0">
                   <Calendar className="h-4 w-4" />
@@ -201,7 +195,6 @@ export function HeroSection() {
                 </div>
               </div>
 
-              {/* 4. Search Submit Button */}
               <div className="shrink-0 flex items-center justify-center pl-1">
                 <button
                   type="submit"
@@ -212,7 +205,7 @@ export function HeroSection() {
                 </button>
               </div>
             </form>
-          </div>
+          </div> */}
         </div>
       </div>
     </section>

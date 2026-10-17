@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { BookingStatus, ContractStatus, DisputeStatus, Prisma } from '@prisma/client';
+import { BookingStatus, ContractStatus, DisputeStatus, Prisma, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { PaymentsService } from '../../payments/payments.service';
@@ -11,6 +11,7 @@ import {
   ListDisputesQueryDto, ResolveDisputeDto, UpdateDisputePriorityDto, UpdateDisputeStatusDto,
 } from './dto/admin-disputes.dto';
 
+const PENALTY_REF_TYPE = 'dispute-penalty';
 const CLOSED: DisputeStatus[] = [DisputeStatus.RESOLVED, DisputeStatus.REJECTED];
 const REFUNDABLE: BookingStatus[] = [
   BookingStatus.PENDING_APPROVAL, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS,
@@ -103,6 +104,11 @@ export class AdminDisputesService {
         contract: { select: { status: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
       },
     });
+    // The penalty has no column of its own, so it is read back from the wallet debit it created
+    const penaltyTx = await this.prisma.walletTransaction.findFirst({
+      where: { refType: PENALTY_REF_TYPE, refId: id, type: WalletTxType.DEBIT },
+      select: { amount: true },
+    });
     const history = await this.prisma.auditLog.findMany({
       where: { entityType: 'Dispute', entityId: id },
       orderBy: { createdAt: 'asc' },
@@ -110,7 +116,7 @@ export class AdminDisputesService {
     });
     return {
       ...toItem(d),
-      description: d.description, resolution: d.resolution,
+      description: d.description, resolution: d.resolution, penaltyAmount: toNumber(penaltyTx?.amount ?? null),
       openedBy: d.openedBy, handledBy: d.handledBy, resolvedAt: d.resolvedAt,
       booking: {
         id: booking.id, status: booking.status, startDate: booking.startDate, endDate: booking.endDate,
@@ -132,7 +138,13 @@ export class AdminDisputesService {
     const d = await tx.dispute.findUnique({
       where: { id },
       include: {
-        booking: { select: { id: true, status: true, checkedInAt: true, checkedOutAt: true, payment: { select: { totalAmount: true } } } },
+        booking: {
+          select: {
+            id: true, status: true, checkedInAt: true, checkedOutAt: true, travelerId: true,
+            listing: { select: { providerId: true } },
+            payment: { select: { totalAmount: true } },
+          },
+        },
       },
     });
     if (!d) throw new NotFoundException({ code: 'DISPUTE_NOT_FOUND', message: 'Không tìm thấy tranh chấp.' });
@@ -171,6 +183,42 @@ export class AdminDisputesService {
     });
   }
 
+  /**
+   * Moves a damage penalty from the traveler's wallet to the provider's. It runs after any refund in the same
+   * transaction, so a refund can fund the penalty. The conditional update keeps the balance from going negative.
+   */
+  private async chargePenalty(tx: Prisma.TransactionClient, disputeId: string, travelerId: string, providerId: string, amount: number) {
+    const debited = await tx.wallet.updateMany({
+      where: { userId: travelerId, availableBalance: { gte: amount } },
+      data: { availableBalance: { decrement: amount } },
+    });
+    if (debited.count === 0)
+      throw new BadRequestException({
+        code: 'INSUFFICIENT_WALLET_BALANCE',
+        message: 'Ví của traveler không đủ số dư để thu khoản phạt này.',
+      });
+
+    const traveler = await tx.wallet.findUniqueOrThrow({ where: { userId: travelerId } });
+    await tx.walletTransaction.create({
+      data: {
+        walletId: traveler.walletId, type: WalletTxType.DEBIT, amount, balanceAfter: traveler.availableBalance,
+        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Phạt bồi thường thiệt hại, tranh chấp ${disputeId}`,
+      },
+    });
+
+    const provider = await tx.wallet.upsert({
+      where: { userId: providerId },
+      create: { userId: providerId, availableBalance: amount },
+      update: { availableBalance: { increment: amount } },
+    });
+    await tx.walletTransaction.create({
+      data: {
+        walletId: provider.walletId, type: WalletTxType.CREDIT, amount, balanceAfter: provider.availableBalance,
+        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Nhận bồi thường thiệt hại, tranh chấp ${disputeId}`,
+      },
+    });
+  }
+
   async resolve(id: string, dto: ResolveDisputeDto, ctx: RequestContext) {
     let completedBookingId: string | null = null;
     const result = await this.prisma.$transaction(async (tx) => {
@@ -187,6 +235,13 @@ export class AdminDisputesService {
         if (!REFUNDABLE.includes(d.booking.status))
           throw new ConflictException({ code: 'BOOKING_NOT_REFUNDABLE', message: `Booking ở trạng thái ${d.booking.status} không thể hoàn tiền.` });
         await this.refunds.refundDispute(tx, d.booking.id, refund, `Hoàn tiền tranh chấp booking ${d.booking.id}`);
+      }
+
+      const penalty = dto.penaltyAmount;
+      if (penalty !== undefined) {
+        if (dto.outcome === 'REJECTED')
+          throw new BadRequestException({ code: 'INVALID_PENALTY_AMOUNT', message: 'Chỉ phạt traveler khi chấp nhận tranh chấp.' });
+        await this.chargePenalty(tx, id, d.booking.travelerId, d.booking.listing.providerId, penalty);
       }
 
       // Money moves now, so a refund goes straight to REFUNDED instead of waiting in REFUNDING.
@@ -222,7 +277,7 @@ export class AdminDisputesService {
         before: { status: d.status, bookingStatus: d.booking.status },
         after: {
           status: updated.status, resolution: updated.resolution, refundAmount: refund ?? null,
-          bookingStatus: nextStatus,
+          penaltyAmount: penalty ?? null, bookingStatus: nextStatus,
         },
       });
       return { id, status: updated.status, refundAmount: toNumber(updated.refundAmount), resolvedAt: updated.resolvedAt };

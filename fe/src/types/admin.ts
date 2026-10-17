@@ -159,6 +159,7 @@ export interface AdminDispute {
 export interface AdminDisputeDetail extends AdminDispute {
   description: string | null;
   resolution: string | null;
+  penaltyAmount: number | null;
   openedBy: Ref;
   handledBy: Ref | null;
   resolvedAt: string | null;

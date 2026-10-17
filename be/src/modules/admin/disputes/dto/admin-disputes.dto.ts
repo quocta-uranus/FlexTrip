@@ -33,4 +33,8 @@ export class ResolveDisputeDto {
   @ApiPropertyOptional({ description: 'VND, chỉ khi outcome = RESOLVED' })
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive()
   refundAmount?: number;
+
+  @ApiPropertyOptional({ description: 'VND trừ từ ví traveler và trả cho provider, chỉ khi outcome = RESOLVED' })
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive()
+  penaltyAmount?: number;
 }
