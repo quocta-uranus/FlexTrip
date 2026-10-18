@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
   InternalServerErrorException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
 import {
@@ -52,8 +53,19 @@ export class ListingsService {
   }
 
   private async ask(prompt: string): Promise<string> {
-    const result = await this.gemini.generateContent(prompt);
-    return result.response.text();
+    // Gemini returns transient 503 (overload) often enough to retry once before failing.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const result = await this.gemini.generateContent(prompt);
+        return result.response.text();
+      } catch (err) {
+        this.logger.warn(`Gemini call failed (attempt ${attempt}): ${String(err)}`);
+        if (attempt >= 2) {
+          throw new ServiceUnavailableException('AI đang quá tải hoặc hết quota, vui lòng thử lại sau');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
   }
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
