@@ -437,7 +437,9 @@ export const paymentMethodApi = {
 
 import type { Listing, SearchFilters, ListingCategory } from '@/types/listing';
 import type { Booking, Cart, CartItem, CreateBookingPayload, ModifyRequest } from '@/types/booking';
-import type { Conversation, Message } from '@/types/message';
+import type {
+  AttachmentInput, Conversation, Message, MessagePage, SendMessageInput, SharedAttachment, SharedKind, SharedLink, SharedPage,
+} from '@/types/message';
 
 export interface ListingPage {
   items: Listing[];
@@ -780,20 +782,35 @@ export const providerApplicationApi = {
 };
 
 export const messageApi = {
-  getConversations: () =>
-    api.get('/messages/conversations') as Promise<Conversation[]>,
+  getConversations: () => api.get('/messages/conversations') as Promise<Conversation[]>,
 
-  getMessages: (conversationId: string) =>
-    api.get(`/messages/conversations/${conversationId}`) as Promise<Message[]>,
+  getConversation: (id: string) => api.get(`/messages/conversations/${id}/info`) as Promise<Conversation>,
 
-  sendMessage: (conversationId: string, content: string) =>
-    api.post(`/messages/conversations/${conversationId}`, { content }) as Promise<Message>,
+  startConversation: (targetUserId: string) =>
+    api.post('/messages/conversations', { targetUserId }) as Promise<Conversation>,
 
-  startConversation: (targetUserId: string, content: string) =>
-    api.post('/messages/conversations', { targetUserId, content }) as Promise<Conversation>,
+  getMessages: (id: string, cursor?: string) =>
+    api.get(`/messages/conversations/${id}${toQuery({ cursor, limit: 30 })}`) as Promise<MessagePage>,
 
-  markRead: (conversationId: string) =>
-    api.post(`/messages/conversations/${conversationId}/read`, {}) as Promise<{ ok: boolean }>,
+  sendMessage: (id: string, body: SendMessageInput) =>
+    api.post(`/messages/conversations/${id}`, body) as Promise<Message>,
+
+  editMessage: (id: string, content: string) => api.patch(`/messages/${id}`, { content }) as Promise<Message>,
+
+  deleteMessage: (id: string) => api.delete(`/messages/${id}`) as Promise<{ ok: boolean }>,
+
+  uploadAttachments: (conversationId: string, files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    return api.upload<AttachmentInput[]>(`/messages/conversations/${conversationId}/attachments`, fd);
+  },
+
+  markRead: (id: string) => api.post(`/messages/conversations/${id}/read`, {}) as Promise<{ ok: boolean }>,
+
+  shared: (id: string, kind: SharedKind, cursor?: string) =>
+    api.get(`/messages/conversations/${id}/shared${toQuery({ kind, cursor, limit: 30 })}`) as Promise<
+      SharedPage<SharedAttachment | SharedLink>
+    >,
 };
 
 // ─── Notifications ──────────────────────────────────────────────────────────
