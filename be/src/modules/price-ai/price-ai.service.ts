@@ -28,7 +28,7 @@ export class PriceAiService {
     const genAI = new GoogleGenerativeAI(
       this.config.get<string>('GEMINI_API_KEY', ''),
     );
-    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
   }
 
   async suggest(dto: PriceSuggestionDto): Promise<PriceSuggestion> {
