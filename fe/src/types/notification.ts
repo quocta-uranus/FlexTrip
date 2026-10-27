@@ -7,6 +7,8 @@ export interface AppNotification {
   body: string;
   isRead: boolean;
   data: Record<string, unknown> | null;
+  // Set by the backend only when the recipient is clearly the traveler or the provider of the related booking.
+  audience?: 'TRAVELER' | 'PROVIDER' | null;
   createdAt: string;
 }
 

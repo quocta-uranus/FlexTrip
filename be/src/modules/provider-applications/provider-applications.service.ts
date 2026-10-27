@@ -37,6 +37,18 @@ export class ProviderApplicationsService {
     return this.prisma.providerApplication.create({ data: dto });
   }
 
+  // Wrapped in an object so the empty case still serializes as JSON.
+  async findMine(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) throw new NotFoundException('Không tìm thấy tài khoản.');
+    const application = await this.prisma.providerApplication.findFirst({
+      where: { email: { equals: user.email, mode: 'insensitive' } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, status: true, adminNote: true, city: true, categories: true, createdAt: true, updatedAt: true },
+    });
+    return { application };
+  }
+
   async list(status?: string) {
     return this.prisma.providerApplication.findMany({
       where: status ? { status: status as ApplicationStatus } : undefined,

@@ -5,7 +5,7 @@ export type ListingStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 // Single source of truth — edit src/constants/categories.ts
 export type { ListingCategory };
-export { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_META, LISTING_CATEGORIES, CATEGORY_VALUES } from '@/constants/categories';
+export { CATEGORY_LABELS, CATEGORY_ICONS, CATEGORY_ICON_MAP, CATEGORY_LUCIDE_ICONS, CATEGORY_META, LISTING_CATEGORIES, CATEGORY_VALUES } from '@/constants/categories';
 
 export interface ListingProvider {
   id: string;

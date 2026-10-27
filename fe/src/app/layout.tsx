@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, Manrope, Plus_Jakarta_Sans, DM_Sans, DM_Serif_Display } from "next/font/google";
+import { Hanken_Grotesk, Manrope, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import { AuthBootstrap } from "@/components/auth-bootstrap";
-import { Navbar } from "@/components/navbar";
+import { SiteHeader } from "@/components/layout/site-header";
 import { AiChatLauncher } from "@/components/ai-chat-launcher";
 import { MarketplaceAccessBoundary } from "@/components/marketplace-access-boundary";
+import { TravelerFooterGate } from "@/components/layout/traveler-footer";
+import { ModeSync } from "@/components/layout/mode-sync";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin", "vietnamese"],
-});
 
 const bodyFont = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -24,17 +21,11 @@ const headingFont = Manrope({
   weight: ["600", "700", "800"],
 });
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal", "italic"],
+// Large editorial headings (Wayfare-style); Clash Grotesk has no Vietnamese glyphs, Hanken Grotesk is the closest one that does.
+const displayFont = Hanken_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -47,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${inter.variable} ${bodyFont.variable} ${headingFont.variable} ${dmSans.variable} ${dmSerif.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${headingFont.variable} ${displayFont.variable} h-full antialiased`}
     >
       <body
         className="has-travel-bg min-h-full flex flex-col bg-[#f1faff] text-slate-900"
@@ -56,8 +47,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative min-h-full flex flex-col">
           <Providers>
             <AuthBootstrap />
-            <Navbar />
+            <ModeSync />
+            <SiteHeader isRoot />
             <MarketplaceAccessBoundary>{children}</MarketplaceAccessBoundary>
+            <TravelerFooterGate />
             <AiChatLauncher />
           </Providers>
         </div>

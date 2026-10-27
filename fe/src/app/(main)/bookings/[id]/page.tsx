@@ -10,6 +10,7 @@ import type { BookingStatus, ModifyRequestStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
 import { ReviewForm } from '@/components/reviews/review-form';
+import { SubmittedReview } from '@/components/reviews/submitted-review';
 import { useMyReviews } from '@/hooks/useReviews';
 import { useContract } from '@/hooks/useContracts';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
@@ -921,31 +922,7 @@ function BookingDetailContent() {
         <ReviewForm bookingId={booking.id} />
       )}
 
-      {!isProvider && currentReview && (
-        <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-          <h2 className="text-sm font-semibold" style={{ color: '#0f1729' }}>Đánh giá của bạn</h2>
-          <p className="mt-2 text-xl" style={{ color: '#f59e0b' }}>{'★'.repeat(currentReview.rating)}{'☆'.repeat(5 - currentReview.rating)}</p>
-          <p className="mt-2 text-sm" style={{ color: '#5a6b85' }}>{currentReview.comment}</p>
-          {currentReview.status === 'PENDING' && (
-            <p className="mt-2 text-xs" style={{ color: '#a16207' }}>AI đang phân tích đánh giá trước khi hiển thị công khai.</p>
-          )}
-          {currentReview.status === 'FLAGGED' && (
-            <p className="mt-2 text-xs" style={{ color: '#a16207' }}>Đánh giá cần Admin kiểm duyệt trước khi có thể công khai.</p>
-          )}
-          {currentReview.status === 'PUBLISHED' && (
-            <p className="mt-2 text-xs" style={{ color: '#15803d' }}>Đánh giá đã được công khai.</p>
-          )}
-          {currentReview.status === 'REJECTED' && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-              <p className="text-sm font-semibold text-red-700">Đánh giá không được công khai</p>
-              <p className="mt-1 text-xs leading-5 text-red-600">
-                Lý do: {currentReview.rejectionReason ?? 'Đánh giá không đáp ứng chính sách nội dung.'}
-              </p>
-              <p className="mt-1 text-xs text-red-500">Đánh giá này chỉ bạn và quản trị viên nhìn thấy.</p>
-            </div>
-          )}
-        </div>
-      )}
+      {!isProvider && currentReview && <SubmittedReview review={currentReview} />}
 
       {/* Modify requests history */}
       {!!modifyRequests?.length && (

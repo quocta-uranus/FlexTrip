@@ -49,7 +49,7 @@ export function LandingHeader() {
     { href: '#featured', label: 'Khám phá' },
     isProvider
       ? { href: '/dashboard', label: 'Dashboard' }
-      : { href: '/register-provider', label: 'Trở thành Provider' },
+      : { href: '/become-provider', label: 'Trở thành Provider' },
   ];
 
   return (
