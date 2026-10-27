@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ListingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  EmbeddableListing, blendScore, contentHash, cosine, embeddingText, weightedMean,
+  EmbeddableListing, SearchTerm, blendScore, contentHash, cosine, embeddingText, isRepeatedSearch, searchAffinity, weightedMean,
 } from './recommendations.math';
 
 const EMBEDDING_MODEL = 'gemini-embedding-001';
@@ -17,6 +17,14 @@ const RELATED_SIMILARITY = 0.6;
 // Measured with gemini-embedding-001: real need-to-item matches score 0.67-0.80, unrelated pairs top out near 0.62
 const NEED_SIMILARITY = 0.66;
 const PER_NEED = 3;
+// Searches older than this say little about what the user wants now
+const SEARCH_WINDOW_MS = 30 * 24 * 3600_000;
+const SEARCH_KEPT = 50;
+const SEARCH_USED = 20;
+// An identical search repeated within this window (typing, paging, re-sorting) counts once
+const SEARCH_DEDUP_MS = 10 * 60_000;
+// Weight of a search match next to the 0.75 similarity term of blendScore
+const SEARCH_WEIGHT = 0.2;
 
 const candidateSelect = {
   id: true, title: true, description: true, category: true, location: true, amenities: true, providerId: true,
@@ -90,13 +98,57 @@ export class RecommendationsService implements OnApplicationBootstrap {
 
   // ─── "Dành cho bạn" ───────────────────────────────────────────────────────
 
+  async recordSearch(userId: string, term: SearchTerm) {
+    const keyword = term.keyword?.trim() || null;
+    const location = term.location?.trim() || null;
+    const category = term.category || null;
+    if (!keyword && !location && !category) return;
+
+    const last = await this.prisma.searchHistory.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
+    const repeated = isRepeatedSearch(last, { keyword, location, category }, SEARCH_DEDUP_MS);
+    if (repeated) return;
+
+    await this.prisma.searchHistory.create({ data: { userId, keyword, location, category } });
+    const stale = await this.prisma.searchHistory.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: SEARCH_KEPT,
+      select: { id: true },
+    });
+    if (stale.length > 0) await this.prisma.searchHistory.deleteMany({ where: { id: { in: stale.map((r) => r.id) } } });
+  }
+
+  private recentSearches(userId: string): Promise<SearchTerm[]> {
+    return this.prisma.searchHistory.findMany({
+      where: { userId, createdAt: { gte: new Date(Date.now() - SEARCH_WINDOW_MS) } },
+      orderBy: { createdAt: 'desc' },
+      take: SEARCH_USED,
+      select: { keyword: true, category: true, location: true },
+    });
+  }
+
   async forYou(userId: string, limit: number): Promise<RecommendationResult> {
-    const signals = await this.collectSignals(userId);
+    const [signals, searches] = await Promise.all([this.collectSignals(userId), this.recentSearches(userId)]);
     const candidates = (await this.loadActive()).filter(
       (c) => c.providerId !== userId && !signals.has(c.id),
     );
 
-    if (signals.size === 0) return this.popular(candidates, limit);
+    if (signals.size === 0 && searches.length === 0) return this.popular(candidates, limit);
+
+    if (signals.size === 0) {
+      // No booking, wish or review yet: the searches alone decide, and listings that match none of them are left out
+      const ranked = candidates
+        .map((c) => ({ c, match: searchAffinity(c, searches) }))
+        .filter((x) => x.match.score > 0)
+        .map(({ c, match }) => ({
+          id: c.id,
+          score: match.score + blendScore({ similarity: 0, sameCategory: false, sameLocation: false, rating: this.rating(c), bookings: c._count.bookings }),
+          reason: this.searchReason(match.term),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+      return ranked.length > 0 ? { source: 'personalized', items: await this.hydrate(ranked) } : this.popular(candidates, limit);
+    }
 
     const signalRows = await this.prisma.listing.findMany({
       where: { id: { in: [...signals.keys()] } },
@@ -113,14 +165,18 @@ export class RecommendationsService implements OnApplicationBootstrap {
     const ranked = candidates
       .map((c) => {
         const vec = c.embedding?.vector ?? [];
-        const score = blendScore({
-          similarity: profile && vec.length ? cosine(profile, vec) : 0,
-          sameCategory: categories.has(c.category),
-          sameLocation: locations.has(c.location),
-          rating: this.rating(c),
-          bookings: c._count.bookings,
-        });
-        return { id: c.id, score, reason: this.reasonFor(c, signalRows, signals) };
+        const match = searchAffinity(c, searches);
+        const score =
+          blendScore({
+            similarity: profile && vec.length ? cosine(profile, vec) : 0,
+            sameCategory: categories.has(c.category),
+            sameLocation: locations.has(c.location),
+            rating: this.rating(c),
+            bookings: c._count.bookings,
+          }) +
+          match.score * SEARCH_WEIGHT;
+        const reason = match.score >= 0.7 ? this.searchReason(match.term) : this.reasonFor(c, signalRows, signals);
+        return { id: c.id, score, reason };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
@@ -236,6 +292,11 @@ export class RecommendationsService implements OnApplicationBootstrap {
     }
     const sameCat = signalRows.find((r) => r.category === candidate.category);
     return sameCat ? `Cùng danh mục với "${sameCat.title}"` : 'Có thể bạn quan tâm';
+  }
+
+  private searchReason(term: SearchTerm | null): string {
+    if (term?.keyword) return `Hợp với tìm kiếm "${term.keyword}"`;
+    return 'Giống thiết bị bạn vừa tìm';
   }
 
   private rating(row: Row): number {

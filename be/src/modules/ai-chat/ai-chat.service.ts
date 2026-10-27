@@ -55,7 +55,7 @@ CÁC MÀN HÌNH THỰC TẾ CỦA FLEXTRIP (đường dẫn chỉ dùng để t�
 - Mọi người dùng: Khám phá (/search); Giỏ hàng (/cart); Thông báo (/notifications); Tin nhắn (/messages); Hồ sơ cá nhân (/profile).
 - Traveler: Đặt thuê hoặc Đơn thuê của tôi (/bookings); Lịch sử chuyến thuê (/profile/history); Thông tin thanh toán (/profile/payments).
 - Provider: Dashboard (/dashboard); Sản phẩm của tôi (/dashboard/listings); Thêm sản phẩm (/dashboard/listings/new); Quản lý đơn thuê (/dashboard/bookings); Cập nhật Shop (/profile/shop); Đánh giá (/dashboard/reviews).
-- Người muốn trở thành Provider: Đăng ký trở thành nhà cung cấp (/register-provider).
+- Người muốn trở thành Provider: Đăng ký trở thành nhà cung cấp (/become-provider).
 - Chỉ hướng dẫn chức năng phù hợp với role trong currentUser. Không hướng dẫn người dùng thường truy cập màn hình Admin hoặc Staff.
 - Viết cho khách hàng phổ thông, không viết như tài liệu cho lập trình viên. Không dùng các từ route, endpoint, ID, URL, pathname và không hiển thị đường dẫn thô như /bookings hoặc ký hiệu <id>.
 - Khi hướng dẫn thao tác, nêu tối đa 4 bước dựa trên tên nút hoặc tên menu khách nhìn thấy. Nếu cần dẫn khách tới màn hình, dùng liên kết có nhãn thân thiện theo đúng dạng [Mở đơn thuê của tôi](/bookings); tuyệt đối không để đường dẫn đứng riêng.
