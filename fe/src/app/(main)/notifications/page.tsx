@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import {
   useDeleteNotification,
@@ -11,13 +10,13 @@ import {
 } from '@/hooks/useNotifications';
 import {
   formatNotificationTime,
-  getNotificationHref,
+  AudienceBadge,
+  useOpenNotification,
   NotificationTypeIcon,
 } from '@/components/notification-bell';
 import type { AppNotification } from '@/types/notification';
 
 export default function NotificationsPage() {
-  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const isProvider = user?.roles.includes('PROVIDER') ?? false;
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -26,9 +25,10 @@ export default function NotificationsPage() {
   const markAllRead = useMarkAllNotificationsRead();
   const removeNotification = useDeleteNotification();
 
+  const openTarget = useOpenNotification(isProvider);
   const openNotification = (notification: AppNotification) => {
     if (!notification.isRead) markRead.mutate(notification.id);
-    router.push(getNotificationHref(notification, isProvider));
+    openTarget(notification);
   };
 
   return (
@@ -99,7 +99,10 @@ export default function NotificationsPage() {
                   {!notification.isRead && <span className="h-2 w-2 rounded-full bg-[#2a7bd9]" />}
                 </div>
                 <p className="mt-1 text-sm leading-6 text-[#5a6b85]">{notification.body}</p>
-                <p className="mt-1 text-xs text-[#8694ad]">{formatNotificationTime(notification.createdAt)}</p>
+                <p className="mt-1 flex items-center gap-2 text-xs text-[#8694ad]">
+                  {formatNotificationTime(notification.createdAt)}
+                  <AudienceBadge audience={notification.audience} />
+                </p>
               </button>
               <button
                 type="button"

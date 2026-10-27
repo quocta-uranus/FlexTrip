@@ -9,10 +9,11 @@ export function useMyBookings(params?: { status?: string; limit?: number }) {
   });
 }
 
-export function useProviderBookings(params?: { status?: string; limit?: number }) {
+export function useProviderBookings(params?: { status?: string; limit?: number }, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['provider-bookings', params],
     queryFn: () => bookingApi.providerBookings(params),
+    enabled: options?.enabled ?? true,
   });
 }
 

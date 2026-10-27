@@ -760,17 +760,15 @@ export function TravelPreferencesSection() {
 
   return (
     <section
+      id="so-thich"
       aria-label="Sở thích du lịch"
-      className="overflow-hidden rounded-2xl border border-white/50 bg-white shadow-lg"
+      className="scroll-mt-28 overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-soft"
     >
       {/* ── Section header matching FlexTrip profile cards ── */}
-      <div className="border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-cyan-50 px-6 py-4">
+      <div className="px-6 pb-1 pt-6 sm:px-7 sm:pt-7">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-              style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}
-            >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-brand-blue">
               <svg
                 className="h-5 w-5"
                 fill="none"
@@ -786,10 +784,10 @@ export function TravelPreferencesSection() {
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold" style={{ color: '#0f1729' }}>
+              <h2 className="font-display text-xl font-medium leading-tight tracking-[-0.02em] text-ink">
                 Sở thích du lịch
               </h2>
-              <p className="text-xs" style={{ color: '#8694ad' }}>
+              <p className="mt-0.5 text-xs text-slate-500">
                 Tùy chọn — gợi ý chuyến đi phù hợp với bạn
               </p>
             </div>
@@ -797,12 +795,7 @@ export function TravelPreferencesSection() {
           {!formMode && (
             <button
               onClick={openNew}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition-all hover:shadow"
-              style={{
-                borderColor: '#2a7bd9',
-                color: '#2a7bd9',
-                background: 'rgba(42,123,217,0.06)',
-              }}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition-colors hover:border-brand/50 hover:text-brand-blue"
             >
               <svg
                 className="h-3.5 w-3.5"

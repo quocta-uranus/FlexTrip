@@ -59,7 +59,7 @@ export function FaqSection() {
   };
 
   return (
-    <section className="py-14 sm:py-18 lg:py-[84px] px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto" id="faq">
+    <section className="py-14 sm:py-18 lg:py-[84px] px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto scroll-mt-24" id="faq">
       {/* ── Wayfare 2-Column FAQ Layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
         {/* ── Left Column: Section Header & AI Chat Launcher Box (4 cols) ── */}
@@ -76,7 +76,7 @@ export function FaqSection() {
               </PillBadge>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold text-[#0A1C2A] tracking-tight leading-[1.14]">
+            <h2 className="text-3xl sm:text-4xl lg:text-[clamp(1.75rem,1.6vw+1rem,2.5rem)] font-extrabold text-[#0A1C2A] tracking-tight leading-[1.14]">
               Mọi điều bạn cần biết,{' '}
               <span className="bg-gradient-to-r from-[#1877F2] via-[#00A3FF] to-[#00D8F6] bg-clip-text text-transparent">
                 rõ ràng và minh bạch.

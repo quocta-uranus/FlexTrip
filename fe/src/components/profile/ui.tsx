@@ -630,30 +630,16 @@ export function Timeline({
   items: { date: string; title: string; subtitle: string; badge?: string }[];
 }) {
   return (
-    <ol className="relative space-y-4 border-l-2 pl-5" style={{ borderColor: "rgba(146,238,232,0.5)" }}>
+    <ol className="relative space-y-5 border-l-2 border-sky-100 pl-6">
       {items.map((it, i) => (
         <li key={i} className="relative">
-          <span
-            className="absolute -left-[27px] flex h-4 w-4 items-center justify-center rounded-full bg-brand-gradient ring-4 ring-white"
-            aria-hidden
-          />
+          <span className="absolute -left-[33px] top-1 h-3.5 w-3.5 rounded-full bg-brand ring-4 ring-white" aria-hidden />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold" style={{ color: BRAND.primary }}>
-              {it.date}
-            </span>
-            {it.badge && (
-              <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                style={{ background: "rgba(42,123,217,0.1)", color: BRAND.primary }}
-              >
-                {it.badge}
-              </span>
-            )}
+            <span className="text-xs font-bold text-brand-blue">{it.date}</span>
+            {it.badge && <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700">{it.badge}</span>}
           </div>
-          <div className="mt-0.5 text-sm font-semibold">{it.title}</div>
-          <div className="text-xs" style={{ color: BRAND.textMuted }}>
-            {it.subtitle}
-          </div>
+          <div className="mt-0.5 text-sm font-semibold text-ink">{it.title}</div>
+          <div className="text-xs text-slate-500">{it.subtitle}</div>
         </li>
       ))}
     </ol>
@@ -769,8 +755,8 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className={`flex flex-col gap-1.5 ${full ? "sm:col-span-2" : ""}`}>
-      <span className="text-xs font-medium" style={{ color: BRAND.textMuted }}>
+    <label className={`flex flex-col gap-1.5 ${full ? 'sm:col-span-2' : ''}`}>
+      <span className="text-xs font-bold text-slate-600">
         {label}
         {required && <span className="ml-0.5 text-red-500">*</span>}
       </span>
@@ -784,7 +770,7 @@ export function Input({
   onChange,
   disabled,
   placeholder,
-  type = "text",
+  type = 'text',
   icon,
 }: {
   value: string;
@@ -796,30 +782,20 @@ export function Input({
 }) {
   return (
     <div className="relative">
-      {icon && (
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
-          style={{ color: BRAND.textSubtle }}
-        >
-          {icon}
-        </div>
-      )}
+      {icon && <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">{icon}</div>}
       <input
         type={type}
         value={value}
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full rounded-lg border bg-white py-2.5 text-sm outline-none transition-all focus:ring-2 ${
-          icon ? "pl-9 pr-4" : "px-4"
+        className={`h-11 w-full rounded-2xl border bg-white text-sm font-medium outline-none transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20 ${
+          icon ? 'pl-10 pr-4' : 'px-4'
         } ${
           disabled
-            ? "cursor-default bg-[var(--surface-muted)] text-text-muted"
-            : "border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] hover:shadow-sm focus:border-[#2a7bd9]"
+            ? 'cursor-default border-slate-100 bg-slate-50 text-slate-600'
+            : 'border-slate-200 text-ink hover:border-brand/60'
         }`}
-        style={{ borderColor: disabled ? BRAND.border : "rgba(42,123,217,0.4)" }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = BRAND.primary)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = disabled ? BRAND.border : "rgba(42,123,217,0.4)")}
       />
     </div>
   );
@@ -841,12 +817,9 @@ export function Select({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      className={`w-full appearance-none rounded-lg border bg-white px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 ${
-        disabled
-          ? "cursor-default bg-[var(--surface-muted)] text-text-muted"
-          : "border-[#2a7bd9]/40 bg-[rgba(146,238,232,0.08)] text-[#0f1729] hover:border-[#2a7bd9] focus:border-[#2a7bd9]"
+      className={`h-11 w-full rounded-2xl border bg-white px-4 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20 ${
+        disabled ? 'cursor-default appearance-none border-slate-100 bg-slate-50 text-slate-600' : 'border-slate-200 text-ink hover:border-brand/60'
       }`}
-      style={{ borderColor: disabled ? BRAND.border : "rgba(42,123,217,0.4)" }}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -871,66 +844,48 @@ export function ToggleRow({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className="flex items-start justify-between gap-4 border-t py-3 first:border-t-0 first:pt-0"
-      style={{ borderColor: BRAND.border }}
-    >
+    <div className="flex items-center justify-between gap-4 border-t border-slate-100 py-4 first:border-t-0 first:pt-0 last:pb-0">
       <div>
-        <div className="text-sm font-semibold">{label}</div>
-        <div className="text-xs" style={{ color: BRAND.textMuted }}>
-          {desc}
-        </div>
+        <div className="text-sm font-semibold text-ink">{label}</div>
+        <div className="mt-0.5 text-xs text-slate-500">{desc}</div>
       </div>
       <button
         type="button"
         onClick={() => !disabled && onChange(!value)}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-all ${
-          disabled ? "cursor-default opacity-70" : "cursor-pointer hover:scale-105 active:scale-95"
-        }`}
-        style={{ background: value ? BRAND.primary : BRAND.border }}
         aria-pressed={value}
+        aria-label={label}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${value ? 'bg-brand' : 'bg-slate-300'} ${
+          disabled ? 'cursor-default opacity-60' : 'cursor-pointer'
+        }`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-            value ? "left-[22px]" : "left-0.5"
-          }`}
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${value ? 'left-[22px]' : 'left-0.5'}`}
         />
       </button>
     </div>
   );
 }
 
-export function VerifyItem({ label, done }: { label: string; done?: boolean }) {
+export function VerifyItem({ label, done, note }: { label: string; done?: boolean; note?: string }) {
   return (
-    <div
-      className="flex items-center justify-between border-t py-3 first:border-t-0 first:pt-0"
-      style={{ borderColor: BRAND.border }}
-    >
+    <div className="flex items-center justify-between gap-3 border-t border-slate-100 py-3 first:border-t-0 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        <div
-          className="flex h-7 w-7 items-center justify-center rounded-full"
-          style={
-            done
-              ? { background: "rgba(146,238,232,0.5)", color: BRAND.primaryDark }
-              : { background: BRAND.surfaceMuted, color: BRAND.textSubtle }
-          }
+        <span
+          className={`flex h-7 w-7 items-center justify-center rounded-full ${done ? 'bg-brand text-white' : 'bg-slate-100 text-slate-400'}`}
         >
           {done ? (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           ) : (
-            <span className="text-xs">○</span>
+            <span className="h-2 w-2 rounded-full bg-slate-300" />
           )}
-        </div>
-        <span className="text-sm font-medium">{label}</span>
+        </span>
+        <span className="text-sm font-semibold text-ink">{label}</span>
       </div>
-      <button
-        className={`text-xs font-semibold hover:underline`}
-        style={{ color: done ? BRAND.textSubtle : BRAND.primary }}
-      >
-        {done ? "Xem" : "Xác minh ngay →"}
-      </button>
+      <span className={`text-xs font-semibold ${done ? 'text-green-600' : 'text-slate-400'}`}>
+        {note ?? (done ? 'Đã xác minh' : 'Chưa xác minh')}
+      </span>
     </div>
   );
 }
@@ -940,34 +895,37 @@ export function SecurityItem({
   title,
   desc,
   action,
+  onAction,
+  href,
 }: {
   icon: ReactNode;
   title: string;
   desc: string;
-  action: string;
+  action?: string;
+  onAction?: () => void;
+  href?: string;
 }) {
+  const buttonClass =
+    'shrink-0 rounded-full border border-slate-200 px-4 py-1.5 text-xs font-bold text-brand-blue transition-colors hover:border-brand/50 hover:bg-sky-50';
   return (
-    <div
-      className="flex items-center justify-between gap-3 border-t py-3 first:border-t-0 first:pt-0"
-      style={{ borderColor: BRAND.border }}
-    >
+    <div className="flex items-center justify-between gap-3 border-t border-slate-100 py-4 first:border-t-0 first:pt-0">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5" style={{ color: BRAND.primary }}>
-          {icon}
-        </div>
+        <span className="mt-0.5 text-brand-blue">{icon}</span>
         <div>
-          <div className="text-sm font-semibold">{title}</div>
-          <div className="text-xs" style={{ color: BRAND.textMuted }}>
-            {desc}
-          </div>
+          <div className="text-sm font-semibold text-ink">{title}</div>
+          <div className="mt-0.5 text-xs text-slate-500">{desc}</div>
         </div>
       </div>
-      <button
-        className="rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:bg-[var(--surface-muted)]"
-        style={{ borderColor: BRAND.border, color: BRAND.primary }}
-      >
-        {action}
-      </button>
+      {action && href && (
+        <a href={href} className={buttonClass}>
+          {action}
+        </a>
+      )}
+      {action && !href && onAction && (
+        <button type="button" onClick={onAction} className={buttonClass}>
+          {action}
+        </button>
+      )}
     </div>
   );
 }
