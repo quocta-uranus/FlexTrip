@@ -32,14 +32,21 @@ import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
 import { AdminCommissionsController } from './finance/admin-commissions.controller';
 import { AdminCommissionsService } from './finance/admin-commissions.service';
+import { BullModule } from '@nestjs/bullmq';
 import { SupportModule } from '../support/support.module';
 import { AdminTicketsController } from './support/admin-tickets.controller';
 import { AdminTicketsService } from './support/admin-tickets.service';
 import { AdminFaqsController } from './support/admin-faqs.controller';
 import { AdminFaqsService } from './support/admin-faqs.service';
+import { AdminReportsController } from './reports/admin-reports.controller';
+import { AdminReportsService } from './reports/admin-reports.service';
+import { AdminReportSchedulesService } from './reports/admin-report-schedules.service';
+import { ReportScheduleProcessor } from './reports/report-schedule.processor';
+import { ReportsService } from './reports/reports.service';
+import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
 
 @Module({
-  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule],
+  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -56,6 +63,7 @@ import { AdminFaqsService } from './support/admin-faqs.service';
     AdminCommissionsController,
     AdminTicketsController,
     AdminFaqsController,
+    AdminReportsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -77,6 +85,10 @@ import { AdminFaqsService } from './support/admin-faqs.service';
     AdminCommissionsService,
     AdminTicketsService,
     AdminFaqsService,
+    ReportsService,
+    AdminReportsService,
+    AdminReportSchedulesService,
+    ReportScheduleProcessor,
   ],
 })
 export class AdminModule {}
