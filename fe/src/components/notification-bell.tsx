@@ -23,6 +23,7 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
   const data = notification.data ?? {};
   const bookingId = typeof data.bookingId === 'string' ? data.bookingId : null;
   const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
+  const ticketId = typeof data.ticketId === 'string' ? data.ticketId : null;
 
   if (notification.type === 'BOOKING') {
     return isProvider ? '/dashboard/bookings' : bookingId ? `/bookings/${bookingId}` : '/bookings';
@@ -31,6 +32,7 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
     return conversationId ? `/messages?conversation=${conversationId}` : '/messages';
   }
   if (notification.type === 'PAYMENT') return '/profile/payments';
+  if (ticketId) return `/support/${ticketId}`;
   if (notification.type === 'REVIEW') return isProvider ? '/profile/shop' : '/profile';
   return '/profile';
 }
