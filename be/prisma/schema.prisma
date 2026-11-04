@@ -329,7 +329,13 @@ model User {
   reviewsReceived     Review[]               @relation("ReviewsReceived")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
-  wishlistItems      Wishlist[]
+  wishlistItems       Wishlist[]
+
+  // support & reports
+  supportTickets  SupportTicket[]        @relation("TicketRequester")
+  assignedTickets SupportTicket[]        @relation("TicketAssignee")
+  ticketMessages  SupportTicketMessage[] @relation("TicketMessageAuthor")
+  reportSchedules ReportSchedule[]       @relation("ReportScheduleCreator")
 
   // admin
   staffProfile     StaffProfile?
@@ -465,11 +471,11 @@ model Listing {
 
   // CONTR-02: điều khoản hợp đồng
   penaltyRules  Json?
-  conditionNote String?  @db.Text
+  conditionNote String? @db.Text
 
   // CONTR-05: giá trị cao
-  marketValue   Decimal? @db.Decimal(12, 2)
-  isHighValue   Boolean  @default(false)
+  marketValue Decimal? @db.Decimal(12, 2)
+  isHighValue Boolean  @default(false)
 
   provider      User                  @relation(fields: [providerId], references: [id])
   bookings      Booking[]
@@ -561,7 +567,8 @@ model Booking {
   disputes        Dispute[]
   modifyRequests  BookingModifyRequest[]
   staffMediations StaffMediation[]
-  review           Review?
+  review          Review?
+  supportTickets  SupportTicket[]
 
   @@index([travelerId])
   @@index([listingId])
@@ -659,16 +666,16 @@ model Payment {
   gatewayResponse  Json?
 
   // Phần tiền thuê trả sau khi provider duyệt; gateway/gatewayOrderCode ở trên chỉ là của lần trả cọc
-  rentalPaidAt      DateTime?
-  rentalGateway     PaymentGateway?
-  rentalOrderCode   String?
-  rentalTransId     String?         @unique
+  rentalPaidAt    DateTime?
+  rentalGateway   PaymentGateway?
+  rentalOrderCode String?
+  rentalTransId   String?         @unique
 
-  bookingId        String         @unique
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  bookingId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  booking          Booking            @relation(fields: [bookingId], references: [id])
+  booking          Booking             @relation(fields: [bookingId], references: [id])
   commissionLedger CommissionLedger?
   refundRecords    RefundRecord[]
   webhookLogs      PaymentWebhookLog[]
@@ -821,14 +828,14 @@ model Review {
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 model TravelPreference {
-  id        String   @id @default(cuid())
-  userId    String
-  tripType  String
-  budgetMin Decimal? @db.Decimal(10, 2)
-  budgetMax Decimal? @db.Decimal(10, 2)
+  id                  String   @id @default(cuid())
+  userId              String
+  tripType            String
+  budgetMin           Decimal? @db.Decimal(10, 2)
+  budgetMax           Decimal? @db.Decimal(10, 2)
   preferredCategories String[] @default([])
-  budgetScope String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetScope         String?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -1260,4 +1267,120 @@ model TopupRecord {
   wallet Wallet @relation(fields: [walletId], references: [walletId])
 
   @@index([walletId])
+}
+
+// ─── Support & Reports ───────────────────────────────────────────────────────
+
+enum TicketCategory {
+  BOOKING
+  PAYMENT
+  ACCOUNT
+  LISTING
+  TECHNICAL
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketTriageSource {
+  PENDING
+  AI
+  RULES
+  ADMIN
+}
+
+enum ReportType {
+  REVENUE
+  BOOKINGS
+  COMMISSION
+}
+
+enum ReportFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+model SupportTicket {
+  id           String             @id @default(cuid())
+  requesterId  String
+  bookingId    String?
+  subject      String
+  description  String             @db.Text
+  category     TicketCategory     @default(OTHER)
+  priority     TicketPriority     @default(MEDIUM)
+  status       TicketStatus       @default(OPEN)
+  triageSource TicketTriageSource @default(PENDING)
+  triageReason String?
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  requester  User                   @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignedTo User?                  @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  booking    Booking?               @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  messages   SupportTicketMessage[]
+
+  @@index([requesterId, createdAt])
+  @@index([status, priority, createdAt])
+  @@index([category, createdAt])
+}
+
+model SupportTicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  isStaff   Boolean  @default(false)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User          @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+model FaqArticle {
+  id          String         @id @default(cuid())
+  question    String
+  answer      String         @db.Text
+  category    TicketCategory @default(OTHER)
+  isPublished Boolean        @default(true)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([isPublished, category, sortOrder])
+}
+
+model ReportSchedule {
+  id          String          @id @default(cuid())
+  name        String
+  type        ReportType
+  frequency   ReportFrequency
+  recipients  String[]
+  isActive    Boolean         @default(true)
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+  lastError   String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  createdBy User? @relation("ReportScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, nextRunAt])
 }
