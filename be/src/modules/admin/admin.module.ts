@@ -32,9 +32,14 @@ import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
 import { AdminCommissionsController } from './finance/admin-commissions.controller';
 import { AdminCommissionsService } from './finance/admin-commissions.service';
+import { SupportModule } from '../support/support.module';
+import { AdminTicketsController } from './support/admin-tickets.controller';
+import { AdminTicketsService } from './support/admin-tickets.service';
+import { AdminFaqsController } from './support/admin-faqs.controller';
+import { AdminFaqsService } from './support/admin-faqs.service';
 
 @Module({
-  imports: [AuthModule, ReviewsModule, PaymentsModule],
+  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -49,6 +54,8 @@ import { AdminCommissionsService } from './finance/admin-commissions.service';
     AdminReviewsController,
     AdminBookingsController,
     AdminCommissionsController,
+    AdminTicketsController,
+    AdminFaqsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -68,6 +75,8 @@ import { AdminCommissionsService } from './finance/admin-commissions.service';
     AdminReviewsService,
     AdminBookingsService,
     AdminCommissionsService,
+    AdminTicketsService,
+    AdminFaqsService,
   ],
 })
 export class AdminModule {}
