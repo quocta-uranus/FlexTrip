@@ -43,11 +43,11 @@ describe('renting your own listing is rejected with OWN_LISTING', () => {
   });
 
   it('when adding to the cart', async () => {
-    await expect(new CartService(prisma, availability).addItem(OWNER, dto as never)).rejects.toMatchObject(expected);
+    await expect(new CartService(prisma, availability, {} as never).addItem(OWNER, dto as never)).rejects.toMatchObject(expected);
   });
 
   it('when checking out a cart that holds it', async () => {
-    await expect(new CartService(prisma, availability).checkout(OWNER, {} as never)).rejects.toMatchObject(expected);
+    await expect(new CartService(prisma, availability, {} as never).checkout(OWNER, {} as never)).rejects.toMatchObject(expected);
   });
 
   it('does not block renting another provider listing', async () => {

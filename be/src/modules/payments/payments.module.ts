@@ -11,6 +11,9 @@ import { PaymentProcessor } from './payment.processor';
 import { PayOsGateway } from './gateways/payos.gateway';
 import { PaymentAiService } from '../payment-ai/payment-ai.service';
 import { EscrowService } from './escrow.service';
+import { VouchersModule } from '../vouchers/vouchers.module';
+import { LoyaltyModule } from '../loyalty/loyalty.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 import { PAYMENT_QUEUE } from './constants';
 import { BOOKING_QUEUE } from '../booking/booking.constants';
 
@@ -18,6 +21,9 @@ import { BOOKING_QUEUE } from '../booking/booking.constants';
   imports: [
     ConfigModule,
     AuthModule,
+    VouchersModule,
+    LoyaltyModule,
+    ReferralsModule,
     BullModule.registerQueue({ name: PAYMENT_QUEUE }),
     BullModule.registerQueue({ name: BOOKING_QUEUE }),
   ],

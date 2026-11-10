@@ -5,6 +5,8 @@ import { BookingStatus, DeliveryMethod, NotificationType, Prisma } from '@prisma
 import { PrismaService } from '../../prisma/prisma.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { AddCartItemDto, CheckoutDto, UpdateCartItemDto } from './dto/cart.dto';
+import { VouchersService } from '../vouchers/vouchers.service';
+import { priceBooking, rentalDaysBetween } from '../booking/booking-price.util';
 
 const HOLD_MINUTES = 15;
 
@@ -24,6 +26,7 @@ export class CartService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availabilitySvc: AvailabilityService,
+    private readonly vouchersSvc: VouchersService,
   ) {}
 
   // ─── GET cart (lazy-cleanup expired items) ────────────────────────────────
@@ -191,7 +194,7 @@ export class CartService {
             listing: {
               select: {
                 id: true, title: true, status: true, price: true,
-                providerId: true, quantity: true, depositRate: true,
+                providerId: true, quantity: true, depositRate: true, category: true,
               },
             },
           },
@@ -203,6 +206,15 @@ export class CartService {
       throw new BadRequestException('Giỏ hàng trống');
 
     const now = new Date();
+
+    const voucherByItem = new Map<string, string>();
+    for (const v of dto.vouchers ?? []) {
+      if (!cart.items.some((i) => i.id === v.cartItemId))
+        throw new BadRequestException('Mã giảm giá gắn với sản phẩm không có trong giỏ');
+      if (voucherByItem.has(v.cartItemId))
+        throw new BadRequestException('Mỗi sản phẩm chỉ áp dụng được một mã giảm giá');
+      voucherByItem.set(v.cartItemId, v.code);
+    }
 
     // 1. Kiểm tra hold còn hợp lệ
     const expiredItems = cart.items.filter(
@@ -256,13 +268,16 @@ export class CartService {
       }>[] = [];
 
       for (const item of cart.items) {
-        const rentalDays =
-          Math.round(
-            (new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) / 86_400_000,
-          ) + 1;
+        const rentalDays = rentalDaysBetween(item.startDate, item.endDate);
         const unitPrice = item.listing.price.toNumber();
-        const totalPrice = unitPrice * item.quantity * rentalDays;
-        const depositAmount = totalPrice * item.listing.depositRate.toNumber();
+        const { totalPrice, depositAmount } = priceBooking({
+          unitPrice, quantity: item.quantity, rentalDays, depositRate: item.listing.depositRate.toNumber(),
+        });
+        const voucherCode = voucherByItem.get(item.id);
+        const quote = voucherCode
+          ? await this.vouchersSvc.quote(travelerId, voucherCode, { totalPrice, depositAmount, category: item.listing.category }, tx)
+          : null;
+        const discountAmount = quote?.discountAmount ?? 0;
 
         const booking = await tx.booking.create({
           data: {
@@ -273,6 +288,7 @@ export class CartService {
             quantity: item.quantity,
             totalPrice,
             depositAmount,
+            discountAmount,
             deliveryMethod: item.deliveryMethod,
             deliveryAddress: item.deliveryAddress,
             status: BookingStatus.PENDING_APPROVAL,
@@ -287,13 +303,16 @@ export class CartService {
           data: {
             bookingId: booking.id,
             totalAmount: totalPrice,
-            rentalAmount: totalPrice - depositAmount,
+            rentalAmount: totalPrice - depositAmount - discountAmount,
             depositAmount,
+            discountAmount,
             currency: 'VND',
             gatewayTransId: dto.transactionRef ?? null,
             status: 'PAID',
           },
         });
+
+        if (quote) await this.vouchersSvc.reserve(tx, booking.id, travelerId, quote);
 
         created.push(booking);
       }
