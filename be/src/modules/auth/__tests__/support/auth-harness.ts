@@ -20,6 +20,10 @@ import {
 import { ReviewModerationProcessor } from '../../../reviews/review-moderation.processor';
 import { BOOKING_QUEUE } from '../../../booking/booking.constants';
 import { BookingProcessor } from '../../../booking/booking.processor';
+import { SUPPORT_TRIAGE_QUEUE } from '../../../support/support.constants';
+import { SupportTriageProcessor } from '../../../support/support-triage.processor';
+import { REPORT_SCHEDULE_QUEUE } from '../../../admin/reports/report-schedule.constants';
+import { ReportScheduleProcessor } from '../../../admin/reports/report-schedule.processor';
 
 export const password = 'Valid password 123!';
 
@@ -99,6 +103,8 @@ export class AuthHarness {
     remove: jest.fn(),
     getJob: jest.fn(),
   };
+  supportQueue = { add: jest.fn() };
+  reportQueue = { upsertJobScheduler: jest.fn() };
   reviewAnalyzer = {
     analyze:
       jest.fn<
@@ -118,6 +124,8 @@ export class AuthHarness {
       jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
     sendProviderApproved:
       jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+    sendReport:
+      jest.fn<(to: string[], subject: string, summary: string, file: { filename: string; content: Buffer }) => Promise<boolean>>(),
   };
 
   otp = {
@@ -149,6 +157,7 @@ export class AuthHarness {
     this.resend.sendPasswordReset.mockResolvedValue(true);
     this.resend.sendStaffInvite.mockResolvedValue(true);
     this.resend.sendProviderApproved.mockResolvedValue(true);
+    this.resend.sendReport.mockResolvedValue(true);
     this.otp.generate.mockResolvedValue('123456');
     this.otp.verify.mockResolvedValue(true);
     this.otp.canResend.mockResolvedValue(true);
@@ -177,6 +186,14 @@ export class AuthHarness {
       .overrideProvider(getQueueToken(BOOKING_QUEUE))
       .useValue(this.bookingQueue)
       .overrideProvider(BookingProcessor)
+      .useValue({ process: jest.fn() })
+      .overrideProvider(getQueueToken(SUPPORT_TRIAGE_QUEUE))
+      .useValue(this.supportQueue)
+      .overrideProvider(SupportTriageProcessor)
+      .useValue({ process: jest.fn() })
+      .overrideProvider(getQueueToken(REPORT_SCHEDULE_QUEUE))
+      .useValue(this.reportQueue)
+      .overrideProvider(ReportScheduleProcessor)
       .useValue({ process: jest.fn() });
     const module = await configure(builder).compile();
 

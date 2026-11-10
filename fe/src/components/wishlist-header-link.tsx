@@ -5,19 +5,20 @@ import { Heart } from 'lucide-react';
 import { useWishlistIds } from '@/hooks/useWishlist';
 import { useAuthStore } from '@/store/auth.store';
 
-export function WishlistHeaderLink({ variant = 'default' }: { variant?: 'default' | 'landing' }) {
+export function WishlistHeaderLink({ variant = 'default' }: { variant?: 'default' | 'landing' | 'overlay' }) {
   const user = useAuthStore((state) => state.user);
   const { ids } = useWishlistIds();
   const isBlocked = user?.roles.includes('ADMIN') || user?.roles.includes('STAFF');
   if (isBlocked) return null;
 
   const count = new Set(ids).size;
-  const color = variant === 'landing' ? 'text-[#161513]' : 'text-[#68655E]';
+  const color =
+    variant === 'landing' ? 'text-[#161513]' : variant === 'overlay' ? 'text-white' : 'text-[#68655E]';
 
   return (
     <Link
       href="/wishlist"
-      className={`relative flex h-9 w-9 items-center justify-center rounded-full ${color} hover:bg-black/5 hover:text-rose-500`}
+      className={`relative flex h-9 w-9 items-center justify-center rounded-full ${color} ${variant === 'overlay' ? 'hover:bg-white/10' : 'hover:bg-black/5 hover:text-rose-500'}`}
       title="Danh sách yêu thích"
       aria-label={`Danh sách yêu thích${count ? `, ${count} thiết bị` : ''}`}
     >

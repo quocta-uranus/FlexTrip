@@ -1,14 +1,19 @@
 import { api, toQuery } from '@/lib/api/client';
 import type { StaffBookingPage, StaffMediation, StaffMediationStatus, StaffTaskSchedule } from '@/types/staff';
 
+export interface InspectionItem {
+  label: string;
+  ok: boolean;
+}
+
 export const staffApi = {
   tasks: (date: string) => api.get(`/staff/tasks${toQuery({ date })}`) as Promise<StaffTaskSchedule>,
   myBookings: (params: { status?: string; page?: number; limit?: number }) =>
     api.get(`/staff/bookings${toQuery(params)}`) as Promise<StaffBookingPage>,
   booking: (id: string) => api.get(`/staff/bookings/${id}`),
-  confirmHandover: (id: string, body: { photoUrl: string; conditionNote: string }) =>
+  confirmHandover: (id: string, body: { photoUrl: string; conditionNote: string; checklist?: InspectionItem[] }) =>
     api.post(`/staff/bookings/${id}/handover`, body),
-  confirmReturn: (id: string, body: { photoUrl: string; conditionNote: string }) =>
+  confirmReturn: (id: string, body: { photoUrl: string; conditionNote: string; checklist?: InspectionItem[] }) =>
     api.post(`/staff/bookings/${id}/return`, body),
   mediations: (status?: StaffMediationStatus) =>
     api.get(`/staff/mediations${toQuery({ status })}`) as Promise<StaffMediation[]>,

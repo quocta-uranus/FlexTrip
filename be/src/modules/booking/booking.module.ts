@@ -6,6 +6,7 @@ import { BookingProcessor } from './booking.processor';
 import { AuthModule } from '../auth/auth.module';
 import { AvailabilityModule } from '../availability/availability.module';
 import { ContractsModule } from '../contracts/contracts.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { BOOKING_QUEUE } from './booking.constants';
 
 @Module({
@@ -13,6 +14,7 @@ import { BOOKING_QUEUE } from './booking.constants';
     AuthModule,
     AvailabilityModule,
     ContractsModule,
+    PaymentsModule,
     BullModule.registerQueue({ name: BOOKING_QUEUE }),
   ],
   controllers: [BookingController],

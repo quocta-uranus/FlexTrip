@@ -7,7 +7,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
-import { TrendingUp, Package, Clock, CheckCircle, DollarSign, ArrowRight, Plus, BarChart2, ShoppingBag, Store, MessageCircle } from 'lucide-react';
+import { TrendingUp, Package, Clock, CheckCircle, DollarSign, ArrowRight, Plus, BarChart2, ShoppingBag, Store } from 'lucide-react';
+import { CashflowForecastCard } from '@/components/payment/CashflowForecastCard';
 
 function StatCard({
   label, value, icon: Icon, sub, accent,
@@ -162,7 +163,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Main Grid ── */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
+        <div className="mb-8 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
 
           {/* Recent bookings */}
           <SectionCard title="Đơn đặt thuê gần đây" link="/dashboard/bookings" linkLabel="Xem tất cả">
@@ -224,6 +225,9 @@ export default function DashboardPage() {
               </ul>
             )}
           </SectionCard>
+
+          {/* AI Cashflow Forecast */}
+          <CashflowForecastCard />
 
           {/* My listings */}
           <SectionCard title="Sản phẩm của bạn" link="/dashboard/listings" linkLabel="Quản lý">
@@ -306,7 +310,6 @@ export default function DashboardPage() {
           <QuickLink href="/dashboard/listings/new" icon={Plus}           label="Thêm sản phẩm"     sub="Đăng sản phẩm cho thuê"     color="#10b981" />
           <QuickLink href="/dashboard/pricing"      icon={TrendingUp}     label="AI Định giá"       sub="Gợi ý giá & dự báo nhu cầu"  color="#7c3aed" />
           <QuickLink href="/profile/shop"           icon={Store}          label="Cập nhật Shop"     sub="Thông tin cửa hàng, địa chỉ" color="#f59e0b" />
-          <QuickLink href="/messages"               icon={MessageCircle}  label="Tin nhắn"          sub="Trò chuyện với khách hàng"   color="#8b5cf6" />
         </div>
 
       </div>

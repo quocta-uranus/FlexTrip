@@ -77,7 +77,7 @@ export function ProviderCtaSection() {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-3">
-                <Link href="/register-provider"
+                <Link href="/become-provider"
                   className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-all hover:shadow-lg"
                   style={{ background: '#2a7bd9', boxShadow: '0 4px 16px -4px rgba(42,123,217,0.4)' }}>
                   Trở thành Provider
@@ -85,7 +85,7 @@ export function ProviderCtaSection() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </Link>
-                <Link href="/register-provider"
+                <Link href="/become-provider"
                   className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition-all hover:shadow-sm"
                   style={{ borderColor: 'rgba(42,123,217,0.3)', color: '#2a7bd9' }}>
                   Tìm hiểu thêm

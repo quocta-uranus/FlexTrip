@@ -114,6 +114,32 @@ export class ResendService {
     }
   }
 
+  async sendReport(
+    to: string[],
+    subject: string,
+    summary: string,
+    attachment: { filename: string; content: Buffer },
+  ): Promise<boolean> {
+    const safe = summary.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.from,
+        to,
+        subject,
+        attachments: [attachment],
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
+            <h2 style="margin:0 0 12px;color:#0f1729;font-size:20px">${subject.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)}</h2>
+            <p style="margin:0 0 20px;color:#5a6b85;font-size:14px;line-height:1.6">${safe}</p>
+            <p style="margin:0;color:#8694ad;font-size:12px">Báo cáo được gửi tự động từ FlexTrip. File CSV đính kèm theo email này.</p>
+          </div>`,
+      });
+      return !error;
+    } catch {
+      return false;
+    }
+  }
+
   async sendPasswordReset(email: string, resetUrl: string): Promise<boolean> {
     try {
       const { error } = await this.resend.emails.send({

@@ -8,6 +8,7 @@ import {
   AlertTriangle, ArrowLeft, CalendarDays, Camera, CheckCircle2,
   FileText, MapPin, Package, Phone, Scale, Truck, Upload, User2,
 } from 'lucide-react';
+import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,17 +47,33 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   DISPUTED:    { label: 'Tranh chấp',  variant: 'destructive' },
 };
 
+const INSPECTION_ITEMS = {
+  HANDOVER: ['Đúng thiết bị trong đơn thuê', 'Đầy đủ phụ kiện đi kèm', 'Hoạt động bình thường'],
+  RETURN: ['Ngoại quan nguyên vẹn, không hư hỏng mới', 'Đầy đủ phụ kiện đi kèm', 'Hoạt động bình thường', 'Đã vệ sinh sạch sẽ'],
+} as const;
+
 // ── Condition dialog (handover/return) ──────────────────────────────────────
-function ConditionDialog({ open, type, bookingId, onClose, onDone }: {
+function ConditionDialog({ open, type, bookingId, onClose, onDone, onReportIssue }: {
   open: boolean; type: 'HANDOVER' | 'RETURN'; bookingId: string;
-  onClose: () => void; onDone: (msg: string) => void;
+  onClose: () => void; onDone: (msg: string) => void; onReportIssue: () => void;
 }) {
   const mutation = useConfirmStaffTask();
   const form = useForm<StaffConditionInput>({ resolver: zodResolver(staffConditionSchema) });
+  const items = INSPECTION_ITEMS[type];
+  const [checked, setChecked] = useState<boolean[]>([]);
+  const ticks = items.map((_, i) => checked[i] ?? false);
+  // Return completes the rental and releases money, so every item must pass; handover only records the state
+  const mustPass = type === 'RETURN';
+  const failed = items.filter((_, i) => !ticks[i]);
+  const blocked = mustPass && failed.length > 0;
+
   const submit = form.handleSubmit((v) => {
     mutation.mutate(
-      { bookingId, type, conditionNote: v.conditionNote, file: v.file },
-      { onSuccess: () => { form.reset(); onClose(); onDone(type === 'HANDOVER' ? 'Đã xác nhận bàn giao.' : 'Đã xác nhận nhận lại.'); } },
+      {
+        bookingId, type, conditionNote: v.conditionNote, file: v.file,
+        checklist: items.map((label, i) => ({ label, ok: ticks[i] })),
+      },
+      { onSuccess: () => { form.reset(); setChecked([]); onClose(); onDone(type === 'HANDOVER' ? 'Đã xác nhận bàn giao. Cuộc thuê đã bắt đầu.' : 'Đã kiểm tra và nhận lại. Cuộc thuê đã hoàn thành.'); } },
     );
   });
   return (
@@ -67,6 +84,30 @@ function ConditionDialog({ open, type, bookingId, onClose, onDone }: {
           <DialogDescription>Ảnh và mô tả sẽ được lưu vào biên bản để đối chiếu khi có tranh chấp.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>{type === 'RETURN' ? 'Kiểm tra thiết bị khi nhận lại' : 'Kiểm tra thiết bị khi bàn giao'}</Label>
+            <div className="space-y-1.5 rounded-xl border border-slate-200 p-3">
+              {items.map((label, i) => (
+                <label key={label} className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-emerald-600"
+                    checked={ticks[i]}
+                    onChange={(e) => setChecked(ticks.map((t, j) => (j === i ? e.target.checked : t)))}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            {blocked && (
+              <div className="flex items-start justify-between gap-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                <span>Chưa thể hoàn thành vì còn hạng mục chưa đạt. Nếu phát hiện vấn đề, hãy lập biên bản thương lượng.</span>
+                <button type="button" onClick={() => { onClose(); onReportIssue(); }} className="shrink-0 font-semibold underline">
+                  Lập biên bản
+                </button>
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
             <Label>Ảnh tình trạng</Label>
             <Input type="file" accept="image/*" capture="environment"
@@ -81,7 +122,10 @@ function ConditionDialog({ open, type, bookingId, onClose, onDone }: {
           {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Huỷ</Button>
-            <Button type="submit" disabled={mutation.isPending}><Upload className="h-4 w-4" />{mutation.isPending ? 'Đang lưu...' : 'Xác nhận'}</Button>
+            <Button type="submit" disabled={mutation.isPending || blocked}>
+              <Upload className="h-4 w-4" />
+              {mutation.isPending ? 'Đang lưu...' : type === 'HANDOVER' ? 'Xác nhận & bắt đầu thuê' : 'Xác nhận & hoàn thành'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -257,12 +301,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               <div className="mt-5 flex flex-wrap gap-2 border-t border-[#f1f5fa] pt-4">
                 {canHandover && (
                   <Button onClick={() => setConditionDialog('HANDOVER')} className="bg-[#2a7bd9] hover:bg-[#1e5aa8]">
-                    <Camera className="h-4 w-4" />Xác nhận giao thiết bị
+                    <Camera className="h-4 w-4" />Giao thiết bị & bắt đầu thuê
                   </Button>
                 )}
                 {canReturn && (
                   <Button onClick={() => setConditionDialog('RETURN')} className="bg-emerald-600 hover:bg-emerald-700">
-                    <Camera className="h-4 w-4" />Xác nhận nhận lại
+                    <Camera className="h-4 w-4" />Kiểm tra & hoàn thành thuê
                   </Button>
                 )}
                 {canMediate && (
@@ -322,6 +366,20 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               <span className="text-sm text-[#8694ad]">Trạng thái:</span>
               <span className="rounded-full bg-[#f1f5fa] px-2.5 py-0.5 text-xs font-semibold text-[#5a6b85]">{booking.contract.status}</span>
             </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <p className="rounded-lg bg-[#f8fafc] px-3 py-2 text-[#5a6b85]">
+                Traveler: {booking.contract.travelerSignedAt ? `✓ đã ký ${formatDatetime(booking.contract.travelerSignedAt)}` : '⏳ chưa ký'}
+              </p>
+              <p className="rounded-lg bg-[#f8fafc] px-3 py-2 text-[#5a6b85]">
+                Provider: {booking.contract.providerSignedAt ? `✓ đã ký ${formatDatetime(booking.contract.providerSignedAt)}` : '⏳ chưa ký'}
+              </p>
+            </div>
+            <ContractViewer
+              terms={booking.contract.terms}
+              penaltyRules={booking.contract.penaltyRules ?? undefined}
+              conditionNote={booking.contract.productConditionNote}
+              collapsible
+            />
             {booking.checkedInAt && (
               <p className="text-sm text-[#5a6b85]">Bàn giao lúc: <span className="font-medium text-[#0f1729]">{formatDatetime(booking.checkedInAt)}</span></p>
             )}
@@ -400,6 +458,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         bookingId={id}
         onClose={() => setConditionDialog(null)}
         onDone={(msg) => { setConditionDialog(null); setNotice(msg); refetch(); }}
+        onReportIssue={() => setMediationDialog(true)}
       />
       <MediationDialog
         open={mediationDialog}

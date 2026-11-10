@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { contractsApi } from '@/lib/api/contracts';
+import { contractsApi, type CheckinPayload, type CheckoutPayload } from '@/lib/api/contracts';
 
 export function useContractPreview(bookingId: string, enabled = true) {
   return useQuery({
@@ -18,6 +18,13 @@ export function useContract(bookingId: string, enabled = true) {
   });
 }
 
+export function useTravelerSignContract() {
+  return useMutation({
+    mutationFn: (bookingId: string) => contractsApi.travelerSign(bookingId),
+    throwOnError: false,
+  });
+}
+
 export function useProviderSignContract() {
   const qc = useQueryClient();
   return useMutation({
@@ -26,6 +33,32 @@ export function useProviderSignContract() {
       qc.invalidateQueries({ queryKey: ['contract', bookingId] });
       qc.invalidateQueries({ queryKey: ['booking', bookingId] });
       qc.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+}
+
+export function useCheckin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookingId, payload }: { bookingId: string; payload: CheckinPayload }) =>
+      contractsApi.checkin(bookingId, payload),
+    onSuccess: (_data, { bookingId }) => {
+      qc.invalidateQueries({ queryKey: ['booking', bookingId] });
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['contract', bookingId] });
+    },
+  });
+}
+
+export function useCheckout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookingId, payload }: { bookingId: string; payload: CheckoutPayload }) =>
+      contractsApi.checkout(bookingId, payload),
+    onSuccess: (_data, { bookingId }) => {
+      qc.invalidateQueries({ queryKey: ['booking', bookingId] });
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['contract', bookingId] });
     },
   });
 }

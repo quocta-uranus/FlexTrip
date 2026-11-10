@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertTriangle, ArrowRight, CalendarDays, Camera, CheckCircle2,
-  ClipboardList, Clock3, MapPin, Package, RotateCcw, Scale, Upload,
+  ClipboardList, Clock3, Lock, MapPin, Package, RotateCcw, Scale, TrendingUp, Upload, Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useRequestPayout, useWallet, useWalletTransactions } from '@/hooks/usePayments';
 import {
   useConfirmStaffTask, useCreateMediation, useEscalateMediation,
   useMyBookings, useResolveMediation, useStaffMediations, useStaffTasks,
@@ -234,6 +235,135 @@ function UpcomingCard({ booking }: { booking: StaffBooking }) {
   );
 }
 
+function StaffWalletSection() {
+  const { data: wallet, isLoading: walletLoading } = useWallet();
+  const { data: txData } = useWalletTransactions(1, 5);
+  const payout = useRequestPayout();
+  const [showPayoutForm, setShowPayoutForm] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({ amount: '', bankName: '', bankAccount: '', accountName: '' });
+  const [payoutMsg, setPayoutMsg] = useState('');
+
+  const available = wallet?.availableBalance ?? 0;
+  const frozen = wallet?.frozenBalance ?? 0;
+
+  async function handlePayout() {
+    const amount = parseInt(payoutForm.amount.replace(/\D/g, ''), 10);
+    if (!amount || amount < 100_000 || !payoutForm.bankName || !payoutForm.bankAccount || !payoutForm.accountName) return;
+    try {
+      const res = await payout.mutateAsync({ amount, bankName: payoutForm.bankName, bankAccount: payoutForm.bankAccount, accountName: payoutForm.accountName });
+      setPayoutMsg(res.message);
+      setShowPayoutForm(false);
+      setPayoutForm({ amount: '', bankName: '', bankAccount: '', accountName: '' });
+    } catch (e) {
+      setPayoutMsg((e as Error).message ?? 'Đã xảy ra lỗi');
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xl font-bold text-slate-900">Ví hoa hồng</h2>
+      {payoutMsg && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {payoutMsg}
+        </div>
+      )}
+      {walletLoading ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[1,2,3].map(i => <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />)}
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="flex items-center gap-3">
+              <div className="rounded-xl bg-green-50 p-2.5"><TrendingUp className="size-6 text-green-600" /></div>
+              <div>
+                <p className="text-xs text-slate-500">Có thể rút</p>
+                <p className="text-xl font-bold text-slate-900">{available.toLocaleString('vi-VN')} ₫</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3">
+              <div className="rounded-xl bg-amber-50 p-2.5"><Lock className="size-6 text-amber-600" /></div>
+              <div>
+                <p className="text-xs text-slate-500">Đang giữ</p>
+                <p className="text-xl font-bold text-slate-900">{frozen.toLocaleString('vi-VN')} ₫</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3">
+              <div className="rounded-xl bg-blue-50 p-2.5"><Wallet className="size-6 text-blue-600" /></div>
+              <div>
+                <p className="text-xs text-slate-500">Tổng số dư</p>
+                <p className="text-xl font-bold text-slate-900">{(available + frozen).toLocaleString('vi-VN')} ₫</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <Button onClick={() => setShowPayoutForm((v) => !v)} disabled={available < 100_000}>
+          <Wallet />Yêu cầu rút tiền
+        </Button>
+      </div>
+
+      {showPayoutForm && (
+        <Card>
+          <CardContent className="space-y-3">
+            <p className="font-semibold text-slate-900">Thông tin rút tiền</p>
+            {[
+              { label: 'Số tiền (VNĐ)', key: 'amount', placeholder: 'Tối thiểu 100,000' },
+              { label: 'Ngân hàng', key: 'bankName', placeholder: 'VD: Vietcombank' },
+              { label: 'Số tài khoản', key: 'bankAccount', placeholder: 'Số tài khoản' },
+              { label: 'Tên chủ tài khoản', key: 'accountName', placeholder: 'Nguyễn Văn A' },
+            ].map(({ label, key, placeholder }) => (
+              <div key={key}>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+                <input
+                  type={key === 'amount' ? 'number' : 'text'}
+                  placeholder={placeholder}
+                  value={payoutForm[key as keyof typeof payoutForm]}
+                  onChange={(e) => setPayoutForm((f) => ({ ...f, [key]: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <Button onClick={handlePayout} disabled={payout.isPending}>
+                {payout.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowPayoutForm(false)}>Huỷ</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {(txData?.items?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Lịch sử giao dịch gần đây</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-slate-100">
+              {txData!.items.map((tx) => (
+                <li key={tx.id} className="flex items-center justify-between px-6 py-3 text-sm">
+                  <div>
+                    <p className="font-medium text-slate-800">{tx.note ?? tx.type}</p>
+                    <p className="text-xs text-slate-400">{new Date(tx.createdAt).toLocaleDateString('vi-VN')}</p>
+                  </div>
+                  <span className={`font-semibold ${['CREDIT','COMMISSION_SPLIT','UNFREEZE','TOPUP','REFUND'].includes(tx.type) ? 'text-green-600' : 'text-red-500'}`}>
+                    {['CREDIT','COMMISSION_SPLIT','UNFREEZE','TOPUP','REFUND'].includes(tx.type) ? '+' : '-'}{Number(tx.amount).toLocaleString('vi-VN')} ₫
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </section>
+  );
+}
+
 // ── Main dashboard ────────────────────────────────────────────────────────
 export default function StaffDashboard() {
   const [date, setDate] = useState(localDate);
@@ -419,6 +549,8 @@ export default function StaffDashboard() {
           </div>
         </section>
       </div>
+
+      <StaffWalletSection />
 
       {/* Open mediations */}
       {stats.openMediations > 0 && (

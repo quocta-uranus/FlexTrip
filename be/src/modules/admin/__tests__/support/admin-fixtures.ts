@@ -102,10 +102,10 @@ export async function createBooking(h: AuthHarness, o: BookingOptions) {
     await h.prisma.payment.create({
       data: {
         bookingId: booking.id,
-        amount: new Prisma.Decimal(amount),
+        totalAmount: new Prisma.Decimal(amount),
+        rentalAmount: new Prisma.Decimal(amount),
         platformFee: new Prisma.Decimal(o.payment?.platformFee ?? amount * 0.1),
         status: o.payment?.status ?? PaymentStatus.PAID,
-        method: 'CARD',
         ...(o.payment?.createdAt ? { createdAt: o.payment.createdAt } : {}),
       },
     });

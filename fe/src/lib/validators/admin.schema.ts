@@ -9,9 +9,13 @@ export const resolveDisputeSchema = (maxRefund: number | null) =>
       outcome: z.enum(['RESOLVED', 'REJECTED']),
       resolution: z.string().trim().min(1, 'Vui lòng nhập kết luận').max(2000),
       refundAmount: z.number().positive('Số tiền phải > 0').optional(),
+      penaltyAmount: z.number().positive('Số tiền phải > 0').optional(),
     })
     .refine((d) => d.refundAmount === undefined || d.outcome === 'RESOLVED', {
       path: ['refundAmount'], message: 'Chỉ hoàn tiền khi chấp nhận tranh chấp',
+    })
+    .refine((d) => d.penaltyAmount === undefined || d.outcome === 'RESOLVED', {
+      path: ['penaltyAmount'], message: 'Chỉ phạt traveler khi chấp nhận tranh chấp',
     })
     .refine((d) => d.refundAmount === undefined || (maxRefund !== null && d.refundAmount <= maxRefund), {
       path: ['refundAmount'], message: maxRefund === null ? 'Booking chưa có thanh toán' : 'Không được vượt quá số đã thanh toán',

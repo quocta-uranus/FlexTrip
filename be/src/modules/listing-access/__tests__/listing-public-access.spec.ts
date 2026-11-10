@@ -22,6 +22,7 @@ import { AdminListingsController } from '../../admin/listings/admin-listings.con
 import { AdminListingsService } from '../../admin/listings/admin-listings.service';
 import { StaffOperationsController } from '../../staff/staff-operations.controller';
 import { StaffOperationsService } from '../../staff/staff-operations.service';
+import { PaymentsService } from '../../payments/payments.service';
 import { AuditService } from '../../audit/audit.service';
 
 type Row = {
@@ -203,6 +204,7 @@ describe('Listing public access HTTP', () => {
           useValue: new StaffOperationsService(
             database as unknown as PrismaService,
             {} as AuditService,
+            {} as PaymentsService,
           ),
         },
       ],

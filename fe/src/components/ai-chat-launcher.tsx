@@ -380,7 +380,12 @@ export function AiChatLauncher() {
               <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submitMessage(input); } }} rows={1} maxLength={2000} placeholder="Nhắn FlexTrip AI…" className="max-h-24 min-w-0 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-[#8694ad]" style={{ color: '#0f1729' }} />
               <button type="submit" disabled={!input.trim() || isSending} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2a7bd9] to-[#4cc5db] text-sm text-white shadow-[0_5px_12px_rgba(42,123,217,0.28)] transition hover:scale-105 disabled:scale-100 disabled:opacity-40" aria-label="Gửi tin nhắn">➤</button>
             </div>
-            <p className="mt-1.5 text-center text-[9px] text-[#91a1b5]">Flexi có thể mắc lỗi · Hãy kiểm tra thông tin quan trọng</p>
+            <p className="mt-1.5 text-center text-[9px] text-[#91a1b5]">
+              Flexi có thể mắc lỗi · Hãy kiểm tra thông tin quan trọng
+              {user && !user.roles.includes('STAFF') && !user.roles.includes('ADMIN') && (
+                <> · <Link href="/support/new" className="font-semibold text-[#1d6fc2] underline underline-offset-2">Cần người hỗ trợ? Gửi ticket</Link></>
+              )}
+            </p>
           </form>
         </section>
       )}

@@ -81,7 +81,7 @@ export class CartService {
       if (listing.status !== 'ACTIVE')
         throw new BadRequestException('Listing không còn hoạt động');
       if (listing.providerId === travelerId)
-        throw new BadRequestException('Không thể thêm listing của chính mình vào giỏ');
+        throw new BadRequestException({ code: 'OWN_LISTING', message: 'Không thể thêm listing của chính mình vào giỏ' });
 
       const check = await this.availabilitySvc.checkAvailability(
         dto.listingId, startDate, endDate, qty, undefined, tx,
@@ -232,7 +232,10 @@ export class CartService {
         if (item.listing.status !== 'ACTIVE')
           throw new BadRequestException(`Listing "${item.listing.title}" không còn hoạt động`);
         if (item.listing.providerId === travelerId)
-          throw new BadRequestException(`Không thể thuê listing "${item.listing.title}" của chính mình`);
+          throw new BadRequestException({
+            code: 'OWN_LISTING',
+            message: `Không thể thuê listing "${item.listing.title}" của chính mình`,
+          });
 
         const check = await this.availabilitySvc.checkAvailability(
           item.listingId,
@@ -283,10 +286,11 @@ export class CartService {
         await tx.payment.create({
           data: {
             bookingId: booking.id,
-            amount: totalPrice,
+            totalAmount: totalPrice,
+            rentalAmount: totalPrice - depositAmount,
+            depositAmount,
             currency: 'VND',
-            method: dto.paymentMethod,
-            transactionId: dto.transactionRef ?? null,
+            gatewayTransId: dto.transactionRef ?? null,
             status: 'PAID',
           },
         });

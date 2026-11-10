@@ -218,7 +218,7 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               </div>
               {b.payment && (
                 <div className="mt-2 flex gap-2 text-xs">
-                  <span className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[#5a6b85]">{b.payment.method}</span>
+                  <span className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[#5a6b85]">{b.payment.gateway}</span>
                   <span className={`rounded-full px-2 py-0.5 font-semibold ${b.payment.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                     {b.payment.status}
                   </span>

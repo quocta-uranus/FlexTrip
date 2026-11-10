@@ -1,370 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { listingSchema, type ListingInput } from '@/lib/validators/listing.schema';
 import { useListing, useUpdateListing } from '@/hooks/useListings';
-import { listingApi } from '@/lib/api/client';
-import { ImageUploader } from '@/components/listing/image-uploader';
-import { LISTING_CATEGORIES } from '@/constants/categories';
-import { PriceSuggestionCard } from '@/components/pricing/PriceSuggestionCard';
-import { AutoAdjustSettings } from '@/components/pricing/AutoAdjustSettings';
-import { AiDescriptionPanel } from '@/components/listing/AiDescriptionPanel';
-
-const COMMON_AMENITIES = [
-  'Lều', 'Túi ngủ', 'Đèn pin', 'Bếp dã ngoại', 'Nồi/Chảo', 'Bộ dụng cụ sơ cứu',
-  'Ba lô', 'Cọc lều', 'Áo mưa', 'GPS/Bản đồ', 'Nón bảo hiểm', 'Mũ bảo hộ',
-];
-
-function Field({ label, error, required, children }: {
-  label: string; error?: string; required?: boolean; children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium" style={{ color: '#0f1729' }}>
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs" style={{ color: '#dc2626' }}>{error}</p>}
-    </div>
-  );
-}
-
-const inputCls = "w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all placeholder:text-[#8694ad] focus:ring-2 focus:ring-[#2a7bd9]/30";
-const inputStyle = { borderColor: '#DCEFFB', color: '#0f1729' };
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+import { ListingForm } from '@/components/listing/listing-form';
 
 export default function EditListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { data: listing, isLoading } = useListing(id);
+  const { data: listing, isLoading, isError } = useListing(id);
   const { mutate: update, isPending, error } = useUpdateListing(id);
-  const [amenities, setAmenities] = useState<string[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>(['']);
-  const [aiImprovements, setAiImprovements] = useState<string[]>([]);
-
-  const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<ListingInput>({
-    resolver: zodResolver(listingSchema) as any,
-    defaultValues: { currency: 'VND', amenities: [], imageUrls: [], penaltyRules: [] },
-  });
-
-  const { fields: penaltyFields, append: appendPenalty, remove: removePenalty } = useFieldArray({
-    control,
-    name: 'penaltyRules',
-  });
-
-  const selectedCategory = watch('category');
-  const watchTitle = watch('title') ?? '';
-  const watchDescription = watch('description') ?? '';
-  const watchLocation = watch('location') ?? '';
-  const watchPrice = watch('price') ?? 0;
-
-  useEffect(() => {
-    if (!listing) return;
-    reset({
-      title: listing.title,
-      description: listing.description,
-      price: Number(listing.price),
-      currency: listing.currency,
-      location: listing.location,
-      category: listing.category,
-      amenities: listing.amenities,
-      imageUrls: listing.imageUrls,
-      latitude: listing.latitude ?? undefined,
-      longitude: listing.longitude ?? undefined,
-      penaltyRules: (listing.penaltyRules as ListingInput['penaltyRules']) ?? [],
-      conditionNote: listing.conditionNote ?? '',
-      marketValue: listing.marketValue ?? undefined,
-    });
-    setAmenities(listing.amenities);
-    setImageUrls(listing.imageUrls.length ? listing.imageUrls : ['']);
-  }, [listing, reset]);
-
-  function toggleAmenity(a: string) {
-    const next = amenities.includes(a) ? amenities.filter((x) => x !== a) : [...amenities, a];
-    setAmenities(next);
-    setValue('amenities', next);
-  }
-
-  function onSubmit(data: unknown) {
-    update(data as Partial<ListingInput>, {
-      onSuccess: () => router.push('/dashboard/listings'),
-    });
-  }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: '#f6fbfe' }}>
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f8fd]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#2a7bd9] border-t-transparent" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <nav className="mb-6 flex items-center gap-2 text-xs" style={{ color: '#8694ad' }}>
-          <Link href="/dashboard" style={{ color: '#2a7bd9' }}>Dashboard</Link>
-          <span>/</span>
-          <Link href="/dashboard/listings" style={{ color: '#2a7bd9' }}>Sản phẩm</Link>
-          <span>/</span>
-          <span style={{ color: '#0f1729' }}>Chỉnh sửa</span>
-        </nav>
-
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Chỉnh sửa sản phẩm</h1>
-          <Link
-            href={`/dashboard/listings/${id}/calendar`}
-            className="flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition hover:bg-[#f6fbfe]"
-            style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
-          >
-            📅 Quản lý lịch
-          </Link>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Thông tin cơ bản</h2>
-
-            <Field label="Tiêu đề sản phẩm" error={errors.title?.message} required>
-              <input {...register('title')} placeholder="VD: Lều cắm trại 4 người North Face" className={inputCls} style={inputStyle} />
-            </Field>
-
-            <Field label="Danh mục" error={errors.category?.message} required>
-              <div className="flex flex-wrap gap-2">
-                {LISTING_CATEGORIES.map((cat) => {
-                  const active = selectedCategory === cat.value;
-                  return (
-                    <button key={cat.value} type="button" onClick={() => setValue('category', cat.value)}
-                      className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all"
-                      style={{ borderColor: active ? cat.color : '#DCEFFB', background: active ? `${cat.color}14` : '#fff', color: active ? cat.color : '#5a6b85' }}>
-                      <span>{cat.emoji}</span>{cat.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </Field>
-
-            <Field label="Mô tả chi tiết" error={errors.description?.message} required>
-              <textarea {...register('description')} rows={5}
-                placeholder="Mô tả chi tiết sản phẩm…"
-                className={`${inputCls} resize-none`} style={inputStyle} />
-              {aiImprovements.length > 0 && (
-                <div className="mt-2 rounded-lg px-3 py-2" style={{ background: 'rgba(42,123,217,0.06)' }}>
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#2a7bd9' }}>AI đã cải thiện:</p>
-                  {aiImprovements.map((imp, i) => <p key={i} className="text-xs" style={{ color: '#5a6b85' }}>• {imp}</p>)}
-                </div>
-              )}
-            </Field>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Địa điểm nhận/trả" error={errors.location?.message} required>
-                <input {...register('location')} placeholder="VD: Đà Lạt, Lâm Đồng" className={inputCls} style={inputStyle} />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Giá/ngày" error={errors.price?.message} required>
-                  <input type="number" min={0} {...register('price')} placeholder="150000" className={inputCls} style={inputStyle} />
-                </Field>
-                <Field label="Tiền tệ">
-                  <select {...register('currency')} className={inputCls} style={inputStyle}>
-                    <option value="VND">VND</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </Field>
-              </div>
-
-              {/* AI Price Suggestion */}
-              <PriceSuggestionCard
-                category={watch('category')}
-                location={watch('location') ?? ''}
-                title={watch('title')}
-                currentPrice={watch('price') > 0 ? watch('price') : undefined}
-                listingId={id}
-                onApply={(price) => setValue('price', price, { shouldValidate: true })}
-              />
-            </div>
-          </div>
-
-          {/* Amenities */}
-          <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="mb-4 text-base font-semibold" style={{ color: '#0f1729' }}>Tiện ích kèm theo</h2>
-            <div className="flex flex-wrap gap-2">
-              {COMMON_AMENITIES.map((a) => {
-                const selected = amenities.includes(a);
-                return (
-                  <button key={a} type="button" onClick={() => toggleAmenity(a)}
-                    className="rounded-full border px-3 py-1.5 text-sm transition-all"
-                    style={{ borderColor: selected ? '#2a7bd9' : '#DCEFFB', background: selected ? 'rgba(42,123,217,0.08)' : '#fff', color: selected ? '#2a7bd9' : '#5a6b85' }}>
-                    {selected ? '✓ ' : ''}{a}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Images */}
-          <div className="rounded-2xl border bg-white p-6 space-y-3" style={{ borderColor: '#DCEFFB' }}>
-            <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Hình ảnh</h2>
-            <ImageUploader
-              urls={imageUrls.filter(Boolean)}
-              onChange={(urls) => { setImageUrls(urls); setValue('imageUrls', urls); }}
-            />
-          </div>
-
-          {/* Điều khoản & Mức phạt */}
-          <div className="rounded-2xl border bg-white p-6 space-y-5" style={{ borderColor: '#DCEFFB' }}>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⚖️</span>
-              <h2 className="text-base font-semibold" style={{ color: '#0f1729' }}>Điều khoản & Mức phạt</h2>
-            </div>
-
-            <p className="text-xs" style={{ color: '#8694ad' }}>
-              Khai báo tình trạng sản phẩm và các mức bồi thường thiệt hại. Thông tin này được in vào hợp đồng thuê.
-            </p>
-
-            {/* conditionNote */}
-            <Field label="Tình trạng sản phẩm hiện tại">
-              <textarea
-                {...register('conditionNote')}
-                rows={3}
-                placeholder="VD: Lều còn tốt, thanh nhôm có xước nhỏ ở cọc số 3. Khoá kéo hoạt động bình thường."
-                className={`${inputCls} resize-none`}
-                style={inputStyle}
-              />
-            </Field>
-
-            {/* marketValue */}
-            <Field label="Giá trị thị trường (VND)" error={(errors as Record<string, { message?: string }>).marketValue?.message}>
-              <input
-                type="number"
-                min={0}
-                {...register('marketValue')}
-                placeholder="VD: 3500000"
-                className={inputCls}
-                style={inputStyle}
-              />
-              <p className="mt-1 text-xs" style={{ color: '#8694ad' }}>
-                Nếu ≥ 5.000.000 ₫, hợp đồng sẽ được đánh dấu <strong>Giá trị cao</strong> và thêm điều khoản bảo hiểm.
-              </p>
-            </Field>
-
-            {/* Penalty rules table */}
-            <div>
-              <p className="mb-3 text-sm font-medium" style={{ color: '#0f1729' }}>Bảng mức phạt</p>
-              {penaltyFields.length === 0 && (
-                <p className="mb-3 text-xs" style={{ color: '#8694ad' }}>
-                  Chưa có mức phạt nào. Nếu để trống, hai bên tự thỏa thuận khi phát sinh thiệt hại.
-                </p>
-              )}
-
-              <div className="space-y-3">
-                {penaltyFields.map((field, i) => (
-                  <div
-                    key={field.id}
-                    className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-start gap-2 rounded-xl border p-4"
-                    style={{ borderColor: '#DCEFFB' }}
-                  >
-                    <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Loại thiệt hại</label>
-                      <input
-                        {...register(`penaltyRules.${i}.item`)}
-                        placeholder="VD: Mất cọc lều"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Mô tả</label>
-                      <input
-                        {...register(`penaltyRules.${i}.description`)}
-                        placeholder="VD: Mất 1 cọc lều"
-                        className={inputCls}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối thiểu (₫)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        {...register(`penaltyRules.${i}.minAmount`)}
-                        placeholder="50000"
-                        className={inputCls}
-                        style={{ ...inputStyle, width: '100px' }}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>Tối đa (₫)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        {...register(`penaltyRules.${i}.maxAmount`)}
-                        placeholder="200000"
-                        className={inputCls}
-                        style={{ ...inputStyle, width: '100px' }}
-                      />
-                    </div>
-                    <div className="pt-5">
-                      <button
-                        type="button"
-                        onClick={() => removePenalty(i)}
-                        className="rounded-lg border px-2.5 py-2 text-xs font-semibold transition hover:bg-red-50"
-                        style={{ borderColor: '#fca5a5', color: '#dc2626' }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => appendPenalty({ item: '', description: '', minAmount: 0, maxAmount: 0 })}
-                className="mt-3 flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition hover:bg-[#f6fbfe]"
-                style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
-              >
-                + Thêm mức phạt
-              </button>
-            </div>
-          </div>
-
-          {/* Auto-Adjust Settings */}
-          <AutoAdjustSettings listingId={id} />
-
-          {/* AI Description Panel */}
-          <AiDescriptionPanel
-            title={watchTitle} description={watchDescription}
-            category={selectedCategory ?? ''} location={watchLocation}
-            amenities={amenities} price={Number(watchPrice) || undefined}
-            onDescription={(d) => setValue('description', d)}
-            onOptimized={(d, imps) => { setValue('description', d); setAiImprovements(imps); }}
-          />
-
-          {error && (
-            <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}>
-              {(error as Error).message}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard/listings"
-              className="rounded-xl border px-6 py-3 text-sm font-medium hover:bg-[#f1f5fa]"
-              style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}>
-              Huỷ
-            </Link>
-            <button type="submit" disabled={isPending}
-              className="rounded-xl px-8 py-3 text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: '#2a7bd9', boxShadow: '0 8px 24px -6px rgba(42,123,217,0.4)' }}>
-              {isPending ? 'Đang lưu…' : 'Lưu thay đổi'}
-            </button>
-          </div>
-        </form>
+  if (isError || !listing) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#f3f8fd] text-center">
+        <p className="text-base font-semibold text-slate-800">Không tìm thấy sản phẩm</p>
+        <p className="text-sm text-slate-400">Sản phẩm không tồn tại hoặc bạn không có quyền chỉnh sửa.</p>
+        <Link href="/dashboard/listings" className="rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white">
+          Về danh sách sản phẩm
+        </Link>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <ListingForm
+      mode="edit"
+      listing={listing}
+      isPending={isPending}
+      errorMessage={error?.message}
+      onSubmit={(payload) =>
+        update(payload, { onSuccess: () => router.push('/dashboard/listings') })
+      }
+    />
   );
 }

@@ -11,6 +11,8 @@ import { AdminDisputesService } from './disputes/admin-disputes.service';
 import { AdminFinanceController } from './finance/admin-finance.controller';
 import { AdminTransactionsService } from './finance/admin-transactions.service';
 import { AdminPayoutsService } from './finance/admin-payouts.service';
+import { AdminWithdrawService } from './finance/admin-withdraw.service';
+import { EscrowService } from '../payments/escrow.service';
 import { AdminAnalyticsController } from './analytics/admin-analytics.controller';
 import { AdminAnalyticsService } from './analytics/admin-analytics.service';
 import { AdminConfigController } from './config/admin-config.controller';
@@ -23,13 +25,28 @@ import { AdminStaffRulesService } from './staff/admin-staff-rules.service';
 import { AdminStaffBookingsController } from './staff/admin-staff-bookings.controller';
 import { AdminStaffBookingsService } from './staff/admin-staff-bookings.service';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
 import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
+import { AdminCommissionsController } from './finance/admin-commissions.controller';
+import { AdminCommissionsService } from './finance/admin-commissions.service';
+import { BullModule } from '@nestjs/bullmq';
+import { SupportModule } from '../support/support.module';
+import { AdminTicketsController } from './support/admin-tickets.controller';
+import { AdminTicketsService } from './support/admin-tickets.service';
+import { AdminFaqsController } from './support/admin-faqs.controller';
+import { AdminFaqsService } from './support/admin-faqs.service';
+import { AdminReportsController } from './reports/admin-reports.controller';
+import { AdminReportsService } from './reports/admin-reports.service';
+import { AdminReportSchedulesService } from './reports/admin-report-schedules.service';
+import { ReportScheduleProcessor } from './reports/report-schedule.processor';
+import { ReportsService } from './reports/reports.service';
+import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
 
 @Module({
-  imports: [AuthModule, ReviewsModule],
+  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -43,6 +60,10 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminStaffBookingsController,
     AdminReviewsController,
     AdminBookingsController,
+    AdminCommissionsController,
+    AdminTicketsController,
+    AdminFaqsController,
+    AdminReportsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -52,6 +73,8 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminDisputesService,
     AdminTransactionsService,
     AdminPayoutsService,
+    AdminWithdrawService,
+    EscrowService,
     AdminAnalyticsService,
     AdminAuditLogsService,
     AdminStaffService,
@@ -59,6 +82,13 @@ import { AdminBookingsService } from './bookings/admin-bookings.service';
     AdminStaffBookingsService,
     AdminReviewsService,
     AdminBookingsService,
+    AdminCommissionsService,
+    AdminTicketsService,
+    AdminFaqsService,
+    ReportsService,
+    AdminReportsService,
+    AdminReportSchedulesService,
+    ReportScheduleProcessor,
   ],
 })
 export class AdminModule {}

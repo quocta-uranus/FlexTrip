@@ -55,7 +55,7 @@ export function useLogin() {
 
       if (roles.includes('STAFF') && !isStaffProfileComplete(user)) {
         router.replace(STAFF_PROFILE_PATH);
-      } else if (redirectParam) {
+      } else if (redirectParam && !roles.includes('PROVIDER')) {
         router.push(redirectParam);
       } else if (roles.includes('ADMIN')) {
         router.push('/admin');

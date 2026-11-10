@@ -43,7 +43,24 @@ describe('ADMIN-04 disputes', () => {
     expect(res.body.handledBy).not.toBeNull();
   });
 
-  it('resolve with refund sets booking REFUNDING and closes the dispute', async () => {
+  it('resolve with a penalty moves money from the traveler wallet to the provider wallet', async () => {
+    const { api, dispute, booking } = await setup(BookingStatus.DISPUTED);
+    const listing = await h.prisma.listing.findUniqueOrThrow({ where: { id: booking.listingId } });
+
+    const noWallet = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Hư lều', penaltyAmount: 100000 });
+    expect(noWallet.body.code).toBe('INSUFFICIENT_WALLET_BALANCE');
+
+    await h.prisma.wallet.create({ data: { userId: booking.travelerId, availableBalance: 300000 } });
+    const ok = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Hư lều', penaltyAmount: 100000 });
+    expect(ok.status).toBe(201);
+    const traveler = await h.prisma.wallet.findUniqueOrThrow({ where: { userId: booking.travelerId } });
+    const provider = await h.prisma.wallet.findUniqueOrThrow({ where: { userId: listing.providerId } });
+    expect(Number(traveler.availableBalance)).toBe(200000);
+    expect(Number(provider.availableBalance)).toBe(100000);
+    expect((await api.get(`/admin/disputes/${dispute.id}`)).body.penaltyAmount).toBe(100000);
+  });
+
+  it('resolve with refund credits the traveler wallet, sets booking REFUNDED and closes the dispute', async () => {
     const { api, dispute, booking } = await setup();
     const bad = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'x', refundAmount: 450001 });
     expect(bad.body.code).toBe('INVALID_REFUND_AMOUNT');
@@ -51,7 +68,10 @@ describe('ADMIN-04 disputes', () => {
     const ok = await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'RESOLVED', resolution: 'Hoàn 50%', refundAmount: 225000 });
     expect(ok.status).toBe(201);
     expect(ok.body).toMatchObject({ status: 'RESOLVED', refundAmount: 225000 });
-    expect((await h.prisma.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('REFUNDING');
+    expect((await h.prisma.booking.findUniqueOrThrow({ where: { id: booking.id } })).status).toBe('REFUNDED');
+    const wallet = await h.prisma.wallet.findUniqueOrThrow({ where: { userId: booking.travelerId } });
+    expect(Number(wallet.availableBalance)).toBe(225000);
+    expect(await h.prisma.refundRecord.count({ where: { payment: { bookingId: booking.id } } })).toBe(1);
     expect((await api.patch(`/admin/disputes/${dispute.id}/status`, { status: 'ESCALATED' })).body.code).toBe('DISPUTE_CLOSED');
     expect((await api.post(`/admin/disputes/${dispute.id}/resolve`, { outcome: 'REJECTED', resolution: 'x' })).body.code).toBe('DISPUTE_CLOSED');
   });

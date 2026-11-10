@@ -19,7 +19,7 @@ export class AdminAnalyticsService {
   private async metrics({ from, to }: Range, prev: Range) {
     const createdAt = { gte: from, lte: to };
     const [paid, bookings, cancelled, active, newTravelers, newProviders, repeat, churn] = await Promise.all([
-      this.prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, createdAt }, _sum: { amount: true, platformFee: true }, _count: { _all: true } }),
+      this.prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, createdAt }, _sum: { totalAmount: true, platformFee: true }, _count: { _all: true } }),
       this.prisma.booking.count({ where: { createdAt } }),
       this.prisma.booking.count({ where: { createdAt, status: BookingStatus.CANCELLED } }),
       this.prisma.$queryRaw<{ n: number }[]>`SELECT COUNT(DISTINCT "userId")::int AS n FROM "AuthSession" WHERE "lastUsedAt" BETWEEN ${from} AND ${to}`,
@@ -34,11 +34,11 @@ export class AdminAnalyticsService {
         WHERE p."createdAt" BETWEEN ${prev.from} AND ${prev.to}
           AND NOT EXISTS (SELECT 1 FROM "Booking" c WHERE c."travelerId" = p."travelerId" AND c."createdAt" BETWEEN ${from} AND ${to})`,
     ]);
-    const revenue = toNumber(paid._sum.amount) ?? 0;
+    const revenue = toNumber(paid._sum.totalAmount) ?? 0;
     return {
       revenue,
       commission: toNumber(paid._sum.platformFee) ?? 0,
-      paidCount: paid._count._all,
+      paidCount: (paid._count as { _all: number })._all,
       bookings,
       cancellationRate: bookings ? round1((cancelled / bookings) * 100) : 0,
       activeUsers: active[0].n,

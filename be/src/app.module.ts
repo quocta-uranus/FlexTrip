@@ -19,6 +19,8 @@ import { BookingModule } from './modules/booking/booking.module';
 import { CartModule } from './modules/cart/cart.module';
 import { ModifyBookingModule } from './modules/modify-booking/modify-booking.module';
 import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { AiSearchModule } from './modules/ai-search/ai-search.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { StaffModule } from './modules/staff/staff.module';
@@ -28,6 +30,10 @@ import { ReputationModule } from './modules/reputation/reputation.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { PriceAiModule } from './modules/price-ai/price-ai.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
+import { SupportModule } from './modules/support/support.module';
+import { PublicStatsModule } from './modules/public-stats/public-stats.module';
 
 @Module({
   imports: [
@@ -57,6 +63,8 @@ import { PriceAiModule } from './modules/price-ai/price-ai.module';
     CartModule,
     ModifyBookingModule,
     AiChatModule,
+    AiSearchModule,
+    RecommendationsModule,
     AdminModule,
     MessagesModule,
     StaffModule,
@@ -66,6 +74,10 @@ import { PriceAiModule } from './modules/price-ai/price-ai.module';
     ContractsModule,
     WishlistModule,
     PriceAiModule,
+    PaymentsModule,
+    PaymentAiModule,
+    SupportModule,
+    PublicStatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

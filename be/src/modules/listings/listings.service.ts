@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
   InternalServerErrorException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
 import {
@@ -17,6 +18,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { uploadImage, deleteFromSupabase } from '../../common/upload.util';
+import { buildLocationSuggestions } from './location-suggestions';
 import {
   CreateListingDto,
   UpdateListingDto,
@@ -48,12 +50,23 @@ export class ListingsService {
     const genAI = new GoogleGenerativeAI(
       this.config.get<string>('GEMINI_API_KEY', ''),
     );
-    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    this.gemini = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
   }
 
   private async ask(prompt: string): Promise<string> {
-    const result = await this.gemini.generateContent(prompt);
-    return result.response.text();
+    // Gemini returns transient 503 (overload) often enough to retry once before failing.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const result = await this.gemini.generateContent(prompt);
+        return result.response.text();
+      } catch (err) {
+        this.logger.warn(`Gemini call failed (attempt ${attempt}): ${String(err)}`);
+        if (attempt >= 2) {
+          throw new ServiceUnavailableException('AI đang quá tải hoặc hết quota, vui lòng thử lại sau');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
   }
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
@@ -84,7 +97,7 @@ export class ListingsService {
     const limit = params?.limit ?? 20;
     const category = this.publicCategoryFilter(params.category);
     const where: Prisma.ListingWhereInput = {
-      status: ListingStatus.ACTIVE,
+      ...this.publicListingWhere(),
       ...(category ? { category } : {}),
       ...(params?.keyword
         ? {
@@ -212,6 +225,23 @@ export class ListingsService {
       this.prisma.listing.count({ where }),
     ]);
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  // Single definition of "visible to everyone", shared by the search and the location suggestions.
+  private publicListingWhere(): Prisma.ListingWhereInput {
+    return { status: ListingStatus.ACTIVE };
+  }
+
+  // Read-only and public: only Listing.location of publicly visible listings, grouped over every row
+  // (not limited to one page of search results).
+  async findLocations() {
+    const rows = await this.prisma.listing.groupBy({
+      by: ['location'],
+      where: this.publicListingWhere(),
+      _count: { _all: true },
+    });
+    const items = buildLocationSuggestions(rows.map((r) => ({ location: r.location, count: r._count._all })));
+    return { items };
   }
 
   private publicCategoryFilter(category?: ListingCategoryDto) {
@@ -391,8 +421,26 @@ export class ListingsService {
   }
 
   async remove(id: string, providerId: string) {
-    await this.assertOwner(id, providerId);
-    await this.prisma.listing.delete({ where: { id } });
+    const listing = await this.assertOwner(id, providerId);
+    if (listing.status === ListingStatus.ACTIVE) {
+      throw new ConflictException({
+        code: 'LISTING_ACTIVE',
+        message: 'Sản phẩm đang cho thuê nên không thể xoá. Hãy tạm ẩn sản phẩm trước.',
+      });
+    }
+    // Bookings keep contracts, invoices and payments, so a listing with any booking history can only be paused
+    const bookings = await this.prisma.booking.count({ where: { listingId: id } });
+    if (bookings > 0) {
+      throw new ConflictException({
+        code: 'LISTING_HAS_BOOKINGS',
+        message: 'Sản phẩm đã có đơn thuê nên không thể xoá. Hãy tạm ẩn để ngừng cho thuê.',
+      });
+    }
+    // Other travelers' cart lines have no cascade and would otherwise block the delete
+    await this.prisma.$transaction([
+      this.prisma.cartItem.deleteMany({ where: { listingId: id } }),
+      this.prisma.listing.delete({ where: { id } }),
+    ]);
     return { ok: true };
   }
 

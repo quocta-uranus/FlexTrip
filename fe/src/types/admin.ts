@@ -1,3 +1,7 @@
+import type {
+  ReportFrequency, ReportType, TicketCategory, TicketMessage, TicketPriority, TicketStatus, TicketTriageSource,
+} from "./support";
+
 export type Role = "TRAVELER" | "PROVIDER" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DISABLED";
 export type ListingStatus =
@@ -36,7 +40,9 @@ export type AuditModule =
   | "STAFF"
   | "KYC"
   | "PROVIDER"
-  | "REVIEW";
+  | "REVIEW"
+  | "SUPPORT"
+  | "REPORT";
 export type ReviewStatus = "PENDING" | "PUBLISHED" | "FLAGGED" | "REJECTED";
 export type ReviewSentiment = "POSITIVE" | "NEUTRAL" | "NEGATIVE" | "UNKNOWN";
 export type ReviewQueueStatus =
@@ -152,13 +158,14 @@ export interface AdminDispute {
   provider: Ref & { shopName: string | null };
   amount: number;
   requestedAmount: number | null;
+  refundAmount: number | null;
   reason: string;
   createdAt: string;
 }
 export interface AdminDisputeDetail extends AdminDispute {
   description: string | null;
   resolution: string | null;
-  refundAmount: number | null;
+  penaltyAmount: number | null;
   openedBy: Ref;
   handledBy: Ref | null;
   resolvedAt: string | null;
@@ -174,15 +181,18 @@ export interface AdminDisputeDetail extends AdminDispute {
     id: string;
     amount: number;
     platformFee: number;
+    refundedAmount: number | null;
     status: PaymentStatus;
     method: string;
     transactionId: string | null;
   } | null;
   contract: {
     status: string;
-    signedAt: string | null;
-    checkInPhoto: string | null;
-    checkOutPhoto: string | null;
+    travelerSignedAt: string | null;
+    providerSignedAt: string | null;
+    checkInPhotos: string[];
+    // Older staff returns stored a bare URL or `{ push }`, so entries are not always `{ url }`
+    checkOutPhotos: unknown;
   } | null;
   history: AuditLogItem[];
 }
@@ -380,7 +390,7 @@ export interface AdminBookingRow {
   listing: { id: string; title: string; location: string; imageUrls: string[] };
   traveler: { id: string; name: string; email: string; phone: string | null; avatarUrl: string | null };
   assignedStaff: { id: string; name: string; avatarUrl: string | null; staffProfile: { employeeCode: string } | null } | null;
-  payment: { status: string; method: string } | null;
+  payment: { status: string; gateway: string } | null;
   _count: { staffMediations: number };
 }
 export interface AdminBookingDetail extends AdminBookingRow {
@@ -400,7 +410,99 @@ export interface AdminBookingDetail extends AdminBookingRow {
     phone: string | null;
     staffProfile: { employeeCode: string; phone: string | null; regions: string[] } | null;
   }) | null;
-  payment: { id: string; status: string; method: string; amount: number; transactionId: string | null } | null;
+  payment: { id: string; status: string; gateway: string; totalAmount: number; gatewayTransId: string | null } | null;
   contract: { id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null } | null;
   staffMediations: { id: string; status: string; issue: string; resolution: string | null; createdAt: string }[];
+}
+
+export type LedgerStatus = 'PENDING' | 'SETTLED' | 'CANCELLED';
+export interface CommissionRow {
+  id: string;
+  bookingId: string;
+  listingTitle: string | null;
+  travelerName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  gateway: string | null;
+  platformFee: number;
+  staffFee: number;
+  providerNet: number;
+  staffId: string | null;
+  staffName: string | null;
+  status: LedgerStatus;
+  settledAt: string | null;
+  createdAt: string;
+}
+export interface CommissionList extends Paginated<CommissionRow> {
+  summary: { count: number; platformFee: number; staffFee: number; providerNet: number };
+}
+export interface StaffCommissionSummary {
+  staff: { id: string; name: string; email: string } | null;
+  totalEarned: number;
+  bookingCount: number;
+  rows: {
+    bookingId: string;
+    listingTitle: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    staffFee: number;
+    settledAt: string | null;
+  }[];
+}
+
+// ── Support & reports ─────────────────────────────────────────────────────────
+export interface AdminTicketItem {
+  id: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  triageSource: TicketTriageSource;
+  requester: { id: string; name: string; email: string };
+  assignedTo: { id: string; name: string } | null;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface AdminTicketDetail extends AdminTicketItem {
+  description: string;
+  triageReason: string | null;
+  resolvedAt: string | null;
+  booking: { id: string; status: string; title: string } | null;
+  messages: TicketMessage[];
+}
+export interface TicketStats {
+  byStatus: Record<TicketStatus, number>;
+  activeByCategory: Partial<Record<TicketCategory, number>>;
+  unassigned: number;
+}
+export interface AdminFaq {
+  id: string;
+  question: string;
+  answer: string;
+  category: TicketCategory;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface FaqSuggestion {
+  category: TicketCategory;
+  ticketCount: number;
+  sampleTicketIds: string[];
+  question: string;
+  answer: string;
+  source: "AI" | "RULES";
+}
+export interface ReportSchedule {
+  id: string;
+  name: string;
+  type: ReportType;
+  frequency: ReportFrequency;
+  recipients: string[];
+  isActive: boolean;
+  nextRunAt: string;
+  lastRunAt: string | null;
+  lastError: string | null;
+  createdBy: { id: string; name: string } | null;
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PillButton } from '@/components/ui/pill-button';
-import { Menu, X, ChevronDown, Compass, User, ClipboardList, Package, LogOut, Heart } from 'lucide-react';
+import { Menu, X, ChevronDown, Compass, User, ClipboardList, Package, LifeBuoy, LogOut, Heart } from 'lucide-react';
 import { useLogout } from '@/hooks/useAuthMutations';
 import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
@@ -47,7 +47,9 @@ export function LandingHeader() {
     { href: '#categories', label: 'Danh mục' },
     { href: '#how-it-works', label: 'Cách hoạt động' },
     { href: '#featured', label: 'Khám phá' },
-    { href: '/register-provider', label: 'Trở thành Provider' },
+    isProvider
+      ? { href: '/dashboard', label: 'Dashboard' }
+      : { href: '/become-provider', label: 'Trở thành Provider' },
   ];
 
   return (
@@ -124,6 +126,27 @@ export function LandingHeader() {
                   </div>
 
                   <div className="py-1">
+                    {isStaff && (
+                      <>
+                        <Link
+                          href="/staff"
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <ClipboardList className="h-4 w-4 text-slate-500" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/staff/bookings"
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <ClipboardList className="h-4 w-4 text-slate-500" />
+                          Booking của tôi
+                        </Link>
+                      </>
+                    )}
+
                     <Link
                       href={profileHref}
                       className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
@@ -133,14 +156,27 @@ export function LandingHeader() {
                       Hồ sơ cá nhân
                     </Link>
 
-                    <Link
-                      href="/bookings"
-                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <ClipboardList className="h-4 w-4 text-slate-500" />
-                      Đơn thuê của tôi
-                    </Link>
+                    {!isStaff && (
+                      <Link
+                        href="/bookings"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <ClipboardList className="h-4 w-4 text-slate-500" />
+                        Đơn thuê của tôi
+                      </Link>
+                    )}
+
+                    {!isAdmin && !isStaff && (
+                      <Link
+                        href="/support"
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#161513] hover:bg-[#F7F5F0] rounded-xl mx-1 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <LifeBuoy className="h-4 w-4 text-slate-500" />
+                        Hỗ trợ
+                      </Link>
+                    )}
 
                     {!isAdmin && !isStaff && (
                       <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useBooking, useCancelBooking, useDeclineBooking, useStartBooking, useCompleteBooking } from '@/hooks/useBookings';
@@ -10,19 +10,23 @@ import type { BookingStatus, ModifyRequestStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
 import { ReviewForm } from '@/components/reviews/review-form';
+import { SubmittedReview } from '@/components/reviews/submitted-review';
 import { useMyReviews } from '@/hooks/useReviews';
 import { useContract } from '@/hooks/useContracts';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
 import type { ContractStatus } from '@/types/contract';
 import { printContract } from '@/lib/printContract';
+import { useInitiatePayment, usePayRental, useWallet } from '@/hooks/usePayments';
 
 const STATUS_STEPS: BookingStatus[] = ['PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
 function BookingDetailContent() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const justCreated = searchParams.get('created') === '1';
+  const justSigned = searchParams.get('pay') === '1';
   const { user } = useAuthStore();
   const { data: myReviews } = useMyReviews(user?.roles.includes('TRAVELER') ?? false);
   const { data: booking, isLoading, error } = useBooking(id);
@@ -45,6 +49,35 @@ function BookingDetailContent() {
   const [modifyError, setModifyError] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const initiatePayment = useInitiatePayment();
+  const payRental = usePayRental();
+  const { data: wallet } = useWallet();
+  const [payError, setPayError] = useState<string | null>(null);
+
+  const handlePay = async (gateway: 'PAYOS' | 'WALLET', stage: 'deposit' | 'rental' = 'deposit') => {
+    if (!booking) return;
+    setPayError(null);
+    const pay = stage === 'rental' ? payRental : initiatePayment;
+    try {
+      const result = await pay.mutateAsync({
+        bookingId: booking.id,
+        dto: {
+          gateway,
+          returnUrl: `${window.location.origin}/payment/return`,
+          cancelUrl: `${window.location.origin}/payment/cancel`,
+        },
+      });
+      console.log('[PAY] initiate result:', result);
+      if ('redirectUrl' in result && result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        router.push(`/bookings/${booking.id}`);
+      }
+    } catch (err: unknown) {
+      console.error('[PAY] error:', err);
+      setPayError(err instanceof Error ? err.message : 'Thanh toán thất bại. Vui lòng thử lại.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -82,6 +115,15 @@ function BookingDetailContent() {
   const deposit = typeof booking.depositAmount === 'number'
     ? booking.depositAmount
     : Number(booking.depositAmount ?? 0);
+  const rentalAmount = Math.max(price - deposit, 0);
+  const rentalUnpaid =
+    booking.status === 'CONFIRMED' &&
+    booking.payment?.status === 'PAID' &&
+    !booking.payment.rentalPaidAt &&
+    rentalAmount > 0;
+  const balanceDueText = booking.balanceDueAt
+    ? new Date(booking.balanceDueAt).toLocaleString('vi-VN')
+    : null;
   const daysUntilStart = Math.ceil(
     (new Date(booking.startDate).getTime() - Date.now()) / 86_400_000,
   );
@@ -105,6 +147,16 @@ function BookingDetailContent() {
 
   return (
     <div className="space-y-6">
+      {/* Post-sign nudge */}
+      {justSigned && booking.status === 'PENDING_PAYMENT' && (
+        <div className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: '#bfdbfe', background: '#eff6ff', color: '#1d4ed8' }}>
+          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Hợp đồng đã được ký. Chọn phương thức thanh toán bên dưới để hoàn tất đặt thuê.
+        </div>
+      )}
+
       {/* Success toast */}
       {justCreated && (
         <div className="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: 'rgba(146,238,232,0.4)', background: 'rgba(146,238,232,0.12)', color: '#15803d' }}>
@@ -221,7 +273,7 @@ function BookingDetailContent() {
           )}
 
           {/* Assigned staff card */}
-          {booking.assignedStaff && !['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
+          {booking.assignedStaff && !['PENDING_PAYMENT', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Staff phụ trách</span>
@@ -259,7 +311,7 @@ function BookingDetailContent() {
 
               <div className="mt-4 rounded-xl px-3 py-2.5 text-xs leading-relaxed" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
                 <span className="mr-1.5 text-base">🛡️</span>
-                Staff sẽ đảm nhận bàn giao thiết bị, hỗ trợ giải quyết tranh chấp và theo sát đơn thuê của bạn.
+                Staff trực tiếp bàn giao thiết bị để bắt đầu thuê, kiểm tra và nhận lại khi kết thúc. Đơn chỉ được bắt đầu và hoàn thành khi staff xác nhận, đồng thời staff hỗ trợ giải quyết tranh chấp nếu có.
               </div>
             </div>
           )}
@@ -279,16 +331,143 @@ function BookingDetailContent() {
                     : '—'}
                 </span>
               </div>
+              {deposit > 0 && (
+                <div className="flex justify-between">
+                  <span style={{ color: '#5a6b85' }}>Tiền cọc</span>
+                  <span style={{ color: '#0f1729' }}>{deposit.toLocaleString('vi-VN')} VND</span>
+                </div>
+              )}
               <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
                 <span style={{ color: '#0f1729' }}>Tổng cộng</span>
                 <span style={{ color: '#2a7bd9' }}>{price.toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
               </div>
-              {booking.payment && (
+              {booking.payment?.status === 'PAID' && (
+                <div className="mt-3 flex items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: '#16a34a' }}>
+                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#15803d' }}>
+                        {rentalUnpaid || (isPendingApproval && rentalAmount > 0 && !booking.payment.rentalPaidAt)
+                          ? 'Đã đặt cọc'
+                          : 'Đã thanh toán'}
+                      </p>
+                      <p className="text-xs" style={{ color: '#5a6b85' }}>
+                        Qua {booking.payment.gateway ?? booking.payment.method ?? '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/bookings/${booking.id}/invoice`}
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                    style={{ background: '#15803d', color: '#fff' }}
+                  >
+                    Hóa đơn
+                  </Link>
+                </div>
+              )}
+              {booking.payment && booking.payment.status !== 'PAID' && (
                 <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
-                  Phương thức: {booking.payment.method} · Trạng thái: {booking.payment.status}
+                  Cổng TT: {booking.payment.gateway ?? booking.payment.method ?? '—'} · Trạng thái: {booking.payment.status}
                 </div>
               )}
             </div>
+
+            {/* PAY-01: Payment initiation for traveler when PENDING_PAYMENT */}
+            {!isProvider && booking.status === 'PENDING_PAYMENT' && (
+              <div className="mt-4 space-y-2.5">
+                <div className="rounded-xl bg-[#f6fbfe] px-3 py-2.5 text-xs leading-relaxed text-[#5a6b85]">
+                  Bây giờ bạn chỉ cần <strong className="text-[#0f1729]">đặt cọc {deposit.toLocaleString('vi-VN')} VND</strong>.
+                  Phần tiền thuê còn lại ({rentalAmount.toLocaleString('vi-VN')} VND) thanh toán sau khi provider xác nhận đơn, trong vòng 24 giờ.
+                </div>
+                <p className="text-xs font-semibold" style={{ color: '#0f1729' }}>Chọn phương thức thanh toán</p>
+                {payError && (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{payError}</p>
+                )}
+                <button
+                  type="button"
+                  disabled={initiatePayment.isPending}
+                  onClick={() => handlePay('PAYOS')}
+                  className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:opacity-50"
+                  style={{ borderColor: '#DCEFFB' }}
+                >
+                  <span style={{ color: '#0f1729' }}>PayOS</span>
+                  <span className="text-xs" style={{ color: '#5a6b85' }}>Chuyển khoản · Thẻ ATM · VISA</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={initiatePayment.isPending || !wallet || wallet.availableBalance < deposit}
+                  onClick={() => handlePay('WALLET')}
+                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="text-[#0f1729]">Ví FlexTrip</span>
+                  <span className={`text-xs ${wallet && wallet.availableBalance >= deposit ? 'text-green-600' : 'text-red-500'}`}>
+                    Số dư: {(wallet?.availableBalance ?? 0).toLocaleString('vi-VN')} VND
+                    {wallet && wallet.availableBalance < deposit ? ' · không đủ' : ''}
+                  </span>
+                </button>
+                {(!wallet || wallet.availableBalance < deposit) && (
+                  <Link href="/profile/payments" className="block text-center text-xs font-semibold text-[#2a7bd9] hover:underline">
+                    Nạp thêm tiền vào ví
+                  </Link>
+                )}
+                {initiatePayment.isPending && (
+                  <p className="text-center text-xs" style={{ color: '#8694ad' }}>Đang xử lý…</p>
+                )}
+              </div>
+            )}
+
+            {/* PAY-01b: traveler trả nốt tiền thuê sau khi provider duyệt */}
+            {!isProvider && rentalUnpaid && (
+              <div className="mt-4 space-y-2.5">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+                  Provider đã xác nhận đơn. Vui lòng thanh toán <strong>{rentalAmount.toLocaleString('vi-VN')} VND</strong> tiền thuê
+                  {balanceDueText ? <> trước <strong>{balanceDueText}</strong></> : null}, quá hạn đơn sẽ bị huỷ.
+                </div>
+                {payError && (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{payError}</p>
+                )}
+                <button
+                  type="button"
+                  disabled={payRental.isPending}
+                  onClick={() => handlePay('PAYOS', 'rental')}
+                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:opacity-50"
+                >
+                  <span className="text-[#0f1729]">Thanh toán qua PayOS</span>
+                  <span className="text-xs text-[#5a6b85]">Chuyển khoản · Thẻ ATM · VISA</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={payRental.isPending || !wallet || wallet.availableBalance < rentalAmount}
+                  onClick={() => handlePay('WALLET', 'rental')}
+                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="text-[#0f1729]">Ví FlexTrip</span>
+                  <span className={`text-xs ${wallet && wallet.availableBalance >= rentalAmount ? 'text-green-600' : 'text-red-500'}`}>
+                    Số dư: {(wallet?.availableBalance ?? 0).toLocaleString('vi-VN')} VND
+                    {wallet && wallet.availableBalance < rentalAmount ? ' · không đủ' : ''}
+                  </span>
+                </button>
+                {(!wallet || wallet.availableBalance < rentalAmount) && (
+                  <Link href="/profile/payments" className="block text-center text-xs font-semibold text-[#2a7bd9] hover:underline">
+                    Nạp thêm tiền vào ví
+                  </Link>
+                )}
+                {payRental.isPending && (
+                  <p className="text-center text-xs text-[#8694ad]">Đang xử lý…</p>
+                )}
+              </div>
+            )}
+
+            {isProvider && rentalUnpaid && (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+                Đang chờ khách thanh toán tiền thuê còn lại{balanceDueText ? <> (hạn {balanceDueText})</> : null}.
+                Bạn chỉ giao hàng sau khi khách đã thanh toán.
+              </p>
+            )}
           </div>
 
           {/* Actions */}
@@ -325,19 +504,26 @@ function BookingDetailContent() {
             )}
 
             {/* Provider: start rental */}
-            {isProvider && booking.status === 'CONFIRMED' && (
+            {isProvider && booking.assignedStaff && ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && (
+              <p className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-800">
+                Nhân viên <strong>{booking.assignedStaff.name}</strong> sẽ{' '}
+                {booking.status === 'CONFIRMED' ? 'bàn giao thiết bị và bắt đầu cuộc thuê' : 'kiểm tra, nhận lại thiết bị và hoàn thành cuộc thuê'}.
+                Bạn không cần thao tác bước này.
+              </p>
+            )}
+            {isProvider && !booking.assignedStaff && booking.status === 'CONFIRMED' && (
               <button
                 onClick={() => startBooking.mutate(booking.id)}
-                disabled={startBooking.isPending}
+                disabled={startBooking.isPending || rentalUnpaid}
                 className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-50"
                 style={{ background: '#16a34a' }}
               >
-                {startBooking.isPending ? 'Đang xử lý…' : '▶ Bắt đầu cho thuê'}
+                {startBooking.isPending ? 'Đang xử lý…' : rentalUnpaid ? 'Chờ khách thanh toán' : '▶ Bắt đầu cho thuê'}
               </button>
             )}
 
             {/* Provider: complete rental */}
-            {isProvider && booking.status === 'IN_PROGRESS' && (
+            {isProvider && !booking.assignedStaff && booking.status === 'IN_PROGRESS' && (
               <button
                 onClick={() => completeBooking.mutate(booking.id)}
                 disabled={completeBooking.isPending}
@@ -624,6 +810,46 @@ function BookingDetailContent() {
         </div>
       </div>
 
+      {/* Handover / return record confirmed by the assigned staff */}
+      {booking.assignedStaff && (booking.checkedInAt || booking.checkedOutAt) && (() => {
+        // Early staff returns stored `{ push: url }` instead of a list, so tolerate non-array values
+        const rawReturn: unknown = contract?.checkOutPhotos;
+        const returnPhotos = (Array.isArray(rawReturn) ? rawReturn : [rawReturn])
+          .map((p) => (typeof p === 'string' ? p : (p as { url?: string; push?: string } | null)?.url ?? (p as { push?: string } | null)?.push))
+          .filter((u): u is string => typeof u === 'string');
+        const records = [
+          { key: 'in', title: 'Biên bản bàn giao', at: booking.checkedInAt, note: booking.handoverCondition, photos: contract?.checkInPhotos ?? [] },
+          { key: 'out', title: 'Biên bản nhận lại', at: booking.checkedOutAt, note: booking.returnCondition, photos: returnPhotos },
+        ].filter((r) => r.at);
+        return (
+          <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: '#DCEFFB' }}>
+            <div className="px-5 py-4" style={{ background: '#f6fbfe', borderBottom: '1px solid #DCEFFB' }}>
+              <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Biên bản giao nhận do nhân viên xác nhận</span>
+            </div>
+            <div className="space-y-5 px-5 py-4">
+              {records.map((r) => (
+                <div key={r.key}>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#8694ad' }}>{r.title}</p>
+                  <p className="mt-1 text-xs" style={{ color: '#15803d' }}>
+                    ✓ {booking.assignedStaff?.name} xác nhận lúc {new Date(r.at as string).toLocaleString('vi-VN')}
+                  </p>
+                  {r.note && <p className="mt-2 whitespace-pre-line text-sm" style={{ color: '#5a6b85' }}>{r.note}</p>}
+                  {r.photos.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {r.photos.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noreferrer">
+                          <img src={url} alt={`${r.title} ${i + 1}`} className="h-24 w-24 rounded-lg object-cover ring-1 ring-[#DCEFFB]" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Contract section — visible throughout rental */}
       {contract && (
         <div className="rounded-2xl border bg-white overflow-hidden" style={{ borderColor: '#DCEFFB' }}>
@@ -696,31 +922,7 @@ function BookingDetailContent() {
         <ReviewForm bookingId={booking.id} />
       )}
 
-      {!isProvider && currentReview && (
-        <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-          <h2 className="text-sm font-semibold" style={{ color: '#0f1729' }}>Đánh giá của bạn</h2>
-          <p className="mt-2 text-xl" style={{ color: '#f59e0b' }}>{'★'.repeat(currentReview.rating)}{'☆'.repeat(5 - currentReview.rating)}</p>
-          <p className="mt-2 text-sm" style={{ color: '#5a6b85' }}>{currentReview.comment}</p>
-          {currentReview.status === 'PENDING' && (
-            <p className="mt-2 text-xs" style={{ color: '#a16207' }}>AI đang phân tích đánh giá trước khi hiển thị công khai.</p>
-          )}
-          {currentReview.status === 'FLAGGED' && (
-            <p className="mt-2 text-xs" style={{ color: '#a16207' }}>Đánh giá cần Admin kiểm duyệt trước khi có thể công khai.</p>
-          )}
-          {currentReview.status === 'PUBLISHED' && (
-            <p className="mt-2 text-xs" style={{ color: '#15803d' }}>Đánh giá đã được công khai.</p>
-          )}
-          {currentReview.status === 'REJECTED' && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-              <p className="text-sm font-semibold text-red-700">Đánh giá không được công khai</p>
-              <p className="mt-1 text-xs leading-5 text-red-600">
-                Lý do: {currentReview.rejectionReason ?? 'Đánh giá không đáp ứng chính sách nội dung.'}
-              </p>
-              <p className="mt-1 text-xs text-red-500">Đánh giá này chỉ bạn và quản trị viên nhìn thấy.</p>
-            </div>
-          )}
-        </div>
-      )}
+      {!isProvider && currentReview && <SubmittedReview review={currentReview} />}
 
       {/* Modify requests history */}
       {!!modifyRequests?.length && (

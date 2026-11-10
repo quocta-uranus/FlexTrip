@@ -77,21 +77,28 @@ type Props = {
 
 export function PriceSuggestionCard({ category, location, title, currentPrice, listingId, onApply }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [requested, setRequested] = useState(false);
   const canRequest = !!(category && location);
+  // The query is keyed on this snapshot, taken only when the user clicks, so typing a price never re-triggers the AI call
+  const [snapshot, setSnapshot] = useState<{
+    category: string; location: string; title?: string; currentPrice?: number; listingId?: string;
+  } | null>(null);
 
-  const { data, isLoading, isError, refetch } = usePriceSuggestion(
-    requested && canRequest ? { category, location, title, currentPrice, listingId } : null,
-  );
+  const { data, isLoading, isError, refetch } = usePriceSuggestion(snapshot);
 
   if (!canRequest) return null;
 
+  const request = () => {
+    const next = { category, location, title, currentPrice, listingId };
+    if (snapshot && JSON.stringify(snapshot) === JSON.stringify(next)) refetch();
+    else setSnapshot(next);
+  };
+
   // Not yet requested — show trigger button
-  if (!requested) {
+  if (!snapshot) {
     return (
       <button
         type="button"
-        onClick={() => setRequested(true)}
+        onClick={request}
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#2a7bd9]/40 bg-[#f8fafc] py-3 text-sm font-semibold text-[#2a7bd9] transition-all hover:border-[#2a7bd9] hover:bg-[#eff6ff]"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -142,7 +149,7 @@ export function PriceSuggestionCard({ category, location, title, currentPrice, l
           <DemandBadge score={data.demand.score} trend={data.demand.trend} />
           <button
             type="button"
-            onClick={() => refetch()}
+            onClick={request}
             className="flex h-6 w-6 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#2a7bd9]"
             title="Làm mới"
           >

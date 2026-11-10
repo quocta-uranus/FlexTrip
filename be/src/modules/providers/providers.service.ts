@@ -12,7 +12,7 @@ export class ProvidersService {
       include: {
         roles: true,
         providerProfile: true,
-        wallet: { select: { balance: true, currency: true } },
+        wallet: { select: { availableBalance: true, frozenBalance: true, currency: true } },
       },
     });
 

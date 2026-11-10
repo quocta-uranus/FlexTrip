@@ -29,7 +29,7 @@ export function ListingCard({ listing, href }: ListingCardProps) {
   return (
     <Link
       href={dest}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white transition-all duration-300 hover:-translate-y-1"
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white transition-all duration-300 hover:-translate-y-1"
       style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
     >
       {/* ── Image ── */}
@@ -115,11 +115,9 @@ export function ListingCard({ listing, href }: ListingCardProps) {
           )}
         </div>
 
-        {listing.provider?.providerProfile?.shopName && (
-          <p className="truncate text-[11px]" style={{ color: '#94a3b8' }}>
-            🏪 {listing.provider.providerProfile.shopName}
-          </p>
-        )}
+        <p className="h-4 truncate text-[11px]" style={{ color: '#94a3b8' }}>
+          {listing.provider?.providerProfile?.shopName ? `🏪 ${listing.provider.providerProfile.shopName}` : ''}
+        </p>
       </div>
     </Link>
   );

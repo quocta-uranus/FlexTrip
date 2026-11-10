@@ -207,9 +207,62 @@ enum PayoutStatus {
   ON_HOLD
 }
 
+enum WithdrawStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AiChatRole {
   USER
   ASSISTANT
+}
+
+enum PaymentGateway {
+  WALLET
+  PAYOS
+}
+
+enum WalletTxType {
+  CREDIT
+  DEBIT
+  FREEZE
+  UNFREEZE
+  TOPUP
+  PAYOUT
+  REFUND
+  COMMISSION_SPLIT
+}
+
+enum WalletTxStatus {
+  PENDING
+  SETTLED
+  FAILED
+  REVERSED
+}
+
+enum LedgerStatus {
+  PENDING
+  SETTLED
+  CANCELLED
+}
+
+enum RefundReason {
+  CANCELLATION
+  DISPUTE
+  SYSTEM
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum TopupStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 // ─── User & Auth ─────────────────────────────────────────────────────────────
@@ -276,7 +329,16 @@ model User {
   reviewsReceived     Review[]               @relation("ReviewsReceived")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
-  wishlistItems      Wishlist[]
+  wishlistItems       Wishlist[]
+  searchHistory      SearchHistory[]
+
+  // support & reports
+  supportTickets  SupportTicket[]        @relation("TicketRequester")
+  assignedTickets SupportTicket[]        @relation("TicketAssignee")
+  ticketMessages  SupportTicketMessage[] @relation("TicketMessageAuthor")
+  reportSchedules ReportSchedule[]       @relation("ReportScheduleCreator")
+
+
 
   // admin
   staffProfile     StaffProfile?
@@ -287,6 +349,7 @@ model User {
   disputesHandled  Dispute[]             @relation("DisputeHandler")
   payouts          Payout[]              @relation("ProviderPayouts")
   payoutsCreated   Payout[]              @relation("PayoutCreator")
+  withdrawRequests WithdrawRequest[]
   configUpdates    SystemConfig[]        @relation("ConfigUpdater")
   auditLogs        AuditLog[]            @relation("AuditActor")
   staffRules       StaffAssignmentRule[] @relation("StaffRules")
@@ -411,11 +474,11 @@ model Listing {
 
   // CONTR-02: điều khoản hợp đồng
   penaltyRules  Json?
-  conditionNote String?  @db.Text
+  conditionNote String? @db.Text
 
   // CONTR-05: giá trị cao
-  marketValue   Decimal? @db.Decimal(12, 2)
-  isHighValue   Boolean  @default(false)
+  marketValue Decimal? @db.Decimal(12, 2)
+  isHighValue Boolean  @default(false)
 
   provider      User                  @relation(fields: [providerId], references: [id])
   bookings      Booking[]
@@ -426,10 +489,27 @@ model Listing {
   wishlistItems Wishlist[]
   priceHistory  PriceHistory[]
   priceConfig   ListingPriceConfig?
+  embedding     ListingEmbedding?
 
   @@index([providerId])
   @@index([status])
   @@index([location])
+}
+
+// ─── Search history ──────────────────────────────────────────────────────────
+
+// What a user searched for, used only to rank their personalised recommendations.
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  keyword   String?
+  category  String?
+  location  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // ─── Wishlist ────────────────────────────────────────────────────────────────
@@ -449,6 +529,17 @@ model Wishlist {
 }
 
 // ─── Booking ─────────────────────────────────────────────────────────────────
+
+// AIREC: vector ngữ nghĩa của listing để gợi ý "tương tự" / "dành cho bạn"
+model ListingEmbedding {
+  listingId   String   @id
+  vector      Float[]
+  contentHash String
+  model       String
+  updatedAt   DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
 
 model Booking {
   id              String        @id @default(cuid())
@@ -475,6 +566,9 @@ model Booking {
   // BOOK-03: temporary hold
   holdExpiresAt DateTime?
 
+  // Hạn traveler trả nốt tiền thuê sau khi provider duyệt (24h)
+  balanceDueAt DateTime?
+
   // BOOK-08: check-in/out (deferred, schema sẵn)
   checkedInAt       DateTime?
   checkedOutAt      DateTime?
@@ -492,7 +586,8 @@ model Booking {
   disputes        Dispute[]
   modifyRequests  BookingModifyRequest[]
   staffMediations StaffMediation[]
-  review           Review?
+  review          Review?
+  supportTickets  SupportTicket[]
 
   @@index([travelerId])
   @@index([listingId])
@@ -574,21 +669,38 @@ model BookingModifyRequest {
 // ─── Payment ─────────────────────────────────────────────────────────────────
 
 model Payment {
-  id              String        @id @default(cuid())
-  amount          Decimal       @db.Decimal(10, 2)
-  currency        String        @default("VND")
-  platformFee     Decimal       @default(0) @db.Decimal(10, 2)
-  status          PaymentStatus @default(PENDING)
-  method          String
-  transactionId   String?       @unique
-  gatewayResponse Json?
-  bookingId       String        @unique
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String         @id @default(cuid())
+  totalAmount      Decimal        @default(0) @db.Decimal(10, 2)
+  rentalAmount     Decimal        @default(0) @db.Decimal(10, 2)
+  depositAmount    Decimal        @default(0) @db.Decimal(10, 2)
+  currency         String         @default("VND")
+  platformFee      Decimal        @default(0) @db.Decimal(10, 2)
+  staffFee         Decimal        @default(0) @db.Decimal(10, 2)
+  providerNet      Decimal        @default(0) @db.Decimal(10, 2)
+  refundedAmount   Decimal        @default(0) @db.Decimal(10, 2)
+  status           PaymentStatus  @default(PENDING)
+  gateway          PaymentGateway @default(WALLET)
+  gatewayOrderCode String?
+  gatewayTransId   String?        @unique
+  gatewayResponse  Json?
 
-  booking Booking @relation(fields: [bookingId], references: [id])
+  // Phần tiền thuê trả sau khi provider duyệt; gateway/gatewayOrderCode ở trên chỉ là của lần trả cọc
+  rentalPaidAt    DateTime?
+  rentalGateway   PaymentGateway?
+  rentalOrderCode String?
+  rentalTransId   String?         @unique
+
+  bookingId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking          Booking             @relation(fields: [bookingId], references: [id])
+  commissionLedger CommissionLedger?
+  refundRecords    RefundRecord[]
+  webhookLogs      PaymentWebhookLog[]
 
   @@index([status])
+  @@index([gateway])
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -769,14 +881,14 @@ model Review {
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 model TravelPreference {
-  id        String   @id @default(cuid())
-  userId    String
-  tripType  String
-  budgetMin Decimal? @db.Decimal(10, 2)
-  budgetMax Decimal? @db.Decimal(10, 2)
+  id                  String   @id @default(cuid())
+  userId              String
+  tripType            String
+  budgetMin           Decimal? @db.Decimal(10, 2)
+  budgetMax           Decimal? @db.Decimal(10, 2)
   preferredCategories String[] @default([])
-  budgetScope String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetScope         String?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -795,32 +907,39 @@ model PaymentMethod {
 }
 
 model Wallet {
-  walletId  String   @id @default(cuid())
-  userId    String   @unique
-  balance   Decimal  @default(0) @db.Decimal(14, 2)
-  currency  String   @default("VND")
-  updatedAt DateTime @updatedAt
+  walletId         String   @id @default(cuid())
+  userId           String   @unique
+  availableBalance Decimal  @default(0) @db.Decimal(14, 2)
+  frozenBalance    Decimal  @default(0) @db.Decimal(14, 2)
+  pendingBalance   Decimal  @default(0) @db.Decimal(14, 2)
+  currency         String   @default("VND")
+  updatedAt        DateTime @updatedAt
 
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions WalletTransaction[]
+  topupRecords TopupRecord[]
 
   @@index([userId])
   @@map("wallets")
 }
 
 model WalletTransaction {
-  id        String   @id @default(cuid())
-  walletId  String
-  type      String
-  amount    Decimal  @db.Decimal(14, 2)
-  refType   String?
-  refId     String?
-  note      String?
-  createdAt DateTime @default(now())
+  id           String         @id @default(cuid())
+  walletId     String
+  type         WalletTxType
+  status       WalletTxStatus @default(SETTLED)
+  amount       Decimal        @db.Decimal(14, 2)
+  balanceAfter Decimal?       @db.Decimal(14, 2)
+  refType      String?
+  refId        String?
+  note         String?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [walletId], onDelete: Cascade)
 
   @@index([walletId])
+  @@index([refType, refId])
   @@map("wallet_transactions")
 }
 
@@ -845,9 +964,11 @@ model ProviderProfile {
   reviewsCount  Int     @default(0)
   responseTimeH Int     @default(24)
 
-  isLive       Boolean @default(true)
-  payoutMethod String?
-  bankAccount  String?
+  isLive              Boolean   @default(true)
+  payoutMethod        String?
+  bankAccount         String?
+  cancellationStrikes Int       @default(0)
+  strikeResetAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -996,6 +1117,37 @@ model Payout {
   @@index([status])
 }
 
+// Provider / Staff withdrawal request — individual cash-out requests pending admin approval
+model WithdrawRequest {
+  id          String         @id @default(cuid())
+  userId      String
+  amount      Decimal        @db.Decimal(14, 2)
+  bankName    String
+  bankAccount String
+  accountName String
+  status      WithdrawStatus @default(PENDING)
+  note        String?
+  adminNote   String?
+  processedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("withdraw_requests")
+}
+
+// Singleton row — tracks total wallet-payment money currently held in platform escrow
+model PlatformEscrow {
+  id        String   @id @default("singleton")
+  balance   Decimal  @default(0) @db.Decimal(14, 2)
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_escrow")
+}
+
 model SystemConfig {
   key         String   @id
   value       Json
@@ -1104,4 +1256,184 @@ model ListingPriceConfig {
   updatedAt  DateTime @updatedAt
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+// ─── Payment Phase 1 ─────────────────────────────────────────────────────────
+
+model CommissionLedger {
+  id          String       @id @default(cuid())
+  paymentId   String       @unique
+  bookingId   String
+  platformFee Decimal      @db.Decimal(10, 2)
+  staffFee    Decimal      @db.Decimal(10, 2)
+  providerNet Decimal      @db.Decimal(10, 2)
+  staffUserId String?
+  status      LedgerStatus @default(PENDING)
+  settledAt   DateTime?
+  createdAt   DateTime     @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([bookingId])
+}
+
+model RefundRecord {
+  id          String       @id @default(cuid())
+  paymentId   String
+  amount      Decimal      @db.Decimal(10, 2)
+  reason      RefundReason
+  status      RefundStatus @default(PENDING)
+  note        String?
+  processedAt DateTime?
+  createdAt   DateTime     @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+}
+
+model PaymentWebhookLog {
+  id        String         @id @default(cuid())
+  paymentId String?
+  gateway   PaymentGateway
+  payload   Json
+  verified  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([gateway, createdAt])
+}
+
+model TopupRecord {
+  id               String         @id @default(cuid())
+  walletId         String
+  amount           Decimal        @db.Decimal(14, 2)
+  status           TopupStatus    @default(PENDING)
+  gateway          PaymentGateway
+  gatewayOrderCode String?
+  gatewayTransId   String?        @unique
+  gatewayResponse  Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [walletId])
+
+  @@index([walletId])
+}
+
+// ─── Support & Reports ───────────────────────────────────────────────────────
+
+enum TicketCategory {
+  BOOKING
+  PAYMENT
+  ACCOUNT
+  LISTING
+  TECHNICAL
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketTriageSource {
+  PENDING
+  AI
+  RULES
+  ADMIN
+}
+
+enum ReportType {
+  REVENUE
+  BOOKINGS
+  COMMISSION
+}
+
+enum ReportFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+model SupportTicket {
+  id           String             @id @default(cuid())
+  requesterId  String
+  bookingId    String?
+  subject      String
+  description  String             @db.Text
+  category     TicketCategory     @default(OTHER)
+  priority     TicketPriority     @default(MEDIUM)
+  status       TicketStatus       @default(OPEN)
+  triageSource TicketTriageSource @default(PENDING)
+  triageReason String?
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  requester  User                   @relation("TicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  assignedTo User?                  @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  booking    Booking?               @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  messages   SupportTicketMessage[]
+
+  @@index([requesterId, createdAt])
+  @@index([status, priority, createdAt])
+  @@index([category, createdAt])
+}
+
+model SupportTicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  isStaff   Boolean  @default(false)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User          @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+model FaqArticle {
+  id          String         @id @default(cuid())
+  question    String
+  answer      String         @db.Text
+  category    TicketCategory @default(OTHER)
+  isPublished Boolean        @default(true)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([isPublished, category, sortOrder])
+}
+
+model ReportSchedule {
+  id          String          @id @default(cuid())
+  name        String
+  type        ReportType
+  frequency   ReportFrequency
+  recipients  String[]
+  isActive    Boolean         @default(true)
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+  lastError   String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  createdBy User? @relation("ReportScheduleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, nextRunAt])
 }
