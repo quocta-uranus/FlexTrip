@@ -27,6 +27,8 @@ const moduleColors: Record<string, { bg: string; text: string; icon: string }> =
   FINANCE: { bg: 'rgba(146,238,232,0.3)', text: '#1e5aa8', icon: '💰' },
   DISPUTE: { bg: 'rgba(249,115,22,0.1)', text: '#ea580c', icon: '⚖️' },
   STAFF: { bg: 'rgba(99,102,241,0.1)', text: '#4f46e5', icon: '👥' },
+  SUPPORT: { bg: 'rgba(20,184,166,0.1)', text: '#0d9488', icon: '🎧' },
+  REPORT: { bg: 'rgba(100,116,139,0.12)', text: '#475569', icon: '📊' },
 };
 
 const ACTION_TONE: [RegExp, string][] = [
@@ -36,7 +38,7 @@ const ACTION_TONE: [RegExp, string][] = [
 ];
 const toneOf = (a: string) => ACTION_TONE.find(([re]) => re.test(a))?.[1] ?? 'text-blue-600 bg-blue-50';
 
-const MODULES: (AuditModule | 'ALL')[] = ['ALL', 'USER', 'MODERATION', 'DISPUTE', 'FINANCE', 'CONFIG', 'STAFF', 'KYC', 'PROVIDER'];
+const MODULES: (AuditModule | 'ALL')[] = ['ALL', 'USER', 'MODERATION', 'DISPUTE', 'FINANCE', 'CONFIG', 'STAFF', 'KYC', 'PROVIDER', 'SUPPORT', 'REPORT'];
 
 export default function AuditLogPage() {
   const [search, setSearch] = useState('');
