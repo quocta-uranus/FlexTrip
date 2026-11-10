@@ -34,14 +34,16 @@ function NewTicketForm() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
-      <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
-      <h1 className="mt-3 text-3xl font-bold text-[#0f1729]">Gửi yêu cầu hỗ trợ</h1>
-      <p className="mt-1 text-sm text-[#5a6b85]">
+    <main className="min-h-screen bg-white">
+    <div className="mx-auto max-w-2xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
+      <Link href="/support" className="text-sm font-semibold text-brand-blue hover:underline">← Trung tâm hỗ trợ</Link>
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Hỗ trợ</p>
+      <h1 className="font-display mt-2 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">Gửi yêu cầu hỗ trợ</h1>
+      <p className="mt-3 text-sm text-slate-600">
         Mô tả vấn đề của bạn, hệ thống sẽ tự phân loại và chuyển đến đúng bộ phận. Chúng tôi phản hồi ngay trong ticket này.
       </p>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5 rounded-2xl border border-[#e2e8f3] bg-white p-6">
+      <form onSubmit={onSubmit} className="mt-7 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
         <div className="space-y-2">
           <Label htmlFor="subject">Tiêu đề</Label>
           <Input id="subject" placeholder="VD: Chưa nhận được tiền hoàn cọc" maxLength={150} aria-invalid={!!errors.subject} {...form.register('subject')} />
@@ -55,7 +57,7 @@ function NewTicketForm() {
         </div>
 
         {bookingId && (
-          <p className="rounded-xl bg-[#f1f8ff] px-4 py-3 text-xs text-[#2a7bd9]">
+          <p className="rounded-xl bg-sky-50 px-4 py-3 text-xs text-sky-700">
             Ticket sẽ được gắn với đơn thuê <span className="font-semibold">{bookingId}</span>.
           </p>
         )}
@@ -63,14 +65,15 @@ function NewTicketForm() {
         {errors.root && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{errors.root.message}</p>}
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" className="h-10 rounded-xl px-5" onClick={() => router.back()} disabled={create.isPending}>
+          <Button type="button" variant="outline" className="h-11 rounded-full px-5" onClick={() => router.back()} disabled={create.isPending}>
             Huỷ
           </Button>
-          <Button type="submit" className="h-10 rounded-xl bg-[#2a7bd9] px-6 font-semibold text-white hover:bg-[#1e5aa8]" disabled={create.isPending}>
+          <Button type="submit" className="h-11 rounded-full bg-brand px-6 font-bold text-white shadow-md shadow-brand/30 hover:bg-brand-blue" disabled={create.isPending}>
             {create.isPending ? 'Đang gửi…' : 'Gửi yêu cầu'}
           </Button>
         </div>
       </form>
+    </div>
     </main>
   );
 }

@@ -32,17 +32,21 @@ export default function TicketDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-8 sm:px-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64 w-full" />
+      <main className="min-h-screen bg-white">
+        <div className="mx-auto max-w-3xl space-y-4 px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-64 w-full" />
+        </div>
       </main>
     );
   }
   if (error || !data) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-        <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
-        <p className="mt-4 text-sm text-red-600">{error instanceof Error ? error.message : 'Không tìm thấy ticket'}</p>
+      <main className="min-h-screen bg-white">
+        <div className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
+          <Link href="/support" className="text-sm font-semibold text-brand-blue hover:underline">← Trung tâm hỗ trợ</Link>
+          <p className="mt-4 text-sm text-red-600">{error instanceof Error ? error.message : 'Không tìm thấy ticket'}</p>
+        </div>
       </main>
     );
   }
@@ -50,20 +54,21 @@ export default function TicketDetailPage() {
   const closed = data.status === 'CLOSED';
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-      <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
+    <main className="min-h-screen bg-white">
+    <div className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
+      <Link href="/support" className="text-sm font-semibold text-brand-blue hover:underline">← Trung tâm hỗ trợ</Link>
 
-      <div className="mt-3 rounded-2xl border border-[#e2e8f3] bg-white p-6">
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-xl font-bold text-[#0f1729]">{data.subject}</h1>
+          <h1 className="text-2xl font-bold text-ink">{data.subject}</h1>
           <TicketStatusBadge status={data.status} />
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8694ad]">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <TicketCategoryBadge category={data.category} />
           <span>Gửi lúc {formatDateTime(data.createdAt)}</span>
           {data.booking && <span>· Đơn thuê: {data.booking.title}</span>}
         </div>
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#0f1729]">{data.description}</p>
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-ink">{data.description}</p>
       </div>
 
       <section className="mt-6" aria-label="Hội thoại">
@@ -71,19 +76,19 @@ export default function TicketDetailPage() {
       </section>
 
       {closed ? (
-        <p className="mt-6 rounded-2xl bg-[#f1f5fa] px-5 py-4 text-center text-sm text-[#5a6b85]">
-          Ticket đã đóng. Nếu vẫn cần hỗ trợ, vui lòng <Link href="/support/new" className="font-semibold text-[#2a7bd9] hover:underline">tạo ticket mới</Link>.
+        <p className="mt-6 rounded-2xl bg-slate-100 px-5 py-4 text-center text-sm text-slate-600">
+          Ticket đã đóng. Nếu vẫn cần hỗ trợ, vui lòng <Link href="/support/new" className="font-semibold text-brand-blue hover:underline">tạo ticket mới</Link>.
         </p>
       ) : (
-        <form onSubmit={onSubmit} className="mt-6 space-y-3 rounded-2xl border border-[#e2e8f3] bg-white p-4">
+        <form onSubmit={onSubmit} className="mt-6 space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
           <Textarea rows={3} maxLength={4000} placeholder="Nhập phản hồi của bạn…" aria-label="Phản hồi" {...form.register('body')} />
           {form.formState.errors.body && <p className="text-xs font-medium text-red-600">{form.formState.errors.body.message}</p>}
           {form.formState.errors.root && <p className="text-xs font-medium text-red-600">{form.formState.errors.root.message}</p>}
           <div className="flex justify-between gap-3">
-            <Button type="button" variant="outline" className="h-10 rounded-xl px-4" onClick={() => setConfirmClose(true)}>
+            <Button type="button" variant="outline" className="h-11 rounded-full px-5" onClick={() => setConfirmClose(true)}>
               Đóng ticket
             </Button>
-            <Button type="submit" className="h-10 rounded-xl bg-[#2a7bd9] px-6 font-semibold text-white hover:bg-[#1e5aa8]" disabled={reply.isPending}>
+            <Button type="submit" className="h-11 rounded-full bg-brand px-6 font-bold text-white shadow-md shadow-brand/30 hover:bg-brand-blue" disabled={reply.isPending}>
               {reply.isPending ? 'Đang gửi…' : 'Gửi phản hồi'}
             </Button>
           </div>
@@ -99,6 +104,7 @@ export default function TicketDetailPage() {
         pending={close.isPending}
         onConfirm={() => close.mutate(undefined, { onSuccess: () => setConfirmClose(false) })}
       />
+    </div>
     </main>
   );
 }

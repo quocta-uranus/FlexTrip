@@ -36,6 +36,7 @@ import {
   Gift,
   UserPlus,
   Award,
+  LifeBuoy,
 } from 'lucide-react';
 
 interface SiteHeaderProps {
@@ -198,6 +199,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   const loyaltyItem = { href: '/profile/loyalty', label: 'Điểm thưởng', icon: icon(Gift) };
   const voucherItem = { href: '/profile/vouchers', label: 'Voucher của tôi', icon: icon(Ticket) };
   const walletItem = { href: '/profile/payments', label: 'Thanh toán & Ví', icon: icon(CreditCard) };
+  const supportItem = { href: '/support', label: 'Hỗ trợ', icon: icon(LifeBuoy) };
   const travelerItems = [
     profileItem,
     { href: '/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
@@ -206,6 +208,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     referralItem,
     voucherItem,
     walletItem,
+    supportItem,
   ];
   const providerItems = [
     profileItem,
@@ -218,6 +221,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     referralItem,
     voucherItem,
     walletItem,
+    supportItem,
   ];
   const menuItems = isAdmin
     ? [
@@ -233,7 +237,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
       : isDual
         ? mode === 'provider' ? providerItems : travelerItems
         : isProvider
-          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem)]
+          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem && item !== supportItem), supportItem]
           : travelerItems;
 
   const onHome = pathname === '/';
