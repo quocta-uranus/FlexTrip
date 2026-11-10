@@ -61,7 +61,7 @@ export class AdminAnalyticsService {
       this.prisma.userRole.count({ where: { role: Role.PROVIDER } }),
       this.prisma.listing.count({ where: { status: ListingStatus.ACTIVE } }),
       this.prisma.$queryRaw<{ category: string; revenue: Prisma.Decimal }[]>`
-        SELECT l.category, SUM(p.amount) AS revenue
+        SELECT l.category, SUM(p."totalAmount") AS revenue
         FROM "Payment" p JOIN "Booking" b ON b.id = p."bookingId" JOIN "Listing" l ON l.id = b."listingId"
         WHERE p.status::text = 'PAID' AND p."createdAt" BETWEEN ${r.from} AND ${r.to}
         GROUP BY l.category ORDER BY revenue DESC`,
@@ -110,7 +110,7 @@ export class AdminAnalyticsService {
           ${step}::interval) AS bucket
       )
       SELECT b.bucket,
-        (SELECT SUM(p.amount) FROM "Payment" p WHERE p.status::text = 'PAID'
+        (SELECT SUM(p."totalAmount") FROM "Payment" p WHERE p.status::text = 'PAID'
            AND p."createdAt" BETWEEN ${r.from} AND ${r.to}
            AND date_trunc(${unit}::text, p."createdAt" + ${VN_OFFSET}) = b.bucket) AS revenue,
         (SELECT COUNT(*)::int FROM "Booking" k WHERE k."createdAt" BETWEEN ${r.from} AND ${r.to}
