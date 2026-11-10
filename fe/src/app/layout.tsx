@@ -22,10 +22,11 @@ const headingFont = Manrope({
 });
 
 // Large editorial headings (Wayfare-style); Clash Grotesk has no Vietnamese glyphs, Hanken Grotesk is the closest one that does.
+// No `weight` list: Hanken Grotesk is a variable font, and asking Google for fixed weights makes it return
+// `fonts.gstatic.com/l/font?kit=...` URLs that Turbopack's font loader cannot resolve in Next 16.3.
 const displayFont = Hanken_Grotesk({
   variable: "--font-display",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
