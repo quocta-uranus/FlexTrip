@@ -28,6 +28,10 @@ export class CreateBookingDto {
   @ApiPropertyOptional()
   @IsOptional() @IsString() @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'LOYALTY-04: mã giảm giá, trừ vào tiền thuê trả sau' })
+  @IsOptional() @IsString() @MaxLength(32)
+  voucherCode?: string;
 }
 
 export class ConfirmPaymentDto {

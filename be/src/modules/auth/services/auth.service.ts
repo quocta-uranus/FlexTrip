@@ -20,6 +20,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { RegisterDto, LoginDto } from '../dto';
 import { OtpService } from './otp.service';
 import { ResendService } from './resend.service';
+import { ReferralsService } from '../../referrals/referrals.service';
 
 export const RESEND_COOLDOWN_MS = 60 * 1000;
 export const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
@@ -55,6 +56,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly otp: OtpService,
     private readonly resend: ResendService,
+    private readonly referrals: ReferralsService,
   ) {}
 
   async register(dto: RegisterDto): Promise<RegistrationResult> {
@@ -91,6 +93,7 @@ export class AuthService {
       }
       throw error;
     }
+    await this.referrals.attachSafe(userId, dto.referralCode);
     const code = await this.otp.generate('register', dto.email);
     const sent = await this.resend.sendOtp(dto.email, code);
     return sent
@@ -124,6 +127,7 @@ export class AuthService {
       where: { id: user.id },
       data: { emailVerifiedAt: new Date() },
     });
+    await this.referrals.onEmailVerifiedSafe(user.id);
     return { code: 'EMAIL_VERIFIED' };
   }
 

@@ -41,6 +41,10 @@ const ADMIN_NAV = [
     items: [
       { id: "04", title: "Tranh chấp & Hoàn tiền", href: "/admin/04-disputes-refunds", icon: "dispute" },
       { id: "05", title: "Giao dịch", href: "/admin/05-transactions", icon: "dollar" },
+      { id: "15", title: "Voucher", href: "/admin/15-vouchers", icon: "dollar" },
+      { id: "16", title: "Ngân sách khuyến mãi", href: "/admin/16-promo-budgets", icon: "dollar" },
+      { id: "17", title: "Điểm thưởng", href: "/admin/17-loyalty", icon: "dollar" },
+      { id: "18", title: "Giới thiệu bạn bè", href: "/admin/18-referrals", icon: "dollar" },
     ],
   },
   {

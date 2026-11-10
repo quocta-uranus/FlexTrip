@@ -44,6 +44,12 @@ import { AdminReportSchedulesService } from './reports/admin-report-schedules.se
 import { ReportScheduleProcessor } from './reports/report-schedule.processor';
 import { ReportsService } from './reports/reports.service';
 import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
+import { AdminVouchersController } from './vouchers/admin-vouchers.controller';
+import { AdminVouchersService } from './vouchers/admin-vouchers.service';
+import { AdminLoyaltyController } from './loyalty/admin-loyalty.controller';
+import { AdminLoyaltyService } from './loyalty/admin-loyalty.service';
+import { AdminReferralsController } from './referrals/admin-referrals.controller';
+import { AdminReferralsService } from './referrals/admin-referrals.service';
 
 @Module({
   imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
@@ -64,6 +70,9 @@ import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
     AdminTicketsController,
     AdminFaqsController,
     AdminReportsController,
+    AdminVouchersController,
+    AdminLoyaltyController,
+    AdminReferralsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -89,6 +98,9 @@ import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
     AdminReportsService,
     AdminReportSchedulesService,
     ReportScheduleProcessor,
+    AdminVouchersService,
+    AdminLoyaltyService,
+    AdminReferralsService,
   ],
 })
 export class AdminModule {}

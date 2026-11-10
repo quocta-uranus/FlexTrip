@@ -31,6 +31,11 @@ import {
   X,
   Globe,
   Heart,
+  MessageCircle,
+  Ticket,
+  Gift,
+  UserPlus,
+  Award,
 } from 'lucide-react';
 
 interface SiteHeaderProps {
@@ -189,11 +194,17 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
 
   const icon = (Icon: typeof User) => <Icon className="h-4 w-4 text-slate-500" />;
   const profileItem = { href: profileHref, label: 'Hồ sơ cá nhân', icon: icon(User) };
+  const referralItem = { href: '/profile/referral', label: 'Giới thiệu bạn bè', icon: icon(UserPlus) };
+  const loyaltyItem = { href: '/profile/loyalty', label: 'Điểm thưởng', icon: icon(Gift) };
+  const voucherItem = { href: '/profile/vouchers', label: 'Voucher của tôi', icon: icon(Ticket) };
   const walletItem = { href: '/profile/payments', label: 'Thanh toán & Ví', icon: icon(CreditCard) };
   const travelerItems = [
     profileItem,
     { href: '/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
     { href: '/wishlist', label: 'Thiết bị đã lưu', icon: icon(Heart) },
+    loyaltyItem,
+    referralItem,
+    voucherItem,
     walletItem,
   ];
   const providerItems = [
@@ -202,6 +213,10 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     { href: '/dashboard/listings', label: 'Quản lý thiết bị', icon: icon(Package) },
     { href: '/dashboard/bookings', label: 'Đơn thuê', icon: icon(ClipboardList) },
     { href: '/dashboard/reviews', label: 'Quản lý đánh giá', icon: icon(Star) },
+    { href: '/dashboard/incentives', label: 'Ưu đãi top-rated', icon: icon(Award) },
+    loyaltyItem,
+    referralItem,
+    voucherItem,
     walletItem,
   ];
   const menuItems = isAdmin
@@ -218,7 +233,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
       : isDual
         ? mode === 'provider' ? providerItems : travelerItems
         : isProvider
-          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem)]
+          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem)]
           : travelerItems;
 
   const onHome = pathname === '/';
@@ -348,6 +363,18 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           {isAuthenticated && user && (
             <>
               <NotificationBell isProvider={providerNav} onDark={overlay} />
+              {!isAdmin && !isStaff && (
+                <Link
+                  href="/messages"
+                  title="Tin nhắn"
+                  aria-label="Tin nhắn"
+                  className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                    overlay ? 'text-white hover:bg-white/10' : 'text-[#68655E] hover:bg-black/5'
+                  } ${pathname.startsWith('/messages') ? 'bg-black/5' : ''}`}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Link>
+              )}
               {!isAdmin && !isStaff && !providerModeOnly && <CartIcon onDark={overlay} />}
               {!providerModeOnly && <WishlistHeaderLink variant={overlay ? 'overlay' : 'default'} />}
             </>

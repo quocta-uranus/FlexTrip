@@ -86,6 +86,25 @@ Tiền hoàn luôn vào **ví FlexTrip**, không hoàn về ngân hàng.
 - `hooks/usePayments.ts`, `lib/api/payments.ts`, `types/booking.ts`.
 - Admin: `app/admin/05-transactions/page.tsx`, `_components/commissions-tab.tsx`, `types/admin.ts`, `lib/api/admin.ts`, `hooks/admin/use-admin-finance.ts`.
 
+## 4b. Giảm giá và ưu đãi phí (LOYALTY)
+
+**Voucher (LOYALTY-04).** Giá gốc `totalPrice` và `Payment.totalAmount` giữ nguyên. Voucher chỉ giảm khoản trả nốt: `rentalAmount = total − cọc − discountAmount`. Tiền giảm do ngân sách khuyến mãi (`PromoBudget`) chịu, được cộng vào escrow khi áp mã. Nhờ vậy `CommissionService.split` vẫn tính trên giá gốc và tỉ lệ chia 90/10 không đổi; `walletPaid` cộng thêm `discountAmount` để `escrowOut` khớp.
+
+- Giữ chỗ (`RESERVED`) khi đặt, ghi nhận (`APPLIED`) khi trả nốt thành công. Nếu voucher phủ hết tiền nốt thì tự ghi nhận khi provider ký.
+- Huỷ đơn: provider từ chối hoặc huỷ, hoặc hệ thống huỷ → `RELEASED` (hoàn lượt và ngân sách); traveler huỷ sau khi đã trả nốt → `APPLIED`; traveler huỷ khác → `FORFEITED` hoặc `RELEASED` theo bảng trong `VouchersService.onBookingCancelled`.
+
+**Điểm thưởng và giới thiệu (LOYALTY-01/02).** Cùng đi qua voucher cá nhân (`source` POINTS / REFERRAL), trừ vào ngân sách riêng "Đổi điểm thưởng" và "Thưởng giới thiệu" (số dư ban đầu 0, admin nạp). Cả hai kích hoạt trong `PaymentsService.onBookingCompleted` và lỗi của chúng không chặn chia hoa hồng.
+
+**Ưu đãi top-rated (LOYALTY-03) — đổi tỉ lệ có chủ đích.** Provider đạt điểm top-rated được giảm `top_rated_fee_discount_pct` điểm % trên **phí nền tảng** (sàn 5%); phần staff 2% giữ nguyên, phần giảm chuyển sang `providerNet`. `CommissionLedger.platformRate` và `incentiveDiscountPct` lưu tỉ lệ đã áp dụng để đối soát. Ưu đãi hết hiệu lực sau 48 giờ nếu job đêm không chạy lại.
+
+| Tình huống (giá 1.000.000 ₫, không staff) | Nền tảng | Provider |
+|---|---|---|
+| Không ưu đãi | 100.000 | 900.000 |
+| Top-rated giảm 2% | 80.000 | 920.000 |
+| Giảm 5% (chạm sàn 5%) | 50.000 | 950.000 |
+
+**Job định kỳ mới:** 03:00 tính top-rated (`provider-incentive`), 04:00 hết hạn điểm, đánh dấu voucher hết hạn và nhắc voucher sắp hết hạn (`loyalty-maintenance`).
+
 ## 5. Kiểm thử
 
 **Đã chạy thử trên DB thật**
