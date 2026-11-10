@@ -154,6 +154,22 @@ describe('REVIEW-01 moderation rules', () => {
   });
 
   it.each([
+    'Tốt tốt tốt tốt tốt tốt tốt tốt tốt tốt.',
+    'Sản phẩm số một số một số một số một số một.',
+  ])('flags short runs of repeated words: %s', (comment) => {
+    expect(moderateReviewWithRules(comment)).toMatchObject({
+      flagged: true,
+      spamDetected: true,
+    });
+  });
+
+  it('does not flag ordinary emphasis', () => {
+    expect(
+      moderateReviewWithRules('Rất rất tốt, lều rộng và chắc chắn.').flagged,
+    ).toBe(false);
+  });
+
+  it.each([
     'aaaaaaaaaaaaaaaaaaaa đây là nội dung spam thử nghiệm',
     'spam spam spam spam spam spam spam spam spam spam spam spam',
     'Xem http://spam.test và https://spam2.test ngay',

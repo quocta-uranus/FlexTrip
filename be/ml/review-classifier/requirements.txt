@@ -1,0 +1,9 @@
+# CPU-only runtime for the Vietnamese review classifier.
+# Install torch from the CPU index (see README) so the CUDA build is not pulled in.
+torch>=2.6
+transformers>=4.50
+safetensors>=0.4
+huggingface_hub>=0.24
+fastapi>=0.110
+uvicorn>=0.29
+pyvi>=0.1.1

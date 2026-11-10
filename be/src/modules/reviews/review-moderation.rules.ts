@@ -130,9 +130,13 @@ export function moderateReviewWithRules(
   const contactInfo =
     PHONE_PATTERN.test(comment) || CONTACT_LINK_PATTERN.test(comment);
   const repeatedCharacters = REPEATED_CHARACTER_PATTERN.test(normalized);
-  const words = normalized.split(/\s+/u).filter(Boolean);
+  // Strip edge punctuation so "một" and "một." count as the same word.
+  const words = normalized
+    .split(/\s+/u)
+    .map((word) => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+    .filter(Boolean);
   const repetitiveContent =
-    words.length >= 12 && new Set(words).size / words.length < 0.3;
+    words.length >= 8 && new Set(words).size / words.length < 0.4;
   const spamDetected =
     multipleUrls || contactInfo || repeatedCharacters || repetitiveContent;
 

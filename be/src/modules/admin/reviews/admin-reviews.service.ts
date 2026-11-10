@@ -212,7 +212,14 @@ export class AdminReviewsService {
   private analysisSource(
     source: string | null,
     reasons: Prisma.JsonValue | null,
-  ): 'RULE' | 'AI' | 'RULE_AND_AI' | 'ADMIN' | null {
+  ):
+    | 'RULE'
+    | 'AI'
+    | 'RULE_AND_AI'
+    | 'MODEL'
+    | 'RULE_AND_MODEL'
+    | 'ADMIN'
+    | null {
     if (source === 'ADMIN') return 'ADMIN';
     const values = Array.isArray(reasons) ? reasons : [];
     const hasRule = values.some(
@@ -221,6 +228,10 @@ export class AdminReviewsService {
     const hasAi = values.some(
       (reason) => typeof reason === 'string' && reason.startsWith('[AI]'),
     );
+    const hasModel = values.some(
+      (reason) => typeof reason === 'string' && reason.startsWith('[ML]'),
+    );
+    if (hasModel) return hasRule ? 'RULE_AND_MODEL' : 'MODEL';
     if (hasRule && hasAi) return 'RULE_AND_AI';
     if (hasRule || source === 'RULE') return 'RULE';
     if (hasAi || source === 'AI') return 'AI';

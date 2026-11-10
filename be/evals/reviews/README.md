@@ -38,6 +38,12 @@ npm run eval:reviews -- --mode=full
 - `full`: toàn bộ 150 case, dùng khi tạo baseline hoặc báo cáo chính thức.
 - Nếu không truyền mode, runner dùng `smoke` để bảo vệ quota.
 
+Thêm `--cascade` để đo luôn cách hoạt động của bước phân loại cục bộ (PhoBERT trước, AI chỉ cho ca khó): runner gọi service ở
+`REVIEW_CLASSIFIER_URL` (mặc định `http://127.0.0.1:8001`, xem `ml/review-classifier/README.md`), mô phỏng quyết định của `routeReview`
+bằng kết quả AI thật của lần chạy này và ghi thêm mục "Cascade" vào report: tỷ lệ gọi AI tiết kiệm được, F1 của quyết định ẩn review và độ chính xác
+cảm xúc. Có thể chạy lại phần này không tốn Groq bằng `--mode=full --resume --cascade` khi checkpoint đã đủ 150 ca. Report cũng luôn có mục
+"Hide decision" so sánh chỉ rule, chỉ AI và rule + AI.
+
 Runner mặc định chờ 1 giây giữa các request. Có thể tăng khoảng nghỉ mà không sửa code:
 
 ```powershell

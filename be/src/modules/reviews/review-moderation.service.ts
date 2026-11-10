@@ -37,6 +37,13 @@ import {
   REVIEW_SWEEP_SCHEDULER,
 } from './review-moderation.constants';
 import { ModerationLexiconService } from './moderation-lexicon.service';
+import { reconcileAiAnalysis } from './review-analysis-reconcile';
+import {
+  localAnalysis,
+  routeReview,
+  type CascadeThresholds,
+} from './review-cascade';
+import { ReviewClassifierService } from './review-classifier.service';
 import { moderateReviewWithRules } from './review-moderation.rules';
 import { evaluateRatingSentimentConsistency } from './review-rating-consistency';
 
@@ -58,6 +65,7 @@ export class ReviewModerationService implements OnModuleInit {
     private readonly config: SystemConfigService,
     private readonly audit: AuditService,
     private readonly lexicon: ModerationLexiconService,
+    private readonly classifier: ReviewClassifierService,
     @InjectQueue(REVIEW_MODERATION_QUEUE) private readonly queue: Queue,
   ) {}
 
@@ -71,6 +79,19 @@ export class ReviewModerationService implements OnModuleInit {
     } catch {
       this.logger.error('Could not register the pending review sweeper');
     }
+  }
+
+  private async cascadeThresholds(): Promise<CascadeThresholds> {
+    const [toxicClear, toxicBlock, sentimentMin] = await Promise.all([
+      this.config.get('review_local_toxic_clear'),
+      this.config.get('review_local_toxic_block'),
+      this.config.get('review_local_sentiment_min'),
+    ]);
+    return {
+      toxicClear: toxicClear / 100,
+      toxicBlock: toxicBlock / 100,
+      sentimentMin: sentimentMin / 100,
+    };
   }
 
   /** Pauses the whole worker for the time Groq asked us to back off. */
@@ -186,38 +207,51 @@ export class ReviewModerationService implements OnModuleInit {
       await this.lexicon.current(),
     );
 
-    let analysis;
-    try {
-      analysis = await this.analyzer.analyze({
-        reviewId,
+    // Cheap local models answer first; the LLM is only asked about reviews they
+    // cannot settle (see routeReview). Without the classifier everything goes to the LLM.
+    const local = await this.classifier.classify(review.comment ?? '');
+    const route = routeReview(
+      {
         comment: review.comment ?? '',
         rating: review.rating,
-      });
-    } catch (error) {
-      if (ruleResult.toxicityDetected) {
-        await this.persistRuleOnlyResult(reviewId, ruleResult);
-        return;
-      }
-      throw error;
-    }
+        rule: ruleResult,
+        local,
+      },
+      await this.cascadeThresholds(),
+    );
+    this.logger.log(
+      JSON.stringify({
+        event: 'review_moderation_route',
+        reviewId,
+        route: route.route,
+        detail: route.route === 'LOCAL' ? route.verdict : route.cause,
+      }),
+    );
 
-    const aiSignalsToxicity = analysis.reasons.some((reason) =>
-      /profan|offensive|harass|abusive|insult|tục|xúc phạm|quấy rối|lăng mạ/iu.test(
-        reason,
-      ),
-    );
-    const inconsistentAiResult =
-      aiSignalsToxicity && analysis.toxicityScore < 80;
-    const aiSignalsSpam = analysis.reasons.some(
-      (reason) =>
-        /spam|repetit|automated|ký tự lặp|lặp lại|nhiều đường dẫn/iu.test(
-          reason,
-        ) &&
-        !/không (?:có )?(?:dấu hiệu )?spam|không phải spam|no (?:signs? of )?spam/iu.test(
-          reason,
-        ),
-    );
-    const inconsistentAiSpam = aiSignalsSpam && analysis.spamScore < 80;
+    let analysis;
+    if (route.route === 'LOCAL' && local) {
+      analysis = localAnalysis(local, route.verdict);
+    } else {
+      try {
+        analysis = await this.analyzer.analyze({
+          reviewId,
+          comment: review.comment ?? '',
+          rating: review.rating,
+        });
+      } catch (error) {
+        if (ruleResult.toxicityDetected) {
+          await this.persistRuleOnlyResult(reviewId, ruleResult);
+          return;
+        }
+        throw error;
+      }
+    }
+    const reasonPrefix = route.route === 'LOCAL' ? '[ML]' : '[AI]';
+
+    const {
+      inconsistentToxicity: inconsistentAiResult,
+      inconsistentSpam: inconsistentAiSpam,
+    } = reconcileAiAnalysis(analysis);
     const ratingConsistency = evaluateRatingSentimentConsistency(
       review.rating,
       analysis.sentiment,
@@ -245,7 +279,7 @@ export class ReviewModerationService implements OnModuleInit {
     );
     const reasons = [
       ...ruleResult.reasons,
-      ...analysis.reasons.map((reason) => `[AI] ${reason}`),
+      ...analysis.reasons.map((reason) => `${reasonPrefix} ${reason}`),
       ...(inconsistentAiResult
         ? ['[RULE] Điểm độc hại của AI không nhất quán với lý do phân tích.']
         : []),
@@ -504,6 +538,21 @@ export class ReviewModerationService implements OnModuleInit {
       });
     if (moderateReviewWithRules(text, await this.lexicon.current()).flagged)
       throw rejected();
+    // The author is waiting for this answer, so the fast local models go first.
+    const route = routeReview(
+      {
+        comment: text,
+        rating: 3,
+        rule: { flagged: false },
+        local: await this.classifier.classify(text),
+        needSentiment: false,
+      },
+      await this.cascadeThresholds(),
+    );
+    if (route.route === 'LOCAL') {
+      if (route.verdict === 'TOXIC') throw rejected();
+      return;
+    }
     try {
       const analysis = await this.analyzer.analyze({
         comment: text,
@@ -513,9 +562,13 @@ export class ReviewModerationService implements OnModuleInit {
         this.config.get('review_spam_threshold'),
         this.config.get('review_toxicity_threshold'),
       ]);
+      const { inconsistentToxicity, inconsistentSpam } =
+        reconcileAiAnalysis(analysis);
       if (
         analysis.spamScore >= spamThreshold ||
-        analysis.toxicityScore >= toxicityThreshold
+        analysis.toxicityScore >= toxicityThreshold ||
+        inconsistentToxicity ||
+        inconsistentSpam
       )
         throw rejected();
     } catch (error) {

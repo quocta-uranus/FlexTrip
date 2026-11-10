@@ -9,6 +9,13 @@ import {
   ReviewAiAnalyzerService,
   ReviewAnalysisValidationError,
 } from '../../../src/modules/reviews/review-ai-analyzer.service';
+import {
+  DEFAULT_CASCADE_THRESHOLDS,
+  routeReview,
+  type LocalClassification,
+} from '../../../src/modules/reviews/review-cascade';
+import { ReviewClassifierService } from '../../../src/modules/reviews/review-classifier.service';
+import { moderateReviewWithRules } from '../../../src/modules/reviews/review-moderation.rules';
 import { average, calculateBinaryMetrics, percentile } from './metrics';
 import { analyzeThresholds, recommendThreshold } from './threshold-analysis';
 import type {
@@ -16,8 +23,10 @@ import type {
   EvaluationCheckpoint,
   EvaluationDataset,
   EvaluationMode,
+  CascadeQuality,
   EvaluationReport,
   FailedCaseResult,
+  PipelineQuality,
   SuccessfulCaseResult,
 } from './types';
 
@@ -200,6 +209,161 @@ async function analyzeWithRetry(
   throw new EvaluationCaseError(lastError, attempts);
 }
 
+function buildPipelineQuality(
+  selected: EvaluationCase[],
+  successful: SuccessfulCaseResult[],
+): PipelineQuality {
+  const byId = new Map(selected.map((item) => [item.id, item]));
+  const shouldHide = (item: EvaluationCase) =>
+    item.expected.spam || item.expected.toxic;
+  const ruleHides = (item: EvaluationCase) =>
+    moderateReviewWithRules(item.comment).flagged;
+  const aiHides = (result: SuccessfulCaseResult) =>
+    result.actual.spamScore >= PRODUCTION_THRESHOLD ||
+    result.actual.toxicityScore >= PRODUCTION_THRESHOLD;
+
+  const scored = successful.map((result) => {
+    const item = byId.get(result.id)!;
+    return { item, ai: aiHides(result), rule: ruleHides(item) };
+  });
+  const expected = scored.map(({ item }) => shouldHide(item));
+  const combined = scored.map(({ ai, rule }) => ai || rule);
+  return {
+    shouldHide: selected.filter(shouldHide).length,
+    rulesOnly: calculateBinaryMetrics(
+      selected.map(shouldHide),
+      selected.map(ruleHides),
+    ),
+    aiOnly: calculateBinaryMetrics(
+      expected,
+      scored.map(({ ai }) => ai),
+    ),
+    combined: calculateBinaryMetrics(expected, combined),
+    missed: scored
+      .filter(({ item }, index) => shouldHide(item) && !combined[index])
+      .map(({ item }) => item.id),
+    wronglyHidden: scored
+      .filter(({ item }, index) => !shouldHide(item) && combined[index])
+      .map(({ item }) => item.id),
+  };
+}
+
+async function buildCascadeQuality(
+  selected: EvaluationCase[],
+  successful: SuccessfulCaseResult[],
+): Promise<CascadeQuality> {
+  const thresholds = DEFAULT_CASCADE_THRESHOLDS;
+  const none = calculateBinaryMetrics([], []);
+  const unavailable: CascadeQuality = {
+    available: false,
+    thresholds,
+    cases: 0,
+    aiCallRate: 0,
+    routes: {},
+    hide: { cascade: none, rulesAndAi: none },
+    sentimentAccuracy: { cascade: 0, ai: 0, local: 0 },
+    localToxicity: none,
+    localWrong: [],
+    averageLocalLatencyMs: 0,
+  };
+  const classifier = new ReviewClassifierService(
+    new ConfigService({
+      REVIEW_CLASSIFIER_URL:
+        process.env.REVIEW_CLASSIFIER_URL ?? 'http://127.0.0.1:8001',
+    }),
+  );
+  const byId = new Map(selected.map((item) => [item.id, item]));
+  const cases = successful.map((result) => byId.get(result.id)!);
+  const local: LocalClassification[] = [];
+  const started = Date.now();
+  for (let index = 0; index < cases.length; index += 16) {
+    const batch = await classifier.classifyMany(
+      cases.slice(index, index + 16).map((item) => item.comment),
+    );
+    if (!batch) return unavailable;
+    local.push(...batch);
+  }
+  const latency = (Date.now() - started) / Math.max(cases.length, 1);
+
+  const routes: Record<string, number> = {};
+  const wrong: CascadeQuality['localWrong'] = [];
+  const expectedHide: boolean[] = [];
+  const cascadeHide: boolean[] = [];
+  const baselineHide: boolean[] = [];
+  let aiCalls = 0;
+  let cascadeSentiment = 0;
+  let aiSentiment = 0;
+  let localSentiment = 0;
+  successful.forEach((result, index) => {
+    const item = cases[index];
+    const classification = local[index];
+    const rule = moderateReviewWithRules(item.comment);
+    const aiHides =
+      result.actual.spamScore >= PRODUCTION_THRESHOLD ||
+      result.actual.toxicityScore >= PRODUCTION_THRESHOLD;
+    const route = routeReview(
+      {
+        comment: item.comment,
+        rating: item.rating,
+        rule,
+        local: classification,
+      },
+      thresholds,
+    );
+    const shouldHide = item.expected.spam || item.expected.toxic;
+    expectedHide.push(shouldHide);
+    baselineHide.push(rule.flagged || aiHides);
+    localSentiment +=
+      classification.sentiment.label === item.expected.sentiment ? 1 : 0;
+    aiSentiment += result.actual.sentiment === item.expected.sentiment ? 1 : 0;
+    if (route.route === 'AI') {
+      aiCalls += 1;
+      routes[route.cause] = (routes[route.cause] ?? 0) + 1;
+      cascadeHide.push(rule.flagged || aiHides);
+      cascadeSentiment +=
+        result.actual.sentiment === item.expected.sentiment ? 1 : 0;
+      return;
+    }
+    routes[`LOCAL_${route.verdict}`] =
+      (routes[`LOCAL_${route.verdict}`] ?? 0) + 1;
+    const hides = route.verdict === 'TOXIC';
+    cascadeHide.push(hides);
+    const sentimentOk =
+      classification.sentiment.label === item.expected.sentiment;
+    cascadeSentiment += sentimentOk ? 1 : 0;
+    if (hides !== shouldHide)
+      wrong.push({
+        id: item.id,
+        reason: hides ? 'hidden by mistake' : 'should have been hidden',
+      });
+    else if (!sentimentOk)
+      wrong.push({ id: item.id, reason: 'wrong sentiment' });
+  });
+  const total = Math.max(successful.length, 1);
+  return {
+    available: true,
+    thresholds,
+    cases: successful.length,
+    aiCallRate: aiCalls / total,
+    routes,
+    hide: {
+      cascade: calculateBinaryMetrics(expectedHide, cascadeHide),
+      rulesAndAi: calculateBinaryMetrics(expectedHide, baselineHide),
+    },
+    sentimentAccuracy: {
+      cascade: cascadeSentiment / total,
+      ai: aiSentiment / total,
+      local: localSentiment / total,
+    },
+    localToxicity: calculateBinaryMetrics(
+      cases.map((item) => item.expected.toxic),
+      local.map((item) => item.toxicity.toxic >= 0.5),
+    ),
+    localWrong: wrong,
+    averageLocalLatencyMs: latency,
+  };
+}
+
 function buildReport(
   checkpoint: EvaluationCheckpoint,
   selected: EvaluationCase[],
@@ -271,6 +435,7 @@ function buildReport(
         suspicionScores.map((score) => score >= PRODUCTION_THRESHOLD),
       ),
     },
+    pipeline: buildPipelineQuality(selected, successful),
     reliability: {
       successfulRequestRate: selected.length
         ? successful.length / selected.length
@@ -324,6 +489,42 @@ function thresholdTable(
   ].join('\n');
 }
 
+function cascadeMarkdown(report: EvaluationReport): string {
+  const cascade = report.cascade;
+  if (!cascade) return '';
+  if (!cascade.available)
+    return '## Cascade (local classifiers first)\n\nThe classifier service was not reachable, so this section was skipped.\n';
+  const row = (
+    name: string,
+    metrics: EvaluationReport['pipeline']['combined'],
+  ) =>
+    `| ${name} | ${percent(metrics.precision)} | ${percent(metrics.recall)} | ${percent(metrics.f1)} | ${percent(metrics.falsePositiveRate)} |`;
+  return `## Cascade (local classifiers first, LLM only for hard cases)
+
+Thresholds: clear <= ${cascade.thresholds.toxicClear}, block >= ${cascade.thresholds.toxicBlock}, sentiment confidence >= ${cascade.thresholds.sentimentMin}. Computed over ${cascade.cases} reviews that have a valid LLM prediction, so the LLM answer for each hard case is the real one from this run.
+
+- Reviews still sent to the LLM: **${percent(cascade.aiCallRate)}** (LLM calls saved: **${percent(1 - cascade.aiCallRate)}**)
+- Average local classification time: ${milliseconds(cascade.averageLocalLatencyMs)} per review
+- Routes: ${Object.entries(cascade.routes)
+    .map(([name, count]) => `${name} ${count}`)
+    .join(', ')}
+
+| Hide decision | Precision | Recall | F1 | False positive rate |
+|---|---:|---:|---:|---:|
+${row('Rules + LLM for every review', cascade.hide.rulesAndAi)}
+${row('Cascade', cascade.hide.cascade)}
+${row('Local toxicity model alone (>= 0.5)', cascade.localToxicity)}
+
+| Sentiment accuracy | |
+|---|---:|
+| LLM for every review | ${percent(cascade.sentimentAccuracy.ai)} |
+| Cascade | ${percent(cascade.sentimentAccuracy.cascade)} |
+| Local sentiment model alone | ${percent(cascade.sentimentAccuracy.local)} |
+
+Answered locally but wrong: ${cascade.localWrong.map((item) => `${item.id} (${item.reason})`).join(', ') || 'none'}
+`;
+}
+
 function toMarkdown(report: EvaluationReport): string {
   return `# Review AI Evaluation
 
@@ -350,6 +551,20 @@ function toMarkdown(report: EvaluationReport): string {
 
 Sentiment accuracy: **${percent(report.quality.sentimentAccuracy)}**
 
+## Hide decision (spam or toxic)
+
+The platform hides a review for spam or toxicity; suspicion alone only flags it for an admin. Expected-to-hide cases: ${report.pipeline.shouldHide}. Rules-only runs over every selected case; AI-only and combined run over the ${report.progress.validPredictions} valid AI predictions.
+
+| Layer | Precision | Recall | F1 | False positive rate |
+|---|---:|---:|---:|---:|
+| Rules only | ${percent(report.pipeline.rulesOnly.precision)} | ${percent(report.pipeline.rulesOnly.recall)} | ${percent(report.pipeline.rulesOnly.f1)} | ${percent(report.pipeline.rulesOnly.falsePositiveRate)} |
+| AI only | ${percent(report.pipeline.aiOnly.precision)} | ${percent(report.pipeline.aiOnly.recall)} | ${percent(report.pipeline.aiOnly.f1)} | ${percent(report.pipeline.aiOnly.falsePositiveRate)} |
+| Rules + AI (production) | ${percent(report.pipeline.combined.precision)} | ${percent(report.pipeline.combined.recall)} | ${percent(report.pipeline.combined.f1)} | ${percent(report.pipeline.combined.falsePositiveRate)} |
+
+Missed by the production decision: ${report.pipeline.missed.join(', ') || 'none'}
+Hidden by mistake: ${report.pipeline.wronglyHidden.join(', ') || 'none'}
+
+${cascadeMarkdown(report)}
 ## Reliability and performance
 
 - Successful request rate: ${percent(report.reliability.successfulRequestRate)}
@@ -401,7 +616,8 @@ Sentiment accuracy:     ${percent(report.quality.sentimentAccuracy)}
 Spam F1:                ${percent(report.quality.spam.f1)}
 Toxicity F1:            ${percent(report.quality.toxicity.f1)}
 Suspicious F1:          ${percent(report.quality.suspicious.f1)}
-Average latency:        ${milliseconds(report.performance.averageLatencyMs)}
+Hide F1 (rules/AI/both): ${percent(report.pipeline.rulesOnly.f1)} / ${percent(report.pipeline.aiOnly.f1)} / ${percent(report.pipeline.combined.f1)}
+${report.cascade?.available ? `Cascade: LLM calls saved ${percent(1 - report.cascade.aiCallRate)}, hide F1 ${percent(report.cascade.hide.cascade.f1)} (baseline ${percent(report.cascade.hide.rulesAndAi.f1)}), sentiment ${percent(report.cascade.sentimentAccuracy.cascade)} (LLM ${percent(report.cascade.sentimentAccuracy.ai)})\n` : ''}Average latency:        ${milliseconds(report.performance.averageLatencyMs)}
 P95 latency:            ${milliseconds(report.performance.p95LatencyMs)}
 Total tokens:           ${report.performance.totalTokens ?? 'Unavailable'}
 Retry attempts:         ${report.reliability.retryAttempts}
@@ -489,6 +705,8 @@ async function main(): Promise<void> {
   }
 
   const report = buildReport(checkpoint, selected, stopReason);
+  if (process.argv.includes('--cascade'))
+    report.cascade = await buildCascadeQuality(selected, report.successful);
   await saveJson(resolve(RESULTS_DIR, 'review-eval-results.json'), report);
   await saveJson(
     resolve(RESULTS_DIR, 'review-eval-failed-cases.json'),
