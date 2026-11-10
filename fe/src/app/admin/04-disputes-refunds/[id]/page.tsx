@@ -381,7 +381,7 @@ export default function DisputeDetailPage() {
                         {...form.register('refundAmount', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })}
                       />
                       <p className="mt-1 text-xs text-slate-500">
-                        Tối đa {formatVnd(data.payment.amount)}. Tiền được hoàn ngay vào ví traveler. Hoàn toàn bộ thì đơn chuyển sang "Đã hoàn tiền".
+                        Tối đa {formatVnd(data.payment.amount)}. Tiền được hoàn ngay vào ví traveler. Hoàn toàn bộ thì đơn chuyển sang &quot;Đã hoàn tiền&quot;.
                       </p>
                       {form.formState.errors.refundAmount && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.refundAmount.message}</p>

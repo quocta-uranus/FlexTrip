@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- the response shapes of the session, wallet, KYC and payment-method endpoints are not modelled yet */
 import type {
   AuthTokens,
   LoginResult,
@@ -659,7 +660,7 @@ export const bookingApi = {
     if (params?.limit) q.set('limit', String(params.limit));
     const qs = q.toString();
     return api.get(`/bookings${qs ? `?${qs}` : ''}`)
-      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+      .then((res: Booking[] | { items?: Booking[] }) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 
   get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
@@ -687,7 +688,7 @@ export const bookingApi = {
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     return api.get(`/bookings?${q.toString()}`)
-      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+      .then((res: Booking[] | { items?: Booking[] }) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 };
 
