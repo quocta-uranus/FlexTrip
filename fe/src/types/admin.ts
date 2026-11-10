@@ -130,7 +130,14 @@ export interface AdminReview {
   suspicionScore: number | null;
   displayReasons: string[];
   moderationSource: "RULE" | "AI" | "ADMIN" | null;
-  analysisSource: "RULE" | "AI" | "RULE_AND_AI" | "ADMIN" | null;
+  analysisSource:
+    | "RULE"
+    | "AI"
+    | "RULE_AND_AI"
+    | "MODEL"
+    | "RULE_AND_MODEL"
+    | "ADMIN"
+    | null;
   moderationNote: string | null;
   moderatedAt: string | null;
   editedAt: string | null;

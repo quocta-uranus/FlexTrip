@@ -48,6 +48,8 @@ const ANALYSIS_SOURCE_LABEL = {
   RULE: "Rule hệ thống",
   AI: "AI Groq",
   RULE_AND_AI: "Rule + AI",
+  MODEL: "Model PhoBERT",
+  RULE_AND_MODEL: "Rule + PhoBERT",
   ADMIN: "Admin",
 };
 const QUEUE_STATUS: Record<
