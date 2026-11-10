@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface PillButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'brand' | 'dark' | 'ghost' | 'outline' | 'amber-outline';
+export interface PillButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  variant?: 'primary' | 'brand' | 'dark' | 'ghost' | 'outline' | 'amber-outline' | 'on-dark' | 'glass';
   size?: 'sm' | 'md' | 'lg';
   href?: string;
   showArrow?: boolean;
@@ -24,6 +25,7 @@ export const PillButton = React.forwardRef<HTMLButtonElement, PillButtonProps>(
       arrowClassName,
       className,
       children,
+      onClick,
       ...props
     },
     ref
@@ -39,18 +41,35 @@ export const PillButton = React.forwardRef<HTMLButtonElement, PillButtonProps>(
 
     const variantStyles = {
       primary:
-        'bg-[#F4B942] hover:bg-[#E8AB30] text-[#141312] shadow-[0_2px_10px_rgba(244,185,66,0.35)] focus-visible:ring-[#F4B942]',
+        'bg-brand hover:bg-sky-700 shadow-[0_2px_10px_rgba(0,180,234,0.35)] focus-visible:ring-brand',
       brand:
-        'bg-gradient-to-r from-[#1877F2] via-[#00A3FF] to-[#00D8F6] hover:brightness-105 text-white shadow-[0_4px_16px_rgba(0,163,255,0.35)] focus-visible:ring-[#00A3FF]',
+        'bg-gradient-to-r from-brand-blue to-brand hover:brightness-105 shadow-[0_4px_16px_rgba(0,180,234,0.35)] focus-visible:ring-brand',
       dark:
-        'bg-[#0B2238] hover:bg-[#12314E] text-white shadow-[0_2px_10px_rgba(11,34,56,0.25)] focus-visible:ring-[#0B2238]',
+        'bg-ink hover:bg-ink/90 shadow-[0_2px_10px_rgba(10,37,51,0.25)] focus-visible:ring-ink',
       ghost:
-        'bg-white/85 hover:bg-white text-[#0A1C2A] border border-sky-100 shadow-xs hover:shadow focus-visible:ring-sky-200',
+        'bg-white/85 hover:bg-white border border-sky-100 shadow-xs hover:shadow focus-visible:ring-sky-200',
       outline:
-        'bg-transparent hover:bg-sky-50 text-[#097dae] border border-sky-200 focus-visible:ring-sky-300',
+        'bg-transparent hover:bg-sky-50 border border-sky-200 focus-visible:ring-sky-200',
       'amber-outline':
-        'bg-transparent hover:bg-[#F4B942]/10 text-[#141312] border border-[#F4B942] focus-visible:ring-[#F4B942]',
+        'bg-transparent hover:bg-brand/10 border border-brand focus-visible:ring-brand',
+      'on-dark':
+        'bg-white hover:bg-sky-50 shadow-md focus-visible:ring-white',
+      glass:
+        'bg-white/10 hover:bg-white/20 border border-white/40 backdrop-blur-sm focus-visible:ring-white',
     };
+    // Màu chữ đặt trên thẻ span bên trong vì `a { color: inherit }` trong globals.css
+    // nằm ngoài @layer nên thắng mọi utility text-* đặt trực tiếp trên <Link>.
+    const textStyles = {
+      primary: 'text-white',
+      brand: 'text-white',
+      dark: 'text-white',
+      ghost: 'text-ink',
+      outline: 'text-sky-700',
+      'amber-outline': 'text-ink',
+      'on-dark': 'text-ink',
+      glass: 'text-white',
+    };
+
 
     const combinedClassName = cn(
       baseStyles,
@@ -63,8 +82,7 @@ export const PillButton = React.forwardRef<HTMLButtonElement, PillButtonProps>(
       <span
         className={cn(
           'inline-flex items-center justify-center transition-transform duration-200 ease-out group-hover:translate-x-1',
-          variant === 'primary' ? 'text-[#141312]' : '',
-          variant === 'dark' ? 'text-white' : '',
+          textStyles[variant],
           arrowClassName
         )}
       >
@@ -74,16 +92,16 @@ export const PillButton = React.forwardRef<HTMLButtonElement, PillButtonProps>(
 
     if (href) {
       return (
-        <Link href={href} className={combinedClassName}>
-          <span>{children}</span>
+        <Link href={href} className={combinedClassName} onClick={onClick}>
+          <span className={textStyles[variant]}>{children}</span>
           {arrowElement}
         </Link>
       );
     }
 
     return (
-      <button ref={ref} className={combinedClassName} {...props}>
-        <span>{children}</span>
+      <button ref={ref} className={combinedClassName} onClick={onClick} {...props}>
+        <span className={textStyles[variant]}>{children}</span>
         {arrowElement}
       </button>
     );

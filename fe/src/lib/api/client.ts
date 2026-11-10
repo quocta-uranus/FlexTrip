@@ -464,6 +464,10 @@ export const listingApi = {
     return api.get(`/listings${qs ? `?${qs}` : ''}`) as Promise<ListingPage>;
   },
 
+  // Place names of every publicly visible listing, already normalized by the backend.
+  locations: () =>
+    api.get('/listings/locations') as Promise<{ items: Array<{ value: string; count: number }> }>,
+
   get: (id: string) => api.get(`/listings/${id}`) as Promise<Listing>,
 
   create: (data: {
@@ -607,6 +611,13 @@ export const availabilityApi = {
       config: { quantity: number; minRentalDays: number; maxRentalDays: number | null; depositRate: string };
       manuallyBlocked: Array<{ date: string; note: string | null }>;
       fullyBooked: string[];
+    }>,
+
+  // Same rules as booking creation: blocked days, stock for the quantity, minimum and maximum rental days
+  check: (listingId: string, body: { startDate: string; endDate: string; quantity: number }) =>
+    api.post(`/listings/${listingId}/availability/check`, body) as Promise<{
+      available: boolean;
+      reason?: 'BLOCKED_DATE' | 'INSUFFICIENT_STOCK' | 'MIN_RENTAL_DAYS' | 'MAX_RENTAL_DAYS';
     }>,
 
   block: (listingId: string, dates: string[], note?: string) =>
@@ -767,6 +778,14 @@ export const providerApplicationApi = {
     description?: string;
   }) => api.post('/provider-applications', data) as Promise<ProviderApplication>,
 
+  mine: () =>
+    api.get('/provider-applications/me') as Promise<{
+      application: Pick<
+        ProviderApplication,
+        'id' | 'status' | 'adminNote' | 'city' | 'categories' | 'createdAt' | 'updatedAt'
+      > | null;
+    }>,
+
   list: (status?: 'PENDING' | 'APPROVED' | 'REJECTED') => {
     const qs = status ? `?status=${status}` : '';
     return api.get(`/provider-applications${qs}`) as Promise<ProviderApplication[]>;
@@ -814,3 +833,29 @@ export const notificationApi = {
   remove: (id: string) =>
     api.delete(`/notifications/${id}`) as Promise<{ ok: boolean }>,
 };
+
+// ─── Public Stats & Reviews ──────────────────────────────────────────────────
+
+export interface PublicStats {
+  activeListings: number;
+  approvedProviders: number;
+  completedBookings: number;
+  averageRating: number;
+  publishedReviews: number;
+}
+
+export interface FeaturedReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  listingTitle: string | null;
+}
+
+export const publicStatsApi = {
+  getStats: () => api.get('/public/stats') as Promise<PublicStats>,
+  getFeaturedReviews: () => api.get('/public/reviews/featured') as Promise<FeaturedReview[]>,
+};
+

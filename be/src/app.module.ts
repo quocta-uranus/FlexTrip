@@ -31,6 +31,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { PriceAiModule } from './modules/price-ai/price-ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
+import { PublicStatsModule } from './modules/public-stats/public-stats.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
     PriceAiModule,
     PaymentsModule,
     PaymentAiModule,
+    PublicStatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

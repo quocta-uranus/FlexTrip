@@ -70,3 +70,58 @@ export function blendScore(s: ScoreInput): number {
     Math.min(s.bookings, 20) / 20 * 0.02
   );
 }
+
+export interface SearchTerm {
+  keyword?: string | null;
+  category?: string | null;
+  location?: string | null;
+}
+
+// Diacritic-insensitive, so a search for "leu" still matches "Lều"
+export const fold = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/gi, 'd')
+    .toLowerCase();
+
+export interface SearchableListing {
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+}
+
+// 0..1: how well a listing fits what the user searched for. A keyword hit in the title is the strongest signal,
+// then a keyword in the description, then the same category or location as a past search.
+export function searchAffinity(listing: SearchableListing, searches: SearchTerm[]): { score: number; term: SearchTerm | null } {
+  const title = fold(listing.title);
+  const description = fold(listing.description);
+  let best = { score: 0, term: null as SearchTerm | null };
+  for (const term of searches) {
+    const keyword = term.keyword ? fold(term.keyword.trim()) : '';
+    let score = 0;
+    if (keyword && title.includes(keyword)) score = 1;
+    else if (keyword && description.includes(keyword)) score = 0.7;
+    else if (term.category && term.category === listing.category) score = 0.5;
+    else if (term.location && fold(listing.location).includes(fold(term.location))) score = 0.4;
+    if (score > best.score) best = { score, term };
+  }
+  return best;
+}
+
+// An identical search repeated within the window (typing, paging, re-sorting) counts once
+export function isRepeatedSearch(
+  last: (SearchTerm & { createdAt: Date }) | null,
+  next: SearchTerm,
+  windowMs: number,
+  now = Date.now(),
+): boolean {
+  return (
+    last !== null &&
+    (last.keyword ?? null) === (next.keyword ?? null) &&
+    (last.location ?? null) === (next.location ?? null) &&
+    (last.category ?? null) === (next.category ?? null) &&
+    now - last.createdAt.getTime() < windowMs
+  );
+}

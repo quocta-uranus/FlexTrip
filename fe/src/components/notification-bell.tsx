@@ -9,6 +9,8 @@ import {
   useMarkNotificationRead,
   useNotifications,
 } from '@/hooks/useNotifications';
+import { useAppMode } from '@/hooks/useAppMode';
+import { useAuthStore } from '@/store/auth.store';
 import type { AppNotification, NotificationType } from '@/types/notification';
 
 const TYPE_META: Record<NotificationType, { icon: string; background: string }> = {
@@ -25,7 +27,10 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
   const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
 
   if (notification.type === 'BOOKING') {
-    return isProvider ? '/dashboard/bookings' : bookingId ? `/bookings/${bookingId}` : '/bookings';
+    // A single booking page serves both sides; without a booking id fall back to the matching list.
+    if (bookingId) return `/bookings/${bookingId}`;
+    const forProvider = notification.audience ? notification.audience === 'PROVIDER' : isProvider;
+    return forProvider ? '/dashboard/bookings' : '/bookings';
   }
   if (notification.type === 'MESSAGE') {
     return conversationId ? `/messages?conversation=${conversationId}` : '/messages';
@@ -33,6 +38,26 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
   if (notification.type === 'PAYMENT') return '/profile/payments';
   if (notification.type === 'REVIEW') return isProvider ? '/profile/shop' : '/profile';
   return '/profile';
+}
+
+// Switches to the mode the notification belongs to (only for accounts that have both), then opens it.
+export function useOpenNotification(isProvider: boolean) {
+  const router = useRouter();
+  const { isDual, setMode } = useAppMode();
+  return (notification: AppNotification) => {
+    if (isDual && notification.audience) setMode(notification.audience === 'PROVIDER' ? 'provider' : 'traveler');
+    router.push(getNotificationHref(notification, isProvider));
+  };
+}
+
+export function AudienceBadge({ audience }: { audience?: AppNotification['audience'] }) {
+  const { isDual } = useAppMode();
+  if (!isDual || !audience) return null;
+  return (
+    <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+      {audience === 'PROVIDER' ? 'Provider' : 'Traveler'}
+    </span>
+  );
 }
 
 export function formatNotificationTime(value: string) {
@@ -60,36 +85,71 @@ export function NotificationTypeIcon({ type }: { type: NotificationType }) {
   );
 }
 
-export function NotificationBell({ isProvider }: { isProvider: boolean }) {
-  const router = useRouter();
+const SEEN_KEY = 'flextrip:notifications-seen:';
+
+function readSeenAt(userId: string | undefined) {
+  if (!userId || typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(SEEN_KEY + userId);
+  } catch {
+    return null;
+  }
+}
+
+function writeSeenAt(userId: string | undefined, value: string) {
+  if (!userId) return;
+  try {
+    window.localStorage.setItem(SEEN_KEY + userId, value);
+  } catch {
+    // Without storage the badge simply comes back after a reload.
+  }
+}
+
+export function NotificationBell({ isProvider, onDark = false }: { isProvider: boolean; onDark?: boolean }) {
+  const openTarget = useOpenNotification(isProvider);
+  const userId = useAuthStore((state) => state.user?.id);
   const [open, setOpen] = useState(false);
-  const { data, isLoading } = useNotifications(10);
+  // When the list was last opened. Notifications stay unread (highlighted) until clicked; only the badge cares about this.
+  const [seenAt, setSeenAt] = useState<string | null>(() => readSeenAt(userId));
+  const { data, isLoading } = useNotifications(50);
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const removeNotification = useDeleteNotification();
+  const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
+  // The badge counts unread notifications that arrived after the list was last opened.
+  const newCount = items.filter((n) => !n.isRead && (!seenAt || n.createdAt > seenAt)).length;
+
+  const toggleOpen = () => {
+    if (!open) {
+      const latest = items[0]?.createdAt ?? new Date().toISOString();
+      setSeenAt(latest);
+      writeSeenAt(userId, latest);
+    }
+    setOpen((value) => !value);
+  };
 
   const openNotification = (notification: AppNotification) => {
     if (!notification.isRead) markRead.mutate(notification.id);
     setOpen(false);
-    router.push(getNotificationHref(notification, isProvider));
+    openTarget(notification);
   };
 
   return (
     <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-[#f1f5fa]"
-        aria-label={`Thông báo${unreadCount ? `, ${unreadCount} chưa đọc` : ''}`}
+        onClick={toggleOpen}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-colors ${onDark ? 'hover:bg-white/10' : 'hover:bg-[#f1f5fa]'}`}
+        aria-label={`Thông báo${newCount ? `, ${newCount} mới` : ''}`}
         title="Thông báo"
       >
-        <svg className="h-5 w-5 text-[#5a6b85]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <svg className={`h-5 w-5 ${onDark ? 'text-white' : 'text-[#5a6b85]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
-        {unreadCount > 0 && (
+        {newCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {newCount > 99 ? '99+' : newCount}
           </span>
         )}
       </button>
@@ -128,7 +188,7 @@ export function NotificationBell({ isProvider }: { isProvider: boolean }) {
                   <p className="mt-1 text-xs text-[#8694ad]">Cập nhật về đơn thuê sẽ xuất hiện tại đây.</p>
                 </div>
               ) : (
-                data.items.map((notification) => (
+                data.items.slice(0, 10).map((notification) => (
                   <button
                     type="button"
                     key={notification.id}
@@ -144,7 +204,10 @@ export function NotificationBell({ isProvider }: { isProvider: boolean }) {
                       </span>
                       <span className="mt-1 line-clamp-2 block text-[13px] leading-5 text-[#5a6b85]">{notification.body}</span>
                       <span className="mt-2 flex items-center justify-between text-[11px] font-medium text-[#8a98ad]">
-                        {formatNotificationTime(notification.createdAt)}
+                        <span className="flex items-center gap-2">
+                          {formatNotificationTime(notification.createdAt)}
+                          <AudienceBadge audience={notification.audience} />
+                        </span>
                         <span
                           role="button"
                           tabIndex={0}
