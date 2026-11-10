@@ -105,13 +105,13 @@ export function useToggleWishlist() {
   });
 }
 
-export function useWishlistPage(page: number) {
+export function useWishlistPage(page: number, limit = 20) {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const allowed = isAuthenticated && canUseAccountWishlist(user?.roles);
   return useQuery({
-    queryKey: wishlistListKey(user?.id, page),
-    queryFn: () => wishlistApi.list({ page, limit: 20 }),
+    queryKey: [...wishlistListKey(user?.id, page), limit],
+    queryFn: () => wishlistApi.list({ page, limit }),
     enabled: allowed,
   });
 }

@@ -330,12 +330,15 @@ model User {
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
   wishlistItems       Wishlist[]
+  searchHistory      SearchHistory[]
 
   // support & reports
   supportTickets  SupportTicket[]        @relation("TicketRequester")
   assignedTickets SupportTicket[]        @relation("TicketAssignee")
   ticketMessages  SupportTicketMessage[] @relation("TicketMessageAuthor")
   reportSchedules ReportSchedule[]       @relation("ReportScheduleCreator")
+
+
 
   // admin
   staffProfile     StaffProfile?
@@ -491,6 +494,22 @@ model Listing {
   @@index([providerId])
   @@index([status])
   @@index([location])
+}
+
+// ─── Search history ──────────────────────────────────────────────────────────
+
+// What a user searched for, used only to rank their personalised recommendations.
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  keyword   String?
+  category  String?
+  location  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // ─── Wishlist ────────────────────────────────────────────────────────────────

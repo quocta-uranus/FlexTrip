@@ -32,6 +32,7 @@ import { PriceAiModule } from './modules/price-ai/price-ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
 import { SupportModule } from './modules/support/support.module';
+import { PublicStatsModule } from './modules/public-stats/public-stats.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { SupportModule } from './modules/support/support.module';
     PaymentsModule,
     PaymentAiModule,
     SupportModule,
+    PublicStatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -77,7 +77,6 @@ export function Navbar() {
   // Hide on pages that render LandingHeader, auth pages, and admin
   if (
     pathname === '/' ||
-    pathname === '/register-provider' ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||

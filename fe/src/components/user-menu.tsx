@@ -153,8 +153,8 @@ export function UserMenu() {
             />
             <MenuItem
               icon={<ShieldCheck className="size-4" />}
-              label="Bảo mật"
-              href="/profile/security"
+              label="Hồ sơ & Bảo mật"
+              href="/profile"
             />
           </div>
 

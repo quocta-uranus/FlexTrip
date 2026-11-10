@@ -75,7 +75,7 @@ export class BookingService {
       if (listing.status !== 'ACTIVE')
         throw new BadRequestException('Listing không còn hoạt động');
       if (listing.providerId === travelerId)
-        throw new BadRequestException('Không thể đặt listing của chính mình');
+        throw new BadRequestException({ code: 'OWN_LISTING', message: 'Không thể đặt listing của chính mình' });
 
       const check = await this.availabilitySvc.checkAvailability(
         dto.listingId, startDate, endDate, qty, undefined, tx,
