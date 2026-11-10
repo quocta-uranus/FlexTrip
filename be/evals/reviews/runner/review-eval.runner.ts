@@ -32,8 +32,16 @@ import type {
 
 const PROJECT_DIR = resolve(__dirname, '../../..');
 const EVAL_DIR = resolve(PROJECT_DIR, 'evals/reviews');
-const DATASET_PATH = resolve(EVAL_DIR, 'dataset/review-eval-dataset.json');
-const RESULTS_DIR = resolve(EVAL_DIR, 'results');
+// `--set=holdout` runs the separate held-out set. It has its own results folder so it never
+// overwrites the main set, and its prompt/rules must not be tuned against it.
+const HOLDOUT = process.argv.includes('--set=holdout');
+const DATASET_PATH = resolve(
+  EVAL_DIR,
+  HOLDOUT
+    ? 'dataset/review-eval-holdout.json'
+    : 'dataset/review-eval-dataset.json',
+);
+const RESULTS_DIR = resolve(EVAL_DIR, HOLDOUT ? 'results/holdout' : 'results');
 const PRODUCTION_THRESHOLD = 70;
 const MAX_ATTEMPTS = 3;
 const REQUEST_DELAY_MS = Number(process.env.REVIEW_EVAL_DELAY_MS ?? 1_000);
@@ -67,7 +75,7 @@ function parseArguments(): { mode: EvaluationMode; resume: boolean } {
   const modeValue = process.argv
     .find((argument) => argument.startsWith('--mode='))
     ?.split('=')[1];
-  const mode = (modeValue ?? 'smoke') as EvaluationMode;
+  const mode = (modeValue ?? (HOLDOUT ? 'full' : 'smoke')) as EvaluationMode;
   if (!['smoke', 'quick', 'full'].includes(mode))
     throw new Error('Mode must be smoke, quick, or full');
   return { mode, resume: process.argv.includes('--resume') };
@@ -94,6 +102,8 @@ function validateDataset(dataset: EvaluationDataset): void {
       throw new Error(`Dataset case ${item.id} must be included in full mode`);
   });
 
+  // The held-out set has no smoke/quick subsets: it is always run whole.
+  if (HOLDOUT) return;
   const expectedCounts: Record<EvaluationMode, number> = {
     smoke: 10,
     quick: 30,

@@ -25,7 +25,8 @@
     "seed:review-demo": "node --env-file=.env --require ts-node/register/transpile-only prisma/review-demo.ts",
     "cleanup:review-demo": "node --env-file=.env --require ts-node/register/transpile-only prisma/review-demo.ts --cleanup",
     "cleanup:review-bookings": "node --env-file=.env --require ts-node/register/transpile-only prisma/cleanup-review-bookings.ts",
-    "eval:reviews": "ts-node --project evals/reviews/tsconfig.json --transpile-only evals/reviews/runner/review-eval.runner.ts"
+    "eval:reviews": "ts-node --project evals/reviews/tsconfig.json --transpile-only evals/reviews/runner/review-eval.runner.ts",
+    "eval:reviews:local": "ts-node --project evals/reviews/tsconfig.json --transpile-only evals/reviews/runner/local-only.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
