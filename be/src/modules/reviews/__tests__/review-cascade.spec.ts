@@ -396,9 +396,22 @@ describe('REVIEW-03 cascade in the moderation service', () => {
         reasons: ['Đe dọa'],
       });
       await expect(
-        moderation.assertResponseAllowed('Sẽ tìm đến tận nhà bạn.'),
+        moderation.assertResponseAllowed('Sẽ tìm đến bạn.'),
       ).rejects.toMatchObject({ response: { code: 'RESPONSE_REJECTED' } });
       expect(h.reviewAnalyzer.analyze).toHaveBeenCalledTimes(2);
+    });
+
+    it('blocks a threatening reply by rule and fails closed when the LLM is down', async () => {
+      await setup('Lều ổn.');
+      classifies(local(0.01));
+      await expect(
+        moderation.assertResponseAllowed('Tôi sẽ tìm đến tận nhà bạn.'),
+      ).rejects.toMatchObject({ response: { code: 'RESPONSE_REJECTED' } });
+
+      h.reviewAnalyzer.analyze.mockRejectedValue(new Error('429'));
+      await expect(
+        moderation.assertResponseAllowed('Bạn sẽ biết tay tôi.'),
+      ).rejects.toMatchObject({ response: { code: 'RESPONSE_REJECTED' } });
     });
   });
 });

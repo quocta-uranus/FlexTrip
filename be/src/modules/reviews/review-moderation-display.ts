@@ -27,6 +27,10 @@ const REASON_TRANSLATIONS: Array<[RegExp, string]> = [
   ],
 ];
 
+/** "Không có nội dung xúc phạm, spam": the model is clearing the review, not accusing it. */
+const DENIES_VIOLATION =
+  /(?:^|[\s,;.])(?:không|chẳng|chưa|no|not|without)(?:\s|$)[^.;]*(?:xúc phạm|tục|spam|offensive|profan|insult|harass|abusive)/iu;
+
 function stripSourcePrefix(reason: string) {
   return reason.replace(/^\s*\[(?:RULE|AI)\]\s*/iu, '').trim();
 }
@@ -44,6 +48,7 @@ export function toVietnameseDisplayReasons(value: unknown): string[] {
     .filter((reason): reason is string => typeof reason === 'string')
     .map(stripSourcePrefix)
     .filter(Boolean)
+    .filter((reason) => !DENIES_VIOLATION.test(reason))
     .map((reason) => {
       const translated = REASON_TRANSLATIONS.find(([pattern]) =>
         pattern.test(reason),

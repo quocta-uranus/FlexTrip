@@ -132,6 +132,10 @@ export const THREAT_TERMS = [
   'xử đẹp mày',
   'đốt shop',
   'đốt cửa hàng',
+  'tìm đến tận nhà',
+  'tìm tới tận nhà',
+  'sẽ tìm đến nhà',
+  'cho mày biết tay',
 ];
 
 export interface LexiconTerms {

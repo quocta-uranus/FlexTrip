@@ -7,8 +7,9 @@ const SPAM_REASON =
 /** "Không xúc phạm", "không có dấu hiệu đe dọa": the reason denies the problem. */
 const NEGATED_TOXICITY =
   /(?:^|[\s,;.])(?:không|chẳng|chưa|no|not|without)(?:\s|$)/iu;
+/** A negation word followed by the spam keyword: "không có dấu hiệu spam", "no sign of spam". */
 const NEGATED_SPAM =
-  /không (?:có )?(?:dấu hiệu )?spam|không phải spam|no (?:signs? of )?spam/iu;
+  /(?:^|[\s,;.])(?:không|chẳng|chưa|no|not|without)(?:\s|$)[^.;,]*(?:spam|repetit|automated|lặp)/iu;
 
 /**
  * The model sometimes describes an insult or spam in its reasons yet returns a low

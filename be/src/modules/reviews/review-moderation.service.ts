@@ -573,6 +573,8 @@ export class ReviewModerationService implements OnModuleInit {
         throw rejected();
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
+      // A threat cue is too risky to wave through just because the LLM is down.
+      if (route.cause === 'THREAT_CUE') throw rejected();
       this.logger.warn('AI screening of provider response was unavailable');
     }
   }
