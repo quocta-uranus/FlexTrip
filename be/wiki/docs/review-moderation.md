@@ -87,6 +87,20 @@ REJECTED ──traveler khiếu nại (1 lần)──> FLAGGED        PUBLISHED 
     về thuê đồ (`SAFE_PHRASES`).
   - Mọi từ có sẵn trong mã nguồn phải kiểm tra với từ vựng thuê đồ: "đồ ngủ", "thang", "đồ cho thuê", "đồ điện" không được bị bắt nhầm. Từ
     không dấu chỉ được thêm khi không trùng từ thường (không thêm `lon`, `cac`, `deo`, `buoi`).
+- **Chỉ gọi AI cho ca khó (cascade):** nếu bật service phân loại cục bộ (`REVIEW_CLASSIFIER_URL`, xem `be/ml/review-classifier`),
+  mỗi review được hai mô hình PhoBERT chạy trên máy (độc hại: `visolex/phobert-v2-hsd`, cảm xúc:
+  `wonrax/phobert-base-vietnamese-sentiment`) xem trước, khoảng 50-120 ms. `routeReview` (`review-cascade.ts`) chỉ tin kết
+  quả cục bộ khi review "bình thường", còn lại gửi cho Groq:
+  - xác suất độc hại ≥ `review_local_toxic_block` (mặc định 90%): ẩn luôn, không gọi AI;
+  - ≤ `review_local_toxic_clear` (15%), cảm xúc đủ chắc (≥ `review_local_sentiment_min`, 70%) và khớp số sao: coi là sạch, không gọi AI,
+    cảm xúc lấy từ mô hình; lý do ghi `[ML]` và trang admin hiện nguồn "Model PhoBERT";
+  - gọi AI khi: ở giữa hai ngưỡng, sao và cảm xúc mâu thuẫn (3 sao mà nhãn không trung lập cũng tính), cảm xúc chưa chắc, rule
+    đã gắn cờ, văn bản dài (> 600 ký tự), có dấu hiệu chèn chỉ dẫn, quảng cáo hoặc rủ vay tiền/coin/cá cược, đe dọa, tự nhận
+    chưa thuê, đại từ thô tục (tao, mày, thằng...), viết hoa toàn bộ, lặp từ, hoặc service phân loại không trả lời.
+    Các dấu hiệu này chỉ quyết định ai trả lời nên cố ý đặt rộng: một từ trùng với review thật chỉ tốn thêm một lần gọi AI.
+  - service lỗi 3 lần liên tiếp thì bị bỏ qua 30 giây; không có service thì mọi review đi qua AI như trước.
+  - phản hồi của provider cũng dùng cascade (không xét cảm xúc), nên đa số được duyệt trong chưa đến 0,2 giây thay vì chờ Groq.
+  - khi AI điểm 0 nhưng lý do mô tả xúc phạm hoặc spam, lý do được ưu tiên (`reconcileAiAnalysis`).
 - Job quét mỗi 5 phút: đánh giá chờ AI (`PENDING`, hoặc `PUBLISHED` chưa có `moderatedAt`) quá 15 phút mà không có job thì
   được gửi lại. Job thất bại hết lượt hoặc kẹt quá 60 phút: `PENDING` chuyển `FLAGGED` kèm lý do "AI không khả dụng" để
   admin duyệt tay (traveler được thông báo); `PUBLISHED` giữ nguyên công khai (fail-open, rule đã chạy lúc gửi) và được
@@ -129,21 +143,52 @@ và xu hướng theo ngày, tuần hoặc tháng, chỉ trên các đánh giá �
 | `review_window_days` | 30 | Số ngày được đánh giá sau khi kết thúc thuê |
 | `review_edit_hours` | 48 | Số giờ được sửa đánh giá một lần |
 | `review_sla_hours` | 24 | Số giờ admin nên xử lý review bị ẩn hoặc có khiếu nại, quá hạn sẽ được đánh dấu |
+| `review_local_toxic_clear` | 15 | Xác suất độc hại (%) của PhoBERT từ mức này trở xuống coi là sạch, không gọi AI |
+| `review_local_toxic_block` | 90 | Từ mức này trở lên coi là độc hại và ẩn mà không gọi AI; ở giữa thì hỏi AI |
+| `review_local_sentiment_min` | 70 | Dưới độ tin cậy (%) này, cảm xúc do AI quyết định |
 
-## 4. Chất lượng AI (bộ eval 150 trường hợp, mô hình `openai/gpt-oss-20b`, prompt `review-moderation-v3`)
+## 4. Chất lượng (bộ eval 150 trường hợp, `openai/gpt-oss-20b`, prompt `review-moderation-v4`)
 
-| Chỉ số | Precision | Recall | F1 |
+Chạy bằng `npm run eval:reviews -- --mode=full --cascade` (cần service phân loại cục bộ đang chạy để có phần cascade). Báo cáo đầy đủ nằm ở `evals/reviews/results/`.
+
+**Quyết định ẩn review (vi phạm rõ: spam hoặc độc hại, 51 ca cần ẩn):**
+
+| Lớp | Precision | Recall | F1 | Ẩn nhầm |
+|---|---|---|---|---|
+| Chỉ rule | 100% | 41.2% | 58.3% | 0% |
+| Chỉ AI (ngưỡng 70) | 95.2% | 78.4% | 86.0% | 2.0% |
+| Rule + AI cho mọi review | 96.1% | 96.1% | 96.1% | 2.0% |
+| **Cascade** (PhoBERT trước, AI cho ca khó) | 100% | 98.0% | 99.0% | 0% |
+
+**Cascade tiết kiệm 41.3% số lần gọi Groq** (58.7% review vẫn cần AI), mỗi review mất thêm khoảng 50 ms cho mô hình cục bộ. Cảm xúc đúng 93.3% so với 92.7% khi hỏi AI mọi review, và không có review nào được trả lời cục bộ mà sai.
+
+| Chỉ số của AI (prompt v4) | Precision | Recall | F1 |
 |---|---|---|---|
-| Spam | 91.3% | 80.8% | 85.7% |
-| Độc hại | 100% | 84.0% | 91.3% |
-| Đáng ngờ | 93.1% | 40.3% | 56.3% |
+| Spam | 90.9% | 76.9% | 83.3% |
+| Độc hại | 100% | 80.0% | 88.9% |
+| Đáng ngờ | 100% | 60.6% | 75.4% |
 
-Độ chính xác cảm xúc 91.8%, độ trễ trung bình 747 ms. Các tín hiệu gian lận theo dữ liệu chéo giữa các đánh giá (mục 2,
-REVIEW-03) được thêm sau khi chạy bộ eval này nên chưa nằm trong số liệu trên.
+Cảm xúc đúng 92.7%, độ trễ AI trung bình 817 ms (p95 1.8 s), 150/150 yêu cầu hợp lệ.
+
+**Đọc các con số này cho đúng:**
+- Số liệu cũ trong bản trước của tài liệu (spam F1 85.7%, độc hại 91.3%, nhãn `v3`) đo từ trước khi prompt đổi sang "lý do bằng tiếng
+  Việt" mà không đổi số phiên bản. Chạy lại với prompt đó (không có hướng dẫn chấm điểm) cho spam F1 63.2% và độc hại F1 41.4%:
+  AI viết lý do là xúc phạm nhưng vẫn chấm 0 điểm. Prompt `v4` thêm hướng dẫn chấm điểm, nên các số trên là số hiện hành.
+- Prompt `v4` và các dấu hiệu chuyển ca khó sang AI trong `review-cascade.ts` được chỉnh khi nhìn vào chính bộ 150 ca này, nên số liệu trên
+  lạc quan hơn so với review thật. Bộ dữ liệu cũng là dữ liệu tổng hợp và có nhiều ca vi phạm hơn thực tế, nên trên review thật tỷ lệ
+  review phải gọi AI sẽ thấp hơn 58.7%.
+- Phần "chỉ AI" và "rule + AI" đã gồm cách sửa khi lý do và điểm mâu thuẫn (`reconcileAiAnalysis`). Các tín hiệu gian lận chéo giữa
+  các review (trùng nội dung, gửi dồn dập) không nằm trong bộ eval vì cần dữ liệu nhiều review.
+- Mô hình độc hại PhoBERT đứng một mình (xác suất ≥ 0.5) đạt F1 85.1%, ẩn nhầm 1.6%; nó coi nhẹ lời đe dọa và lời rủ mua bán, nên các ca đó
+  được chuyển cho AI.
 
 ## 5. Giới hạn đã biết
 
 - Nội dung vi phạm mà rule bỏ sót có thể hiện công khai trong vài giây đến vài phút cho tới khi AI kiểm tra xong.
+- Service phân loại cục bộ cần Python, khoảng 2.3 GB ổ đĩa và chạy riêng (`be/ml/review-classifier`); nếu tắt, mọi review đi qua AI như trước.
+- Hai mô hình PhoBERT là mô hình công khai chưa được huấn luyện lại cho review thuê đồ: mô hình độc hại có ít người dùng và thẻ mô tả có chỗ không
+  khớp (tập dữ liệu, số epoch), mô hình cảm xúc nghiêng về tích cực hoặc tiêu cực với review 3 sao nhạt. Đó là lý do cascade chỉ tin kết quả cục bộ
+  khi mọi dấu hiệu đều bình thường.
 - Rule chỉ có từ điển tiếng Việt và tiếng Anh; các ngôn ngữ khác dựa vào AI. Từ điển chỉ khớp theo từ, không có model hiểu
   ngữ cảnh, nên cách chửi chưa có trong danh sách vẫn phải dựa vào AI hoặc được admin thêm vào.
 - Phản hồi của provider chứa số điện thoại sẽ bị từ chối, giống chính sách chống trao đổi ngoài nền tảng.
