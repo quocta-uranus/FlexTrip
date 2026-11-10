@@ -1,3 +1,7 @@
+import type {
+  ReportFrequency, ReportType, TicketCategory, TicketMessage, TicketPriority, TicketStatus, TicketTriageSource,
+} from "./support";
+
 export type Role = "TRAVELER" | "PROVIDER" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DISABLED";
 export type ListingStatus =
@@ -36,7 +40,9 @@ export type AuditModule =
   | "STAFF"
   | "KYC"
   | "PROVIDER"
-  | "REVIEW";
+  | "REVIEW"
+  | "SUPPORT"
+  | "REPORT";
 export type ReviewStatus = "PENDING" | "PUBLISHED" | "FLAGGED" | "REJECTED";
 export type ReviewSentiment = "POSITIVE" | "NEUTRAL" | "NEGATIVE" | "UNKNOWN";
 export type ReviewQueueStatus =
@@ -442,4 +448,61 @@ export interface StaffCommissionSummary {
     staffFee: number;
     settledAt: string | null;
   }[];
+}
+
+// ── Support & reports ─────────────────────────────────────────────────────────
+export interface AdminTicketItem {
+  id: string;
+  subject: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
+  triageSource: TicketTriageSource;
+  requester: { id: string; name: string; email: string };
+  assignedTo: { id: string; name: string } | null;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface AdminTicketDetail extends AdminTicketItem {
+  description: string;
+  triageReason: string | null;
+  resolvedAt: string | null;
+  booking: { id: string; status: string; title: string } | null;
+  messages: TicketMessage[];
+}
+export interface TicketStats {
+  byStatus: Record<TicketStatus, number>;
+  activeByCategory: Partial<Record<TicketCategory, number>>;
+  unassigned: number;
+}
+export interface AdminFaq {
+  id: string;
+  question: string;
+  answer: string;
+  category: TicketCategory;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface FaqSuggestion {
+  category: TicketCategory;
+  ticketCount: number;
+  sampleTicketIds: string[];
+  question: string;
+  answer: string;
+  source: "AI" | "RULES";
+}
+export interface ReportSchedule {
+  id: string;
+  name: string;
+  type: ReportType;
+  frequency: ReportFrequency;
+  recipients: string[];
+  isActive: boolean;
+  nextRunAt: string;
+  lastRunAt: string | null;
+  lastError: string | null;
+  createdBy: { id: string; name: string } | null;
 }

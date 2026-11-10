@@ -1,5 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -20,6 +20,10 @@ import {
 import { ReviewModerationProcessor } from '../../../reviews/review-moderation.processor';
 import { BOOKING_QUEUE } from '../../../booking/booking.constants';
 import { BookingProcessor } from '../../../booking/booking.processor';
+import { SUPPORT_TRIAGE_QUEUE } from '../../../support/support.constants';
+import { SupportTriageProcessor } from '../../../support/support-triage.processor';
+import { REPORT_SCHEDULE_QUEUE } from '../../../admin/reports/report-schedule.constants';
+import { ReportScheduleProcessor } from '../../../admin/reports/report-schedule.processor';
 
 export const password = 'Valid password 123!';
 
@@ -99,6 +103,8 @@ export class AuthHarness {
     remove: jest.fn(),
     getJob: jest.fn(),
   };
+  supportQueue = { add: jest.fn() };
+  reportQueue = { upsertJobScheduler: jest.fn() };
   reviewAnalyzer = {
     analyze:
       jest.fn<
@@ -118,6 +124,8 @@ export class AuthHarness {
       jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
     sendProviderApproved:
       jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+    sendReport:
+      jest.fn<(to: string[], subject: string, summary: string, file: { filename: string; content: Buffer }) => Promise<boolean>>(),
   };
 
   otp = {
@@ -127,7 +135,9 @@ export class AuthHarness {
     canResend: jest.fn<(ns: string, key: string) => Promise<boolean>>(),
   };
 
-  async open(): Promise<void> {
+  async open(
+    configure: (builder: TestingModuleBuilder) => TestingModuleBuilder = (b) => b,
+  ): Promise<void> {
     process.env.DATABASE_URL = assertTestDatabase();
     process.env.JWT_ACCESS_SECRET = 'auth01-test-access-secret-32-characters';
     process.env.JWT_REFRESH_SECRET = 'auth01-test-refresh-secret-32-characters';
@@ -147,6 +157,7 @@ export class AuthHarness {
     this.resend.sendPasswordReset.mockResolvedValue(true);
     this.resend.sendStaffInvite.mockResolvedValue(true);
     this.resend.sendProviderApproved.mockResolvedValue(true);
+    this.resend.sendReport.mockResolvedValue(true);
     this.otp.generate.mockResolvedValue('123456');
     this.otp.verify.mockResolvedValue(true);
     this.otp.canResend.mockResolvedValue(true);
@@ -159,7 +170,7 @@ export class AuthHarness {
       reasons: [],
     });
 
-    const module = await Test.createTestingModule({ imports: [AppModule] })
+    const builder = Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(ResendService)
       .useValue(this.resend)
       .overrideProvider(OtpService)
@@ -176,7 +187,15 @@ export class AuthHarness {
       .useValue(this.bookingQueue)
       .overrideProvider(BookingProcessor)
       .useValue({ process: jest.fn() })
-      .compile();
+      .overrideProvider(getQueueToken(SUPPORT_TRIAGE_QUEUE))
+      .useValue(this.supportQueue)
+      .overrideProvider(SupportTriageProcessor)
+      .useValue({ process: jest.fn() })
+      .overrideProvider(getQueueToken(REPORT_SCHEDULE_QUEUE))
+      .useValue(this.reportQueue)
+      .overrideProvider(ReportScheduleProcessor)
+      .useValue({ process: jest.fn() });
+    const module = await configure(builder).compile();
 
     this.app = module.createNestApplication();
     this.app.setGlobalPrefix('api/v1');

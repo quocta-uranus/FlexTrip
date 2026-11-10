@@ -17,6 +17,11 @@ export const registerSchema = z
       .regex(/^[0-9+\s\-()]{7,20}$/, 'Số điện thoại không hợp lệ')
       .optional()
       .or(z.literal('')),
+    referralCode: z
+      .string()
+      .regex(/^[A-Za-z0-9]{1,16}$/, 'Mã giới thiệu không hợp lệ')
+      .optional()
+      .or(z.literal('')),
     password: passwordField,
     confirmPassword: z.string(),
   })

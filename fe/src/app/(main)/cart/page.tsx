@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart, useRemoveCartItem, useCartCheckout } from '@/hooks/useCart';
 import type { CartItem } from '@/types/booking';
+import { CartItemVoucher, type AppliedVoucher } from '@/components/voucher/cart-item-voucher';
 
 const PAYMENT_METHODS = [
   { value: 'PAYOS', label: 'PayOS', icon: '💳' },
@@ -57,9 +58,13 @@ function HoldCountdown({ expiresAt }: { expiresAt: string | null | undefined }) 
 function CartItemCard({
   item,
   onRemove,
+  voucher,
+  onVoucherChange,
 }: {
   item: CartItem;
   onRemove: (id: string) => void;
+  voucher?: AppliedVoucher;
+  onVoucherChange: (voucher: AppliedVoucher | null) => void;
 }) {
   const isExpired = !item.isHoldValid;
 
@@ -139,6 +144,7 @@ function CartItemCard({
               </p>
             </div>
           </div>
+          {!isExpired && <CartItemVoucher item={item} applied={voucher} onChange={onVoucherChange} />}
         </div>
       </div>
 
@@ -161,6 +167,19 @@ export default function CartPage() {
   const checkout = useCartCheckout();
   const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [vouchers, setVouchers] = useState<Record<string, AppliedVoucher>>({});
+
+  const applied = (cart?.items ?? []).flatMap((i) => (vouchers[i.id] ? [{ cartItemId: i.id, ...vouchers[i.id] }] : []));
+  const totalDiscount = applied.reduce((sum, v) => sum + v.discount, 0);
+
+  function setVoucher(itemId: string, voucher: AppliedVoucher | null) {
+    setVouchers((prev) => {
+      const next = { ...prev };
+      if (voucher) next[itemId] = voucher;
+      else delete next[itemId];
+      return next;
+    });
+  }
 
   const hasExpired = cart?.items.some((i) => !i.isHoldValid) ?? false;
   const canCheckout = (cart?.items.length ?? 0) > 0 && !hasExpired;
@@ -168,7 +187,10 @@ export default function CartPage() {
   async function handleCheckout() {
     setCheckoutError(null);
     try {
-      await checkout.mutateAsync({ paymentMethod });
+      await checkout.mutateAsync({
+        paymentMethod,
+        ...(applied.length ? { vouchers: applied.map((v) => ({ cartItemId: v.cartItemId, code: v.code })) } : {}),
+      });
       router.push('/bookings?checkout=1');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Đã xảy ra lỗi khi thanh toán';
@@ -259,6 +281,8 @@ export default function CartPage() {
                   key={item.id}
                   item={item}
                   onRemove={(id) => removeItem.mutate(id)}
+                  voucher={vouchers[item.id]}
+                  onVoucherChange={(v) => setVoucher(item.id, v)}
                 />
               ))}
 
@@ -312,6 +336,12 @@ export default function CartPage() {
                       {cart.depositTotal.toLocaleString('vi-VN')} ₫
                     </span>
                   </div>
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Giảm giá (voucher)</span>
+                      <span className="font-semibold">-{totalDiscount.toLocaleString('vi-VN')} ₫</span>
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -325,6 +355,7 @@ export default function CartPage() {
                 </div>
                 <p className="mt-1 text-[11px]" style={{ color: '#8694ad' }}>
                   * Tiền thuê còn lại thanh toán khi nhận đồ
+                  {totalDiscount > 0 && ` (${Math.max(cart.total - cart.depositTotal - totalDiscount, 0).toLocaleString('vi-VN')} ₫ sau giảm giá)`}
                 </p>
               </div>
 

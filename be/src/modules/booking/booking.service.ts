@@ -16,6 +16,8 @@ import {
   BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, RENTAL_UNPAID_MESSAGE, STAFF_ASSIGNED_MESSAGE, isRentalSettled,
 } from './booking.constants';
 import { PaymentsService } from '../payments/payments.service';
+import { VouchersService } from '../vouchers/vouchers.service';
+import { priceBooking, rentalDaysBetween } from './booking-price.util';
 
 const BOOKING_INCLUDE = {
   listing: {
@@ -43,6 +45,7 @@ export class BookingService {
     private readonly contractsSvc: ContractsService,
     @InjectQueue(BOOKING_QUEUE) private readonly bookingQueue: Queue,
     @Optional() private readonly paymentsSvc?: PaymentsService,
+    @Optional() private readonly vouchersSvc?: VouchersService,
   ) {}
 
   // ─── BOOK-01: Create booking → PENDING_PAYMENT ───────────────────────────
@@ -57,8 +60,7 @@ export class BookingService {
       throw new BadRequestException('Không thể đặt ngày trong quá khứ');
 
     const qty = dto.quantity ?? 1;
-    const rentalDays =
-      Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+    const rentalDays = rentalDaysBetween(startDate, endDate);
 
     const { booking, summary } = await this.prisma.$transaction(async (tx) => {
       // Row lock on Listing to serialize concurrent direct bookings
@@ -68,14 +70,14 @@ export class BookingService {
         where: { id: dto.listingId },
         select: {
           id: true, title: true, status: true, price: true,
-          currency: true, providerId: true, quantity: true, depositRate: true,
+          currency: true, providerId: true, quantity: true, depositRate: true, category: true,
         },
       });
       if (!listing) throw new NotFoundException('Listing không tồn tại');
       if (listing.status !== 'ACTIVE')
         throw new BadRequestException('Listing không còn hoạt động');
       if (listing.providerId === travelerId)
-        throw new BadRequestException('Không thể đặt listing của chính mình');
+        throw new BadRequestException({ code: 'OWN_LISTING', message: 'Không thể đặt listing của chính mình' });
 
       const check = await this.availabilitySvc.checkAvailability(
         dto.listingId, startDate, endDate, qty, undefined, tx,
@@ -91,9 +93,14 @@ export class BookingService {
       }
 
       const unitPrice = listing.price.toNumber();
-      const totalPrice = unitPrice * qty * rentalDays;
-      const depositAmount = totalPrice * listing.depositRate.toNumber();
+      const { totalPrice, depositAmount } = priceBooking({
+        unitPrice, quantity: qty, rentalDays, depositRate: listing.depositRate.toNumber(),
+      });
       const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
+
+      const quote = dto.voucherCode && this.vouchersSvc
+        ? await this.vouchersSvc.quote(travelerId, dto.voucherCode, { totalPrice, depositAmount, category: listing.category }, tx)
+        : null;
 
       const createdBooking = await tx.booking.create({
         data: {
@@ -104,6 +111,7 @@ export class BookingService {
           quantity: qty,
           totalPrice,
           depositAmount,
+          discountAmount: quote?.discountAmount ?? 0,
           deliveryMethod: dto.deliveryMethod ?? DeliveryMethod.PICKUP,
           deliveryAddress: dto.deliveryAddress,
           notes: dto.notes,
@@ -113,9 +121,14 @@ export class BookingService {
         include: BOOKING_INCLUDE,
       });
 
+      if (quote) await this.vouchersSvc!.reserve(tx, createdBooking.id, travelerId, quote);
+
       return {
         booking: createdBooking,
-        summary: { rentalDays, unitPrice, totalPrice, depositAmount, holdExpiresAt, holdMinutes: HOLD_MINUTES },
+        summary: {
+          rentalDays, unitPrice, totalPrice, depositAmount, holdExpiresAt, holdMinutes: HOLD_MINUTES,
+          discountAmount: quote?.discountAmount ?? 0,
+        },
       };
     });
 
@@ -179,13 +192,15 @@ export class BookingService {
 
       const depositAmt = Number(booking.depositAmount);
       const totalAmt = Number(booking.totalPrice);
+      const discountAmt = Number(booking.discountAmount);
       await tx.payment.upsert({
         where: { bookingId },
         create: {
           bookingId,
           totalAmount: booking.totalPrice,
-          rentalAmount: totalAmt - depositAmt,
+          rentalAmount: totalAmt - depositAmt - discountAmt,
           depositAmount: booking.depositAmount,
+          discountAmount: booking.discountAmount,
           currency: 'VND',
           gatewayTransId: dto.transactionRef ?? null,
           status: 'PAID',
@@ -193,6 +208,8 @@ export class BookingService {
         },
         update: { gatewayTransId: dto.transactionRef ?? null, status: 'PAID' },
       });
+      // Luồng này ghi nhận trả đủ ngay (rentalPaidAt) nên ngân sách khuyến mãi chi luôn
+      await this.vouchersSvc?.markApplied(tx, bookingId);
 
       return updatedBooking;
     });
@@ -305,6 +322,7 @@ export class BookingService {
     if (booking.payment && this.paymentsSvc) {
       await this.paymentsSvc.onBookingCancelled(bookingId, CancelledBy.PROVIDER, BookingStatus.PENDING_APPROVAL);
     }
+    await this.vouchersSvc?.onBookingCancelled(bookingId, CancelledBy.PROVIDER);
 
     return { message: 'Đã từ chối và hoàn tiền cho Traveler' };
   }
@@ -394,6 +412,7 @@ export class BookingService {
           where: { id: bookingId },
           data: { status: BookingStatus.CANCELLED, cancelledBy, cancellationReason: dto.reason, cancelledAt: new Date() },
         });
+        await this.vouchersSvc?.onBookingCancelled(bookingId, cancelledBy);
         return { message: 'Đã huỷ booking', refundAmount: 0 };
       }
 
@@ -470,6 +489,7 @@ export class BookingService {
         preCancelStatus ?? BookingStatus.CONFIRMED,
       );
     }
+    await this.vouchersSvc?.onBookingCancelled(bookingId, cancelledBy);
   }
 
   private async removeScheduledJobs(bookingId: string) {

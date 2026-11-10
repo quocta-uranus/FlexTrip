@@ -17,6 +17,9 @@ import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { TopupDto } from './dto/topup.dto';
 import { PayoutRequestDto } from './dto/payout-request.dto';
 import { PaymentAiService } from '../payment-ai/payment-ai.service';
+import { VouchersService } from '../vouchers/vouchers.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 @Injectable()
 export class PaymentsService implements OnApplicationBootstrap {
@@ -29,6 +32,9 @@ export class PaymentsService implements OnApplicationBootstrap {
     private readonly payos: PayOsGateway,
     private readonly config: ConfigService,
     private readonly paymentAi: PaymentAiService,
+    private readonly vouchersSvc: VouchersService,
+    private readonly loyaltySvc: LoyaltyService,
+    private readonly referralsSvc: ReferralsService,
     @InjectQueue(PAYMENT_QUEUE) private readonly paymentQueue: Queue,
     @InjectQueue(BOOKING_QUEUE) private readonly bookingQueue: Queue,
   ) {}
@@ -59,7 +65,9 @@ export class PaymentsService implements OnApplicationBootstrap {
 
     const totalAmount = Number(booking.totalPrice);
     const depositAmount = Number(booking.depositAmount);
-    const rentalAmount = totalAmount - depositAmount;
+    // Giảm giá chỉ trừ vào tiền thuê trả sau; totalAmount vẫn là giá gốc để hoa hồng tính trên giá gốc
+    const discountAmount = Number(booking.discountAmount);
+    const rentalAmount = totalAmount - depositAmount - discountAmount;
     const orderCode = `FT${Date.now().toString(36).toUpperCase()}`;
 
     // Lần 1 chỉ thu cọc; tiền thuê thu sau khi provider duyệt (payRental)
@@ -83,11 +91,11 @@ export class PaymentsService implements OnApplicationBootstrap {
         this.prisma.payment.upsert({
           where: { bookingId },
           create: {
-            bookingId, totalAmount, rentalAmount, depositAmount,
+            bookingId, totalAmount, rentalAmount, depositAmount, discountAmount,
             gateway: dto.gateway, gatewayOrderCode: orderCode, status: PaymentStatus.PAID,
           },
           update: {
-            totalAmount, rentalAmount, depositAmount,
+            totalAmount, rentalAmount, depositAmount, discountAmount,
             gateway: dto.gateway, gatewayOrderCode: orderCode, status: PaymentStatus.PAID,
           },
         }),
@@ -113,6 +121,7 @@ export class PaymentsService implements OnApplicationBootstrap {
             totalAmount,
             rentalAmount,
             depositAmount,
+            discountAmount,
             gateway: PaymentGateway.WALLET,
             gatewayOrderCode: orderCode,
             status: PaymentStatus.PAID,
@@ -121,6 +130,7 @@ export class PaymentsService implements OnApplicationBootstrap {
             totalAmount,
             rentalAmount,
             depositAmount,
+            discountAmount,
             gateway: PaymentGateway.WALLET,
             gatewayOrderCode: orderCode,
             status: PaymentStatus.PAID,
@@ -177,6 +187,7 @@ export class PaymentsService implements OnApplicationBootstrap {
           totalAmount,
           rentalAmount,
           depositAmount,
+          discountAmount,
           gateway: PaymentGateway.PAYOS,
           gatewayOrderCode: result.orderCode,
           status: PaymentStatus.PENDING,
@@ -185,6 +196,7 @@ export class PaymentsService implements OnApplicationBootstrap {
           totalAmount,
           rentalAmount,
           depositAmount,
+          discountAmount,
           gateway: PaymentGateway.PAYOS,
           gatewayOrderCode: result.orderCode,
           status: PaymentStatus.PENDING,
@@ -335,6 +347,12 @@ export class PaymentsService implements OnApplicationBootstrap {
 
     const rentalAmount = Number(payment.rentalAmount);
 
+    // Voucher có thể giảm hết phần tiền thuê: không còn gì để thu qua cổng/ví
+    if (rentalAmount <= 0) {
+      await this.markRentalPaid(payment.id, bookingId, PaymentGateway.WALLET, null, null);
+      return { gateway: PaymentGateway.WALLET, status: 'PAID' };
+    }
+
     if (dto.gateway === PaymentGateway.WALLET) {
       const balance = await this.walletSvc.getBalance(travelerId);
       if (balance.availableBalance < rentalAmount) throw new BadRequestException('Số dư ví không đủ');
@@ -413,6 +431,14 @@ export class PaymentsService implements OnApplicationBootstrap {
     });
   }
 
+  // Ngân sách khuyến mãi bù phần giảm vào escrow, để escrow vẫn đủ giá gốc khi chia hoa hồng 90/10
+  private async applyVoucherDiscount(bookingId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const applied = await this.vouchersSvc.markApplied(tx, bookingId);
+      if (applied > 0) await this.escrowSvc.credit(applied, tx);
+    });
+  }
+
   // Shared by wallet / webhook / confirmPayosReturn; only the first caller flips the state
   private async markRentalPaid(
     paymentId: string,
@@ -433,6 +459,7 @@ export class PaymentsService implements OnApplicationBootstrap {
     if (count === 0) return;
 
     await this.applyDepositToPrice(paymentId);
+    await this.applyVoucherDiscount(bookingId);
 
     const booking = await this.prisma.booking.update({
       where: { id: bookingId },
@@ -451,9 +478,19 @@ export class PaymentsService implements OnApplicationBootstrap {
     });
   }
 
+  /** Provider duyệt đơn mà voucher đã giảm hết tiền thuê: không còn bước trả nốt nên chốt thanh toán ở đây. */
+  async settleDiscountedRental(bookingId: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { bookingId } });
+    if (!payment || payment.rentalPaidAt || Number(payment.rentalAmount) > 0) return;
+    await this.markRentalPaid(payment.id, bookingId, PaymentGateway.WALLET, null, null);
+  }
+
   // ─── Called by BookingService when booking transitions to COMPLETED ───────
 
   async onBookingCompleted(bookingId: string) {
+    // Mọi đường chuyển COMPLETED đều đi qua đây nên cộng điểm ở đây; idempotent theo booking
+    await this.loyaltySvc.earnForBookingSafe(bookingId);
+    await this.referralsSvc.onBookingCompletedSafe(bookingId);
     await this.paymentQueue.add(PaymentJob.COMMISSION_SPLIT, { bookingId }, {
       removeOnComplete: true,
       attempts: 3,

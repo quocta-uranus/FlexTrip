@@ -61,6 +61,12 @@ export class ListingsController {
     return this.svc.findAll(query);
   }
 
+  @Get('locations')
+  @ApiOperation({ summary: 'Public: location suggestions from active listings' })
+  findLocations() {
+    return this.svc.findLocations();
+  }
+
   @Get('me')
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)

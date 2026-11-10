@@ -27,6 +27,14 @@ export class ProviderApplicationsController {
     return this.svc.submit(dto);
   }
 
+  @Get('me')
+  @ApiBearerAuth()
+  @UseGuards(AccessTokenGuard)
+  @ApiOperation({ summary: 'Latest provider application submitted with the current account email' })
+  mine(@Req() req: AuthenticatedRequest) {
+    return this.svc.findMine(req.authUserId);
+  }
+
   @Get()
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)

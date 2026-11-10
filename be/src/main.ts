@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { isAllowedOrigin } from './common/cors.util';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -22,19 +23,9 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3002',
-    ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map((o) => o.trim()) : []),
-  ];
-
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      // Allow Vercel preview deployments: *.vercel.app
-      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
-    },
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) =>
+      isAllowedOrigin(origin) ? callback(null, true) : callback(new Error(`CORS blocked: ${origin}`)),
     credentials: true,
   });
 

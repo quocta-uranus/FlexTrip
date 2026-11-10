@@ -47,6 +47,7 @@ export interface Booking {
   endDate: string;
   totalPrice: number;
   depositAmount?: number;
+  discountAmount?: number;
   quantity: number;
   deliveryMethod?: DeliveryMethod | null;
   deliveryAddress?: string | null;
@@ -83,6 +84,7 @@ export interface Booking {
     totalAmount: number;
     rentalAmount?: number;
     depositAmount?: number;
+    discountAmount?: number;
     rentalPaidAt?: string | null;
     amount?: number;
     status: 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';

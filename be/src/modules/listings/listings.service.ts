@@ -18,6 +18,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { uploadImage, deleteFromSupabase } from '../../common/upload.util';
+import { buildLocationSuggestions } from './location-suggestions';
 import {
   CreateListingDto,
   UpdateListingDto,
@@ -96,7 +97,7 @@ export class ListingsService {
     const limit = params?.limit ?? 20;
     const category = this.publicCategoryFilter(params.category);
     const where: Prisma.ListingWhereInput = {
-      status: ListingStatus.ACTIVE,
+      ...this.publicListingWhere(),
       ...(category ? { category } : {}),
       ...(params?.keyword
         ? {
@@ -224,6 +225,23 @@ export class ListingsService {
       this.prisma.listing.count({ where }),
     ]);
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  // Single definition of "visible to everyone", shared by the search and the location suggestions.
+  private publicListingWhere(): Prisma.ListingWhereInput {
+    return { status: ListingStatus.ACTIVE };
+  }
+
+  // Read-only and public: only Listing.location of publicly visible listings, grouped over every row
+  // (not limited to one page of search results).
+  async findLocations() {
+    const rows = await this.prisma.listing.groupBy({
+      by: ['location'],
+      where: this.publicListingWhere(),
+      _count: { _all: true },
+    });
+    const items = buildLocationSuggestions(rows.map((r) => ({ location: r.location, count: r._count._all })));
+    return { items };
   }
 
   private publicCategoryFilter(category?: ListingCategoryDto) {
