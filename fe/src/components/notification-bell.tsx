@@ -36,7 +36,10 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
     return conversationId ? `/messages?conversation=${conversationId}` : '/messages';
   }
   if (notification.type === 'PAYMENT') return '/profile/payments';
-  if (notification.type === 'REVIEW') return isProvider ? '/profile/shop' : '/profile';
+  if (notification.type === 'REVIEW') {
+    if (isProvider) return '/profile/shop';
+    return bookingId ? `/bookings/${bookingId}` : '/profile/reviews';
+  }
   return '/profile';
 }
 

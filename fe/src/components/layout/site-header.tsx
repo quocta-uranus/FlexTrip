@@ -194,6 +194,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     profileItem,
     { href: '/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
     { href: '/wishlist', label: 'Thiết bị đã lưu', icon: icon(Heart) },
+    { href: '/profile/reviews', label: 'Đánh giá của tôi', icon: icon(Star) },
     walletItem,
   ];
   const providerItems = [

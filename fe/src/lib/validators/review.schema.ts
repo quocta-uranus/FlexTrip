@@ -10,3 +10,13 @@ export const reviewSchema = z.object({
 });
 
 export type ReviewFormValues = z.infer<typeof reviewSchema>;
+
+export const appealSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(10, 'Lý do khiếu nại phải có ít nhất 10 ký tự')
+    .max(1000, 'Lý do khiếu nại không được vượt quá 1000 ký tự'),
+});
+
+export type AppealFormValues = z.infer<typeof appealSchema>;

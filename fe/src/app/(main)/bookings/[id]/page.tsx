@@ -11,6 +11,7 @@ import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
 import { ReviewForm } from '@/components/reviews/review-form';
 import { SubmittedReview } from '@/components/reviews/submitted-review';
+import { ReviewActions } from '@/components/reviews/review-actions';
 import { useMyReviews } from '@/hooks/useReviews';
 import { useContract } from '@/hooks/useContracts';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
@@ -922,7 +923,11 @@ function BookingDetailContent() {
         <ReviewForm bookingId={booking.id} />
       )}
 
-      {!isProvider && currentReview && <SubmittedReview review={currentReview} />}
+      {!isProvider && currentReview && (
+        <SubmittedReview review={currentReview}>
+          <ReviewActions review={currentReview} />
+        </SubmittedReview>
+      )}
 
       {/* Modify requests history */}
       {!!modifyRequests?.length && (

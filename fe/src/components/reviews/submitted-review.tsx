@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +9,7 @@ interface SubmittedReviewProps {
     status: string;
     rejectionReason?: string | null;
   };
+  children?: ReactNode;
 }
 
 const STATUS_NOTE: Record<string, { text: string; className: string; Icon: typeof Clock }> = {
@@ -17,7 +19,7 @@ const STATUS_NOTE: Record<string, { text: string; className: string; Icon: typeo
     Icon: Clock,
   },
   FLAGGED: {
-    text: 'Đánh giá cần Admin kiểm duyệt trước khi có thể công khai.',
+    text: 'Đánh giá đang được ẩn và chờ quản trị viên xem xét.',
     className: 'border-amber-200 bg-amber-50 text-amber-800',
     Icon: Clock,
   },
@@ -28,7 +30,7 @@ const STATUS_NOTE: Record<string, { text: string; className: string; Icon: typeo
   },
 };
 
-export function SubmittedReview({ review }: SubmittedReviewProps) {
+export function SubmittedReview({ review, children }: SubmittedReviewProps) {
   const note = STATUS_NOTE[review.status];
 
   return (
@@ -66,6 +68,8 @@ export function SubmittedReview({ review }: SubmittedReviewProps) {
           <p className="mt-1 text-xs text-red-500">Đánh giá này chỉ bạn và quản trị viên nhìn thấy.</p>
         </div>
       )}
+
+      {children}
     </section>
   );
 }

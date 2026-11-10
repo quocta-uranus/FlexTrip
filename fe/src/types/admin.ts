@@ -133,6 +133,20 @@ export interface AdminReview {
   analysisSource: "RULE" | "AI" | "RULE_AND_AI" | "ADMIN" | null;
   moderationNote: string | null;
   moderatedAt: string | null;
+  editedAt: string | null;
+  appealedAt: string | null;
+  appealNote: string | null;
+  suspiciousPublic: boolean;
+  waitingSince: string | null;
+  slaDueAt: string | null;
+  overdue: boolean;
+  openReports: Array<{
+    id: string;
+    reason: "FAKE_REVIEW" | "OFFENSIVE" | "SPAM" | "OTHER";
+    details: string | null;
+    createdAt: string;
+    reporter: Ref;
+  }>;
   createdAt: string;
   queueStatus: ReviewQueueStatus | null;
   analysisErrorCode: ReviewAnalysisErrorCode | null;
@@ -442,4 +456,32 @@ export interface StaffCommissionSummary {
     staffFee: number;
     settledAt: string | null;
   }[];
+}
+
+export type ModerationTermCategory = "PROFANITY" | "INSULT" | "THREAT";
+
+export interface ModerationTermsView {
+  custom: Array<{ id: string; term: string; category: ModerationTermCategory; createdAt: string }>;
+  builtIn: Array<{ term: string; category: ModerationTermCategory; disabled: boolean }>;
+}
+
+export interface ModerationTextResult {
+  flagged: boolean;
+  spamDetected: boolean;
+  toxicityDetected: boolean;
+  reasons: string[];
+}
+
+export interface ReviewQueueSummary {
+  flagged: number;
+  overdue: number;
+  appealed: number;
+  reported: number;
+  suspicious: number;
+  slaHours: number;
+}
+
+export interface BulkModerateResult {
+  succeeded: string[];
+  failed: Array<{ id: string; code: string; message: string }>;
 }
