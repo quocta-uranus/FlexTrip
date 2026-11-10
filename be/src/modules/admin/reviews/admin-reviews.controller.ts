@@ -21,6 +21,8 @@ import {
 } from '../../auth/guards/access-token.guard';
 import { AdminReviewsService } from './admin-reviews.service';
 import {
+  BulkModerateReviewsDto,
+  DismissReportsDto,
   ListAdminReviewsQueryDto,
   ModerateReviewDto,
 } from './dto/admin-reviews.dto';
@@ -39,6 +41,27 @@ export class AdminReviewsController {
     return this.reviews.list(query);
   }
 
+  @Get('summary')
+  @ApiOperation({
+    summary: 'REVIEW-03: Số review cần xử lý theo từng nhóm, kể cả quá hạn',
+  })
+  summary() {
+    return this.reviews.summary();
+  }
+
+  @Post('bulk-moderate')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'REVIEW-03: Duyệt hoặc từ chối nhiều đánh giá cùng lúc (tối đa 50)',
+  })
+  bulkModerate(
+    @Body() dto: BulkModerateReviewsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.reviews.bulkModerate(dto, requestContext(req, Role.ADMIN));
+  }
+
   @Patch(':id/moderate')
   @HttpCode(200)
   @ApiOperation({ summary: 'REVIEW-03: Duyệt hoặc từ chối đánh giá' })
@@ -48,6 +71,23 @@ export class AdminReviewsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.reviews.moderate(id, dto, requestContext(req, Role.ADMIN));
+  }
+
+  @Patch(':id/dismiss-reports')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'REVIEW-03: Bỏ qua báo cáo của Provider, giữ nguyên đánh giá',
+  })
+  dismissReports(
+    @Param('id') id: string,
+    @Body() dto: DismissReportsDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.reviews.dismissReports(
+      id,
+      dto,
+      requestContext(req, Role.ADMIN),
+    );
   }
 
   @Post(':id/reanalyze')

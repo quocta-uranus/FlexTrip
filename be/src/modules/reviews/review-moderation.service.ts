@@ -1,14 +1,17 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import {
   NotificationType,
   Prisma,
   ReviewModerationSource,
+  ReviewReportStatus as ReportStatus,
   ReviewStatus,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
@@ -16,12 +19,24 @@ import { RequestContext } from '../../common/request-context';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { SystemConfigService } from '../system-config/system-config.service';
+import { detectReviewFraudSignals } from './review-fraud-signals';
 import { ReviewAiAnalyzerService } from './review-ai-analyzer.service';
 import type { ReviewAnalysisErrorCode } from './review-ai-analyzer.service';
 import {
+  RESPONSE_REJECTED_MESSAGE,
+  REVIEW_ABANDON_AFTER_MS,
+  DAY_MS,
   REVIEW_ANALYZE_JOB,
+  REVIEW_MANUAL_FALLBACK_REASON,
+  REVIEW_REMINDER_AFTER_DAYS,
+  reviewDeadline,
   REVIEW_MODERATION_QUEUE,
+  REVIEW_STALE_AFTER_MS,
+  REVIEW_SWEEP_INTERVAL_MS,
+  REVIEW_SWEEP_JOB,
+  REVIEW_SWEEP_SCHEDULER,
 } from './review-moderation.constants';
+import { ModerationLexiconService } from './moderation-lexicon.service';
 import { moderateReviewWithRules } from './review-moderation.rules';
 import { evaluateRatingSentimentConsistency } from './review-rating-consistency';
 
@@ -34,7 +49,7 @@ export interface ReviewQueueInfo {
 }
 
 @Injectable()
-export class ReviewModerationService {
+export class ReviewModerationService implements OnModuleInit {
   private readonly logger = new Logger(ReviewModerationService.name);
 
   constructor(
@@ -42,16 +57,46 @@ export class ReviewModerationService {
     private readonly analyzer: ReviewAiAnalyzerService,
     private readonly config: SystemConfigService,
     private readonly audit: AuditService,
+    private readonly lexicon: ModerationLexiconService,
     @InjectQueue(REVIEW_MODERATION_QUEUE) private readonly queue: Queue,
   ) {}
 
-  async enqueue(reviewId: string, uniqueSuffix = 'initial'): Promise<boolean> {
+  async onModuleInit() {
     try {
+      await this.queue.upsertJobScheduler(
+        REVIEW_SWEEP_SCHEDULER,
+        { every: REVIEW_SWEEP_INTERVAL_MS },
+        { name: REVIEW_SWEEP_JOB, data: {} },
+      );
+    } catch {
+      this.logger.error('Could not register the pending review sweeper');
+    }
+  }
+
+  /** Pauses the whole worker for the time Groq asked us to back off. */
+  async rateLimitQueue(delayMs: number) {
+    await this.queue.rateLimit(delayMs);
+  }
+
+  private jobId(reviewId: string) {
+    return `review-${reviewId}`;
+  }
+
+  async enqueue(reviewId: string): Promise<boolean> {
+    try {
+      const jobId = this.jobId(reviewId);
+      const existing = await this.queue.getJob(jobId);
+      if (existing) {
+        const state = await existing.getState();
+        if (state === 'waiting' || state === 'active' || state === 'delayed')
+          return true;
+        await existing.remove();
+      }
       await this.queue.add(
         REVIEW_ANALYZE_JOB,
         { reviewId },
         {
-          jobId: `review-${reviewId}-${uniqueSuffix}`,
+          jobId,
           attempts: 3,
           backoff: { type: 'exponential', delay: 2_000 },
           removeOnComplete: true,
@@ -68,45 +113,38 @@ export class ReviewModerationService {
   async getQueueStatuses(
     reviewIds: string[],
   ): Promise<Record<string, ReviewQueueInfo>> {
-    const statuses: Record<string, ReviewQueueInfo> = Object.fromEntries(
-      reviewIds.map((id) => [
-        id,
-        { status: 'NOT_QUEUED' as ReviewQueueStatus, errorCode: null },
-      ]),
-    );
-    if (!reviewIds.length) return statuses;
-
-    try {
-      const latestJobAt = Object.fromEntries(reviewIds.map((id) => [id, -1]));
-      const states = ['waiting', 'active', 'delayed', 'failed'] as const;
-      const groups = await Promise.all(
-        states.map((state) => this.queue.getJobs([state], 0, -1, true)),
-      );
-      groups.forEach((jobs, index) => {
-        const state = states[index];
-        for (const job of jobs) {
-          const reviewId = (job.data as { reviewId?: string }).reviewId;
-          if (!reviewId || !(reviewId in statuses)) continue;
-          if (job.timestamp < latestJobAt[reviewId]) continue;
-          latestJobAt[reviewId] = job.timestamp;
-          const status: ReviewQueueStatus =
+    const notQueued: ReviewQueueInfo = {
+      status: 'NOT_QUEUED',
+      errorCode: null,
+    };
+    const entries = await Promise.all(
+      reviewIds.map(async (id): Promise<[string, ReviewQueueInfo]> => {
+        try {
+          const job = await this.queue.getJob(this.jobId(id));
+          if (!job) return [id, notQueued];
+          const state = await job.getState();
+          const status: ReviewQueueStatus | null =
             state === 'active'
               ? 'PROCESSING'
               : state === 'failed'
                 ? 'FAILED'
                 : state === 'delayed' && job.attemptsMade > 0
                   ? 'RETRYING'
-                  : 'WAITING';
-          statuses[reviewId] = {
-            status,
-            errorCode: this.safeErrorCode(job.failedReason),
-          };
+                  : state === 'waiting' || state === 'delayed'
+                    ? 'WAITING'
+                    : null;
+          if (!status) return [id, notQueued];
+          return [
+            id,
+            { status, errorCode: this.safeErrorCode(job.failedReason) },
+          ];
+        } catch {
+          this.logger.warn('Could not read review moderation queue status');
+          return [id, notQueued];
         }
-      });
-    } catch {
-      this.logger.warn('Could not read review moderation queue status');
-    }
-    return statuses;
+      }),
+    );
+    return Object.fromEntries(entries);
   }
 
   private safeErrorCode(
@@ -130,15 +168,23 @@ export class ReviewModerationService {
         comment: true,
         rating: true,
         moderationSource: true,
+        moderatedAt: true,
+        authorId: true,
+        targetId: true,
       },
     });
     const canAnalyze =
       review?.status === ReviewStatus.PENDING ||
       (review?.status === ReviewStatus.FLAGGED &&
-        review.moderationSource === ReviewModerationSource.RULE);
+        review.moderationSource === ReviewModerationSource.RULE) ||
+      // Public but not yet checked: the post-publication AI pass.
+      (review?.status === ReviewStatus.PUBLISHED && !review.moderatedAt);
     if (!review || !canAnalyze) return;
 
-    const ruleResult = moderateReviewWithRules(review.comment ?? '');
+    const ruleResult = moderateReviewWithRules(
+      review.comment ?? '',
+      await this.lexicon.current(),
+    );
 
     let analysis;
     try {
@@ -177,6 +223,12 @@ export class ReviewModerationService {
       analysis.sentiment,
       analysis.suspicionScore,
     );
+    const fraud = await detectReviewFraudSignals(this.prisma, {
+      id: reviewId,
+      authorId: review.authorId,
+      targetId: review.targetId,
+      comment: review.comment ?? '',
+    });
     const finalSpamScore = Math.max(
       analysis.spamScore,
       ruleResult.spamScore,
@@ -187,7 +239,10 @@ export class ReviewModerationService {
       ruleResult.toxicityScore,
       inconsistentAiResult ? 80 : 0,
     );
-    const finalSuspicionScore = ratingConsistency.suspicionScore;
+    const finalSuspicionScore = Math.max(
+      ratingConsistency.suspicionScore,
+      fraud.suspicionScore,
+    );
     const reasons = [
       ...ruleResult.reasons,
       ...analysis.reasons.map((reason) => `[AI] ${reason}`),
@@ -198,34 +253,39 @@ export class ReviewModerationService {
         ? ['[RULE] Điểm spam của AI không nhất quán với lý do phân tích.']
         : []),
       ...(ratingConsistency.reason ? [ratingConsistency.reason] : []),
+      ...fraud.reasons,
     ];
-    const [spamThreshold, toxicityThreshold, suspicionThreshold] =
-      await Promise.all([
-        this.config.get('review_spam_threshold'),
-        this.config.get('review_toxicity_threshold'),
-        this.config.get('review_suspicion_threshold'),
-      ]);
+    const [spamThreshold, toxicityThreshold] = await Promise.all([
+      this.config.get('review_spam_threshold'),
+      this.config.get('review_toxicity_threshold'),
+    ]);
+    // Only clear violations hide a review. Suspicion (rating/text mismatch,
+    // bursts, AI doubt) keeps it public and surfaces it in the admin queue.
     const flagged =
       finalSpamScore >= spamThreshold ||
       finalToxicityScore >= toxicityThreshold ||
-      finalSuspicionScore >= suspicionThreshold ||
       ruleResult.flagged ||
       inconsistentAiSpam ||
       ruleResult.toxicityDetected ||
-      inconsistentAiResult;
+      inconsistentAiResult ||
+      fraud.duplicate;
 
     await this.prisma.$transaction(async (tx) => {
       await this.lockReview(tx, reviewId);
       const current = await tx.review.findUnique({
         where: { id: reviewId },
-        select: { status: true, authorId: true, targetId: true },
+        select: {
+          status: true,
+          authorId: true,
+          targetId: true,
+          moderatedAt: true,
+        },
       });
-      if (
-        !current ||
-        (current.status !== ReviewStatus.PENDING &&
-          current.status !== ReviewStatus.FLAGGED)
-      )
-        return;
+      const stillAnalyzable =
+        current?.status === ReviewStatus.PENDING ||
+        current?.status === ReviewStatus.FLAGGED ||
+        (current?.status === ReviewStatus.PUBLISHED && !current.moderatedAt);
+      if (!current || !stillAnalyzable) return;
       const nextStatus = flagged
         ? ReviewStatus.FLAGGED
         : ReviewStatus.PUBLISHED;
@@ -245,8 +305,16 @@ export class ReviewModerationService {
         },
       });
       if (nextStatus === ReviewStatus.PUBLISHED) {
+        if (current.status !== ReviewStatus.PUBLISHED)
+          await this.refreshProviderRating(tx, current.targetId);
+        // The author was told it was under review, so close the loop.
+        if (current.status === ReviewStatus.FLAGGED)
+          await this.notifyPublished(tx, current.authorId, reviewId);
+      } else if (current.status === ReviewStatus.PUBLISHED) {
         await this.refreshProviderRating(tx, current.targetId);
-        await this.notifyPublished(tx, current.authorId, reviewId);
+        await this.notifyHidden(tx, current.authorId, reviewId);
+      } else if (current.status === ReviewStatus.PENDING) {
+        await this.notifyFlagged(tx, current.authorId, reviewId);
       }
     });
   }
@@ -255,21 +323,205 @@ export class ReviewModerationService {
     reviewId: string,
     result: ReturnType<typeof moderateReviewWithRules>,
   ) {
-    await this.prisma.review.updateMany({
+    await this.flagForManualReview(reviewId, {
+      spamScore: result.spamScore,
+      toxicityScore: result.toxicityScore,
+      analysisReasons: result.reasons,
+      moderationNote: result.reasons.join(', '),
+    });
+  }
+
+  /**
+   * Used when AI keeps failing. A review still waiting in PENDING goes to the
+   * admin queue; a review that is already public stays public (fail open, the
+   * rules already screened it) and is just marked as no longer waiting.
+   */
+  async escalateToManual(reviewId: string): Promise<boolean> {
+    const escalated = await this.flagForManualReview(reviewId, {
+      analysisReasons: [REVIEW_MANUAL_FALLBACK_REASON],
+      moderationNote: REVIEW_MANUAL_FALLBACK_REASON,
+    });
+    if (escalated) {
+      this.logger.warn(`Review ${reviewId} escalated to manual moderation`);
+      return true;
+    }
+    const released = await this.prisma.review.updateMany({
       where: {
         id: reviewId,
-        status: { in: [ReviewStatus.PENDING, ReviewStatus.FLAGGED] },
+        status: ReviewStatus.PUBLISHED,
+        moderatedAt: null,
       },
       data: {
-        status: ReviewStatus.FLAGGED,
-        spamScore: result.spamScore,
-        toxicityScore: result.toxicityScore,
-        analysisReasons: result.reasons,
-        moderationSource: ReviewModerationSource.RULE,
-        moderationNote: result.reasons.join(', '),
         moderatedAt: new Date(),
+        moderationSource: ReviewModerationSource.RULE,
+        moderationNote: REVIEW_MANUAL_FALLBACK_REASON,
+        analysisReasons: [REVIEW_MANUAL_FALLBACK_REASON],
       },
     });
+    if (released.count > 0)
+      this.logger.warn(`Review ${reviewId} stays public: AI was unavailable`);
+    return released.count > 0;
+  }
+
+  private async flagForManualReview(
+    reviewId: string,
+    data: {
+      spamScore?: number;
+      toxicityScore?: number;
+      analysisReasons: string[];
+      moderationNote: string;
+    },
+  ): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockReview(tx, reviewId);
+      const current = await tx.review.findUnique({
+        where: { id: reviewId },
+        select: { status: true, authorId: true },
+      });
+      if (
+        !current ||
+        (current.status !== ReviewStatus.PENDING &&
+          current.status !== ReviewStatus.FLAGGED)
+      )
+        return false;
+      await tx.review.update({
+        where: { id: reviewId },
+        data: {
+          ...data,
+          status: ReviewStatus.FLAGGED,
+          moderationSource: ReviewModerationSource.RULE,
+          moderatedAt: new Date(),
+        },
+      });
+      if (current.status === ReviewStatus.PENDING)
+        await this.notifyFlagged(tx, current.authorId, reviewId);
+      return true;
+    });
+  }
+
+  async sweepStalePending(now = new Date()) {
+    const stale = await this.prisma.review.findMany({
+      where: {
+        OR: [
+          { status: ReviewStatus.PENDING },
+          // Public reviews whose post-publication AI pass never ran.
+          { status: ReviewStatus.PUBLISHED, moderatedAt: null },
+        ],
+        updatedAt: { lt: new Date(now.getTime() - REVIEW_STALE_AFTER_MS) },
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: 50,
+      select: { id: true, updatedAt: true },
+    });
+    const statuses = await this.getQueueStatuses(stale.map((r) => r.id));
+    const result = { requeued: 0, escalated: 0, skipped: 0 };
+    for (const review of stale) {
+      const status = statuses[review.id].status;
+      const abandoned =
+        status === 'FAILED' ||
+        now.getTime() - review.updatedAt.getTime() >= REVIEW_ABANDON_AFTER_MS;
+      if (
+        !abandoned &&
+        (status === 'WAITING' ||
+          status === 'PROCESSING' ||
+          status === 'RETRYING')
+      ) {
+        result.skipped += 1;
+        continue;
+      }
+      if (abandoned) {
+        if (await this.escalateToManual(review.id)) result.escalated += 1;
+      } else if (await this.enqueue(review.id)) {
+        result.requeued += 1;
+      }
+    }
+    return result;
+  }
+
+  /** One reminder per completed booking that is still inside the review window. */
+  async remindUnreviewedBookings(now = new Date()): Promise<number> {
+    const windowDays = await this.config.get('review_window_days');
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        status: 'COMPLETED',
+        review: null,
+        endDate: {
+          lte: new Date(now.getTime() - REVIEW_REMINDER_AFTER_DAYS * DAY_MS),
+          gt: new Date(now.getTime() - windowDays * DAY_MS),
+        },
+      },
+      orderBy: { endDate: 'asc' },
+      take: 100,
+      select: {
+        id: true,
+        travelerId: true,
+        endDate: true,
+        listing: { select: { title: true } },
+      },
+    });
+    let sent = 0;
+    for (const booking of bookings) {
+      const already = await this.prisma.notification.findFirst({
+        where: {
+          userId: booking.travelerId,
+          type: NotificationType.REVIEW,
+          data: { path: ['reminderFor'], equals: booking.id },
+        },
+        select: { id: true },
+      });
+      if (already) continue;
+      const daysLeft = Math.max(
+        0,
+        Math.ceil(
+          (reviewDeadline(booking.endDate, windowDays).getTime() -
+            now.getTime()) /
+            DAY_MS,
+        ),
+      );
+      await this.prisma.notification.create({
+        data: {
+          userId: booking.travelerId,
+          type: NotificationType.REVIEW,
+          title: 'Hãy đánh giá chuyến thuê của bạn',
+          body: `Bạn chưa đánh giá "${booking.listing.title}". Còn ${daysLeft} ngày để gửi đánh giá.`,
+          data: { reminderFor: booking.id, bookingId: booking.id },
+        },
+      });
+      sent += 1;
+    }
+    return sent;
+  }
+
+  /**
+   * Provider replies are public immediately, so they get the same rule + AI
+   * screening as reviews. AI outages fail open: the deterministic rules still ran.
+   */
+  async assertResponseAllowed(text: string): Promise<void> {
+    const rejected = () =>
+      new BadRequestException({
+        code: 'RESPONSE_REJECTED',
+        message: RESPONSE_REJECTED_MESSAGE,
+      });
+    if (moderateReviewWithRules(text, await this.lexicon.current()).flagged)
+      throw rejected();
+    try {
+      const analysis = await this.analyzer.analyze({
+        comment: text,
+        rating: 3,
+      });
+      const [spamThreshold, toxicityThreshold] = await Promise.all([
+        this.config.get('review_spam_threshold'),
+        this.config.get('review_toxicity_threshold'),
+      ]);
+      if (
+        analysis.spamScore >= spamThreshold ||
+        analysis.toxicityScore >= toxicityThreshold
+      )
+        throw rejected();
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      this.logger.warn('AI screening of provider response was unavailable');
+    }
   }
 
   async moderateByAdmin(
@@ -289,7 +541,12 @@ export class ReviewModerationService {
         decision === 'APPROVE' ? ReviewStatus.PUBLISHED : ReviewStatus.REJECTED;
       const allowed: ReviewStatus[] =
         decision === 'APPROVE'
-          ? [ReviewStatus.PENDING, ReviewStatus.FLAGGED]
+          ? [
+              ReviewStatus.PENDING,
+              ReviewStatus.FLAGGED,
+              // Approving a public review clears it from the "suspicious" queue.
+              ReviewStatus.PUBLISHED,
+            ]
           : [
               ReviewStatus.PENDING,
               ReviewStatus.FLAGGED,
@@ -334,6 +591,8 @@ export class ReviewModerationService {
             data: { reviewId },
           },
         });
+      if (nextStatus === ReviewStatus.REJECTED)
+        await this.resolveReports(tx, reviewId, 'UPHELD', ctx);
       await this.audit.log(tx, ctx, {
         action: decision === 'APPROVE' ? 'REVIEW_APPROVED' : 'REVIEW_REJECTED',
         entityType: 'Review',
@@ -342,6 +601,80 @@ export class ReviewModerationService {
         after: { status: nextStatus, note: note ?? null },
       });
       return updated;
+    });
+  }
+
+  /** Closes every open provider report on a review and tells each reporter the outcome. */
+  private async resolveReports(
+    tx: Prisma.TransactionClient,
+    reviewId: string,
+    resolution: 'UPHELD' | 'DISMISSED',
+    ctx: RequestContext,
+    note?: string,
+  ): Promise<number> {
+    const open = await tx.reviewReport.findMany({
+      where: { reviewId, status: ReportStatus.OPEN },
+      select: { id: true, reporterId: true },
+    });
+    if (!open.length) return 0;
+    await tx.reviewReport.updateMany({
+      where: { id: { in: open.map((report) => report.id) } },
+      data: {
+        status: resolution,
+        resolvedAt: new Date(),
+        resolvedById: ctx.actorId,
+      },
+    });
+    await tx.notification.createMany({
+      data: open.map((report) => ({
+        userId: report.reporterId,
+        type: NotificationType.REVIEW,
+        title:
+          resolution === 'UPHELD'
+            ? 'Báo cáo đánh giá được chấp nhận'
+            : 'Báo cáo đánh giá không được chấp nhận',
+        body:
+          resolution === 'UPHELD'
+            ? 'Quản trị viên đã gỡ đánh giá bạn báo cáo khỏi trang công khai.'
+            : (note ??
+              'Quản trị viên xem xét và giữ nguyên đánh giá bạn báo cáo.'),
+        data: { reviewId },
+      })),
+    });
+    return open.length;
+  }
+
+  async dismissReports(
+    reviewId: string,
+    note: string | undefined,
+    ctx: RequestContext,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockReview(tx, reviewId);
+      const exists = await tx.review.findUnique({
+        where: { id: reviewId },
+        select: { id: true },
+      });
+      if (!exists) throw new NotFoundException('Đánh giá không tồn tại');
+      const dismissed = await this.resolveReports(
+        tx,
+        reviewId,
+        'DISMISSED',
+        ctx,
+        note,
+      );
+      if (!dismissed)
+        throw new ConflictException({
+          code: 'NO_OPEN_REPORTS',
+          message: 'Đánh giá này không có báo cáo nào đang chờ xử lý.',
+        });
+      await this.audit.log(tx, ctx, {
+        action: 'REVIEW_REPORTS_DISMISSED',
+        entityType: 'Review',
+        entityId: reviewId,
+        after: { dismissed, note: note ?? null },
+      });
+      return { id: reviewId, dismissed };
     });
   }
 
@@ -379,7 +712,7 @@ export class ReviewModerationService {
       });
       return { id: reviewId, status: ReviewStatus.PENDING };
     });
-    const queued = await this.enqueue(reviewId, `admin-${Date.now()}`);
+    const queued = await this.enqueue(reviewId);
     return { ...result, queued };
   }
 
@@ -387,7 +720,7 @@ export class ReviewModerationService {
     await tx.$queryRaw`SELECT "id" FROM "Review" WHERE "id" = ${reviewId} FOR UPDATE`;
   }
 
-  private async refreshProviderRating(
+  async refreshProviderRating(
     tx: Prisma.TransactionClient,
     providerId: string,
   ) {
@@ -401,6 +734,38 @@ export class ReviewModerationService {
       data: {
         ratingAvg: aggregate._avg.rating ?? 0,
         reviewsCount: aggregate._count._all,
+      },
+    });
+  }
+
+  private async notifyFlagged(
+    tx: Prisma.TransactionClient,
+    authorId: string,
+    reviewId: string,
+  ) {
+    await tx.notification.create({
+      data: {
+        userId: authorId,
+        type: NotificationType.REVIEW,
+        title: 'Đánh giá đang được xem xét',
+        body: 'Đánh giá của bạn cần quản trị viên xem xét trước khi được công khai.',
+        data: { reviewId },
+      },
+    });
+  }
+
+  private async notifyHidden(
+    tx: Prisma.TransactionClient,
+    authorId: string,
+    reviewId: string,
+  ) {
+    await tx.notification.create({
+      data: {
+        userId: authorId,
+        type: NotificationType.REVIEW,
+        title: 'Đánh giá của bạn đã bị ẩn',
+        body: 'Đánh giá có thể chứa nội dung không phù hợp nên đã được ẩn khỏi trang công khai. Bạn có thể chỉnh sửa nội dung hoặc chờ quản trị viên xem xét.',
+        data: { reviewId },
       },
     });
   }

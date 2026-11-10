@@ -9,6 +9,7 @@ import { SystemConfigModule } from '../system-config/system-config.module';
 import { ReviewAiAnalyzerService } from './review-ai-analyzer.service';
 import { REVIEW_MODERATION_QUEUE } from './review-moderation.constants';
 import { ReviewModerationProcessor } from './review-moderation.processor';
+import { ModerationLexiconService } from './moderation-lexicon.service';
 import { ReviewModerationService } from './review-moderation.service';
 
 @Module({
@@ -25,7 +26,8 @@ import { ReviewModerationService } from './review-moderation.service';
     ReviewAiAnalyzerService,
     ReviewModerationService,
     ReviewModerationProcessor,
+    ModerationLexiconService,
   ],
-  exports: [ReviewsService, ReviewModerationService],
+  exports: [ReviewsService, ReviewModerationService, ModerationLexiconService],
 })
 export class ReviewsModule {}

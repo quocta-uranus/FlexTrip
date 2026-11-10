@@ -116,6 +116,19 @@ enum ReviewSentiment {
   UNKNOWN
 }
 
+enum ReviewReportReason {
+  FAKE_REVIEW
+  OFFENSIVE
+  SPAM
+  OTHER
+}
+
+enum ReviewReportStatus {
+  OPEN
+  UPHELD
+  DISMISSED
+}
+
 enum ReviewModerationSource {
   RULE
   AI
@@ -327,10 +340,11 @@ model User {
   notifications       Notification[]
   reviewsGiven        Review[]               @relation("ReviewsGiven")
   reviewsReceived     Review[]               @relation("ReviewsReceived")
+  reviewReportsMade   ReviewReport[]         @relation("ReviewReportsMade")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
-  wishlistItems      Wishlist[]
-  searchHistory      SearchHistory[]
+  wishlistItems       Wishlist[]
+  searchHistory       SearchHistory[]
 
   // admin
   staffProfile     StaffProfile?
@@ -466,11 +480,11 @@ model Listing {
 
   // CONTR-02: điều khoản hợp đồng
   penaltyRules  Json?
-  conditionNote String?  @db.Text
+  conditionNote String? @db.Text
 
   // CONTR-05: giá trị cao
-  marketValue   Decimal? @db.Decimal(12, 2)
-  isHighValue   Boolean  @default(false)
+  marketValue Decimal? @db.Decimal(12, 2)
+  isHighValue Boolean  @default(false)
 
   provider      User                  @relation(fields: [providerId], references: [id])
   bookings      Booking[]
@@ -578,7 +592,7 @@ model Booking {
   disputes        Dispute[]
   modifyRequests  BookingModifyRequest[]
   staffMediations StaffMediation[]
-  review           Review?
+  review          Review?
 
   @@index([travelerId])
   @@index([listingId])
@@ -676,16 +690,16 @@ model Payment {
   gatewayResponse  Json?
 
   // Phần tiền thuê trả sau khi provider duyệt; gateway/gatewayOrderCode ở trên chỉ là của lần trả cọc
-  rentalPaidAt      DateTime?
-  rentalGateway     PaymentGateway?
-  rentalOrderCode   String?
-  rentalTransId     String?         @unique
+  rentalPaidAt    DateTime?
+  rentalGateway   PaymentGateway?
+  rentalOrderCode String?
+  rentalTransId   String?         @unique
 
-  bookingId        String         @unique
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  bookingId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  booking          Booking            @relation(fields: [bookingId], references: [id])
+  booking          Booking             @relation(fields: [bookingId], references: [id])
   commissionLedger CommissionLedger?
   refundRecords    RefundRecord[]
   webhookLogs      PaymentWebhookLog[]
@@ -819,33 +833,76 @@ model Review {
   analysisReasons  Json?
   response         String?                 @db.Text
   respondedAt      DateTime?
+  responseEdits    Int                     @default(0)
   moderatedAt      DateTime?
   moderatedById    String?
   moderationNote   String?                 @db.Text
+  editedAt         DateTime?
+  appealedAt       DateTime?
+  appealNote       String?                 @db.Text
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
-  author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
-  target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])
-  listing Listing? @relation(fields: [listingId], references: [id])
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  author  User           @relation("ReviewsGiven", fields: [authorId], references: [id])
+  target  User           @relation("ReviewsReceived", fields: [targetId], references: [id])
+  listing Listing?       @relation(fields: [listingId], references: [id])
+  booking Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  reports ReviewReport[]
 
   @@index([listingId, status, createdAt])
   @@index([targetId, status])
   @@index([authorId, createdAt])
 }
 
+model ReviewReport {
+  id           String             @id @default(cuid())
+  reviewId     String
+  reporterId   String
+  reason       ReviewReportReason
+  details      String?            @db.Text
+  status       ReviewReportStatus @default(OPEN)
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime           @default(now())
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter User   @relation("ReviewReportsMade", fields: [reporterId], references: [id])
+
+  @@unique([reviewId, reporterId])
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+}
+
+enum ModerationTermCategory {
+  PROFANITY
+  INSULT
+  THREAT
+}
+
+// Admin edits to the built-in review filter dictionary: `disabled = false` is a
+// term the admin added, `disabled = true` switches off a built-in term.
+model ModerationTerm {
+  id          String                 @id @default(cuid())
+  term        String                 @unique
+  category    ModerationTermCategory
+  disabled    Boolean                @default(false)
+  createdById String?
+  createdAt   DateTime               @default(now())
+
+  @@index([disabled])
+}
+
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 model TravelPreference {
-  id        String   @id @default(cuid())
-  userId    String
-  tripType  String
-  budgetMin Decimal? @db.Decimal(10, 2)
-  budgetMax Decimal? @db.Decimal(10, 2)
+  id                  String   @id @default(cuid())
+  userId              String
+  tripType            String
+  budgetMin           Decimal? @db.Decimal(10, 2)
+  budgetMax           Decimal? @db.Decimal(10, 2)
   preferredCategories String[] @default([])
-  budgetScope String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetScope         String?
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

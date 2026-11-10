@@ -90,9 +90,11 @@ export class AuthHarness {
     add: jest.fn<
       (name: string, data: unknown, options: unknown) => Promise<{ id: string }>
     >(),
-    getJobs: jest
-      .fn<(...args: unknown[]) => Promise<never[]>>()
-      .mockResolvedValue([]),
+    getJob: jest
+      .fn<(...args: unknown[]) => Promise<undefined>>()
+      .mockResolvedValue(undefined),
+    upsertJobScheduler: jest.fn<(...args: unknown[]) => Promise<void>>(),
+    rateLimit: jest.fn<(...args: unknown[]) => Promise<void>>(),
   };
   bookingQueue = {
     add: jest.fn(),

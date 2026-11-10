@@ -32,6 +32,8 @@ import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
 import { AdminCommissionsController } from './finance/admin-commissions.controller';
 import { AdminCommissionsService } from './finance/admin-commissions.service';
+import { AdminModerationTermsController } from './moderation-terms/admin-moderation-terms.controller';
+import { AdminModerationTermsService } from './moderation-terms/admin-moderation-terms.service';
 
 @Module({
   imports: [AuthModule, ReviewsModule, PaymentsModule],
@@ -49,6 +51,7 @@ import { AdminCommissionsService } from './finance/admin-commissions.service';
     AdminReviewsController,
     AdminBookingsController,
     AdminCommissionsController,
+    AdminModerationTermsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -68,6 +71,7 @@ import { AdminCommissionsService } from './finance/admin-commissions.service';
     AdminReviewsService,
     AdminBookingsService,
     AdminCommissionsService,
+    AdminModerationTermsService,
   ],
 })
 export class AdminModule {}

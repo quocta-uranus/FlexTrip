@@ -20,10 +20,23 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ReputationService } from '../reputation/reputation.service';
 import {
+  AppealReviewDto,
   CreateReviewDto,
+  EditReviewDto,
+  ReportReviewDto,
   RespondToReviewDto,
   ReviewSentimentQueryDto,
 } from './dto/review.dto';
+import {
+  HOUR_MS,
+  DAY_MS,
+  RESPONSE_EDIT_LIMIT,
+  REVIEW_APPEAL_WINDOW_DAYS,
+  REVIEW_REPORT_DAILY_LIMIT,
+  reviewDeadline,
+} from './review-moderation.constants';
+import { SystemConfigService } from '../system-config/system-config.service';
+import { ModerationLexiconService } from './moderation-lexicon.service';
 import { moderateReviewWithRules } from './review-moderation.rules';
 import { ReviewModerationService } from './review-moderation.service';
 
@@ -50,13 +63,29 @@ export class ReviewsService {
     private readonly audit: AuditService,
     private readonly reputation: ReputationService,
     private readonly moderationService: ReviewModerationService,
+    private readonly config: SystemConfigService,
+    private readonly lexicon: ModerationLexiconService,
   ) {}
 
+  async policy() {
+    const [reviewWindowDays, reviewEditHours] = await Promise.all([
+      this.config.get('review_window_days'),
+      this.config.get('review_edit_hours'),
+    ]);
+    return { reviewWindowDays, reviewEditHours };
+  }
+
   async create(authorId: string, dto: CreateReviewDto) {
-    const moderation = moderateReviewWithRules(dto.comment);
+    const windowDays = await this.config.get('review_window_days');
+    const moderation = moderateReviewWithRules(
+      dto.comment,
+      await this.lexicon.current(),
+    );
+    // Clean reviews go public at once; the AI check runs afterwards and only
+    // pulls the review back for clear violations.
     const status = moderation.flagged
       ? ReviewStatus.FLAGGED
-      : ReviewStatus.PENDING;
+      : ReviewStatus.PUBLISHED;
 
     try {
       const review = await this.prisma.$transaction(
@@ -68,6 +97,7 @@ export class ReviewsService {
               status: true,
               travelerId: true,
               listingId: true,
+              endDate: true,
               review: { select: { id: true } },
               listing: { select: { providerId: true } },
             },
@@ -82,6 +112,13 @@ export class ReviewsService {
             throw new ConflictException({
               code: 'BOOKING_NOT_COMPLETED',
               message: 'Chỉ booking đã hoàn thành mới được đánh giá.',
+            });
+          if (
+            Date.now() > reviewDeadline(booking.endDate, windowDays).getTime()
+          )
+            throw new ConflictException({
+              code: 'REVIEW_WINDOW_EXPIRED',
+              message: `Đã quá hạn đánh giá (${windowDays} ngày sau khi kết thúc thuê).`,
             });
           if (booking.review)
             throw new ConflictException({
@@ -114,6 +151,22 @@ export class ReviewsService {
             },
             select: PUBLIC_REVIEW_SELECT,
           });
+
+          if (status === ReviewStatus.PUBLISHED)
+            await this.moderationService.refreshProviderRating(
+              tx,
+              booking.listing.providerId,
+            );
+          if (moderation.flagged)
+            await tx.notification.create({
+              data: {
+                userId: authorId,
+                type: NotificationType.REVIEW,
+                title: 'Đánh giá đang được xem xét',
+                body: 'Đánh giá của bạn cần quản trị viên xem xét trước khi được công khai.',
+                data: { reviewId: review.id },
+              },
+            });
 
           return review;
         },
@@ -150,12 +203,16 @@ export class ReviewsService {
   }
 
   async findMine(authorId: string) {
+    const editHours = await this.config.get('review_edit_hours');
     const reviews = await this.prisma.review.findMany({
       where: { authorId },
       orderBy: { createdAt: 'desc' },
       select: {
         ...PUBLIC_REVIEW_SELECT,
         moderationNote: true,
+        moderatedAt: true,
+        editedAt: true,
+        appealedAt: true,
         listing: { select: { id: true, title: true, imageUrls: true } },
         target: { select: { id: true, name: true, avatarUrl: true } },
       },
@@ -163,13 +220,233 @@ export class ReviewsService {
     const badges = await this.reputation.getPublicBadgesForUsers(
       reviews.flatMap((review) => [review.author.id, review.target.id]),
     );
-    return reviews.map(({ moderationNote, ...review }) => ({
+    const now = Date.now();
+    return reviews.map(({ moderationNote, moderatedAt, ...review }) => ({
       ...review,
       rejectionReason:
         review.status === ReviewStatus.REJECTED ? moderationNote : null,
+      canEdit:
+        !review.editedAt &&
+        this.isEditableStatus(review.status) &&
+        now <=
+          this.editBase(review.status, review.createdAt, moderatedAt) +
+            editHours * HOUR_MS,
+      canAppeal:
+        review.status === ReviewStatus.REJECTED &&
+        !review.appealedAt &&
+        now <=
+          (moderatedAt ?? review.createdAt).getTime() +
+            REVIEW_APPEAL_WINDOW_DAYS * DAY_MS,
       authorBadges: badges[review.author.id] ?? [],
       targetBadges: badges[review.target.id] ?? [],
     }));
+  }
+
+  private isEditableStatus(status: ReviewStatus) {
+    const editable: ReviewStatus[] = [
+      ReviewStatus.PUBLISHED,
+      ReviewStatus.FLAGGED,
+      ReviewStatus.REJECTED,
+    ];
+    return editable.includes(status);
+  }
+
+  /** A rejected review gets its edit window from the rejection, not from posting. */
+  private editBase(
+    status: ReviewStatus,
+    createdAt: Date,
+    moderatedAt: Date | null,
+  ) {
+    return (
+      status === ReviewStatus.REJECTED ? (moderatedAt ?? createdAt) : createdAt
+    ).getTime();
+  }
+
+  private async lockReview(tx: Prisma.TransactionClient, reviewId: string) {
+    await tx.$queryRaw`SELECT "id" FROM "Review" WHERE "id" = ${reviewId} FOR UPDATE`;
+  }
+
+  async edit(
+    authorId: string,
+    reviewId: string,
+    dto: EditReviewDto,
+    ctx: RequestContext,
+  ) {
+    const editHours = await this.config.get('review_edit_hours');
+    const moderation = moderateReviewWithRules(
+      dto.comment,
+      await this.lexicon.current(),
+    );
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await this.lockReview(tx, reviewId);
+      const review = await tx.review.findUnique({
+        where: { id: reviewId },
+        select: {
+          authorId: true,
+          targetId: true,
+          status: true,
+          rating: true,
+          comment: true,
+          editedAt: true,
+          createdAt: true,
+          moderatedAt: true,
+        },
+      });
+      if (!review) throw new NotFoundException('Đánh giá không tồn tại');
+      if (review.authorId !== authorId)
+        throw new ForbiddenException('Bạn chỉ có thể sửa đánh giá của mình');
+      if (review.editedAt)
+        throw new ConflictException({
+          code: 'REVIEW_ALREADY_EDITED',
+          message: 'Đánh giá chỉ được sửa một lần.',
+        });
+      if (!this.isEditableStatus(review.status))
+        throw new ConflictException({
+          code: 'REVIEW_NOT_EDITABLE',
+          message: 'Đánh giá đang được kiểm duyệt, chưa thể sửa.',
+        });
+      const base = this.editBase(
+        review.status,
+        review.createdAt,
+        review.moderatedAt,
+      );
+      if (Date.now() > base + editHours * HOUR_MS)
+        throw new ConflictException({
+          code: 'REVIEW_EDIT_WINDOW_EXPIRED',
+          message: `Đã quá ${editHours} giờ, không thể sửa đánh giá.`,
+        });
+
+      const result = await tx.review.update({
+        where: { id: reviewId },
+        data: {
+          rating: dto.rating,
+          comment: dto.comment,
+          editedAt: new Date(),
+          status: moderation.flagged
+            ? ReviewStatus.FLAGGED
+            : ReviewStatus.PUBLISHED,
+          sentiment: ReviewSentiment.UNKNOWN,
+          spamScore: moderation.flagged ? moderation.spamScore : null,
+          toxicityScore: moderation.flagged ? moderation.toxicityScore : null,
+          suspicionScore: null,
+          analysisReasons: moderation.flagged
+            ? moderation.reasons
+            : Prisma.DbNull,
+          moderationSource: moderation.flagged
+            ? ReviewModerationSource.RULE
+            : null,
+          moderationNote: moderation.flagged
+            ? moderation.reasons.join(',')
+            : null,
+          moderatedAt: null,
+          moderatedById: null,
+        },
+        select: PUBLIC_REVIEW_SELECT,
+      });
+      if (
+        review.status === ReviewStatus.PUBLISHED ||
+        result.status === ReviewStatus.PUBLISHED
+      )
+        await this.moderationService.refreshProviderRating(tx, review.targetId);
+      if (moderation.flagged)
+        await tx.notification.create({
+          data: {
+            userId: authorId,
+            type: NotificationType.REVIEW,
+            title: 'Đánh giá đang được xem xét',
+            body: 'Đánh giá của bạn cần quản trị viên xem xét trước khi được công khai.',
+            data: { reviewId },
+          },
+        });
+      await this.audit.log(tx, ctx, {
+        action: 'REVIEW_EDITED',
+        entityType: 'Review',
+        entityId: reviewId,
+        before: {
+          status: review.status,
+          rating: review.rating,
+          comment: review.comment,
+        },
+        after: {
+          status: result.status,
+          rating: dto.rating,
+          comment: dto.comment,
+        },
+      });
+      return result;
+    });
+    const queued = await this.moderationService.enqueue(reviewId);
+    if (!queued) this.logger.warn(`Edited review ${reviewId}: enqueue failed`);
+    return updated;
+  }
+
+  async appeal(
+    authorId: string,
+    reviewId: string,
+    dto: AppealReviewDto,
+    ctx: RequestContext,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockReview(tx, reviewId);
+      const review = await tx.review.findUnique({
+        where: { id: reviewId },
+        select: {
+          authorId: true,
+          status: true,
+          appealedAt: true,
+          createdAt: true,
+          moderatedAt: true,
+        },
+      });
+      if (!review) throw new NotFoundException('Đánh giá không tồn tại');
+      if (review.authorId !== authorId)
+        throw new ForbiddenException(
+          'Bạn chỉ có thể khiếu nại đánh giá của mình',
+        );
+      if (review.status !== ReviewStatus.REJECTED)
+        throw new ConflictException({
+          code: 'REVIEW_NOT_APPEALABLE',
+          message: 'Chỉ đánh giá bị từ chối mới có thể khiếu nại.',
+        });
+      if (review.appealedAt)
+        throw new ConflictException({
+          code: 'REVIEW_ALREADY_APPEALED',
+          message: 'Đánh giá chỉ được khiếu nại một lần.',
+        });
+      const base = (review.moderatedAt ?? review.createdAt).getTime();
+      if (Date.now() > base + REVIEW_APPEAL_WINDOW_DAYS * DAY_MS)
+        throw new ConflictException({
+          code: 'REVIEW_APPEAL_WINDOW_EXPIRED',
+          message: `Đã quá ${REVIEW_APPEAL_WINDOW_DAYS} ngày kể từ khi bị từ chối.`,
+        });
+
+      const updated = await tx.review.update({
+        where: { id: reviewId },
+        data: {
+          status: ReviewStatus.FLAGGED,
+          appealedAt: new Date(),
+          appealNote: dto.reason,
+        },
+        select: PUBLIC_REVIEW_SELECT,
+      });
+      await tx.notification.create({
+        data: {
+          userId: authorId,
+          type: NotificationType.REVIEW,
+          title: 'Đã ghi nhận khiếu nại',
+          body: 'Quản trị viên sẽ xem xét lại đánh giá của bạn.',
+          data: { reviewId },
+        },
+      });
+      await this.audit.log(tx, ctx, {
+        action: 'REVIEW_APPEALED',
+        entityType: 'Review',
+        entityId: reviewId,
+        before: { status: review.status },
+        after: { status: ReviewStatus.FLAGGED, reason: dto.reason },
+      });
+      return updated;
+    });
   }
 
   async findPublishedForListing(listingId: string) {
@@ -194,18 +471,99 @@ export class ReviewsService {
       orderBy: { createdAt: 'desc' },
       select: {
         ...PUBLIC_REVIEW_SELECT,
+        responseEdits: true,
         listing: { select: { id: true, title: true, imageUrls: true } },
       },
     });
-    const badges = await this.reputation.getPublicBadgesForUsers([
-      providerId,
-      ...reviews.map((review) => review.author.id),
+    const [badges, reports] = await Promise.all([
+      this.reputation.getPublicBadgesForUsers([
+        providerId,
+        ...reviews.map((review) => review.author.id),
+      ]),
+      this.prisma.reviewReport.findMany({
+        where: {
+          reporterId: providerId,
+          reviewId: { in: reviews.map((review) => review.id) },
+        },
+        select: { reviewId: true, status: true, reason: true, createdAt: true },
+      }),
     ]);
-    return reviews.map((review) => ({
+    const reportByReview = new Map(
+      reports.map(({ reviewId, ...report }) => [reviewId, report]),
+    );
+    return reviews.map(({ responseEdits, ...review }) => ({
       ...review,
+      responseEditsLeft: review.response
+        ? Math.max(0, RESPONSE_EDIT_LIMIT - responseEdits)
+        : RESPONSE_EDIT_LIMIT,
+      myReport: reportByReview.get(review.id) ?? null,
       authorBadges: badges[review.author.id] ?? [],
       targetBadges: badges[providerId] ?? [],
     }));
+  }
+
+  async report(
+    providerId: string,
+    reviewId: string,
+    dto: ReportReviewDto,
+    ctx: RequestContext,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const review = await tx.review.findUnique({
+          where: { id: reviewId },
+          select: { targetId: true, status: true },
+        });
+        if (!review) throw new NotFoundException('Đánh giá không tồn tại');
+        if (review.targetId !== providerId)
+          throw new ForbiddenException(
+            'Bạn chỉ có thể báo cáo đánh giá dành cho mình',
+          );
+        if (review.status !== ReviewStatus.PUBLISHED)
+          throw new ConflictException({
+            code: 'REVIEW_NOT_REPORTABLE',
+            message: 'Chỉ đánh giá đang công khai mới có thể báo cáo.',
+          });
+        const today = await tx.reviewReport.count({
+          where: {
+            reporterId: providerId,
+            createdAt: { gte: new Date(Date.now() - DAY_MS) },
+          },
+        });
+        if (today >= REVIEW_REPORT_DAILY_LIMIT)
+          throw new ConflictException({
+            code: 'REPORT_LIMIT_REACHED',
+            message: `Bạn chỉ được gửi tối đa ${REVIEW_REPORT_DAILY_LIMIT} báo cáo mỗi ngày.`,
+          });
+
+        const report = await tx.reviewReport.create({
+          data: {
+            reviewId,
+            reporterId: providerId,
+            reason: dto.reason,
+            details: dto.details ?? null,
+          },
+          select: { id: true, reason: true, status: true, createdAt: true },
+        });
+        await this.audit.log(tx, ctx, {
+          action: 'REVIEW_REPORTED',
+          entityType: 'Review',
+          entityId: reviewId,
+          after: { reason: dto.reason, details: dto.details ?? null },
+        });
+        return report;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+        throw new ConflictException({
+          code: 'REVIEW_ALREADY_REPORTED',
+          message: 'Bạn đã báo cáo đánh giá này rồi.',
+        });
+      throw error;
+    }
   }
 
   async getSentimentDashboard(
@@ -341,6 +699,7 @@ export class ReviewsService {
     dto: RespondToReviewDto,
     ctx: RequestContext,
   ) {
+    await this.moderationService.assertResponseAllowed(dto.response);
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.review.findUnique({
         where: { id: reviewId },
@@ -351,6 +710,7 @@ export class ReviewsService {
           status: true,
           response: true,
           respondedAt: true,
+          responseEdits: true,
           listingId: true,
         },
       });
@@ -364,6 +724,12 @@ export class ReviewsService {
         throw new ConflictException({
           code: 'REVIEW_NOT_PUBLISHED',
           message: 'Chỉ đánh giá đã công khai mới có thể được phản hồi.',
+        });
+
+      if (existing.response && existing.responseEdits >= RESPONSE_EDIT_LIMIT)
+        throw new ConflictException({
+          code: 'RESPONSE_EDIT_LIMIT',
+          message: `Bạn chỉ được sửa phản hồi tối đa ${RESPONSE_EDIT_LIMIT} lần.`,
         });
 
       const now = new Date();
@@ -381,7 +747,11 @@ export class ReviewsService {
       if (!isCreate) {
         await tx.review.update({
           where: { id: reviewId },
-          data: { response: dto.response, respondedAt: now },
+          data: {
+            response: dto.response,
+            respondedAt: now,
+            responseEdits: { increment: 1 },
+          },
         });
       }
 
