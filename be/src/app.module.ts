@@ -34,6 +34,10 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
 import { SupportModule } from './modules/support/support.module';
 import { PublicStatsModule } from './modules/public-stats/public-stats.module';
+import { VouchersModule } from './modules/vouchers/vouchers.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { ReferralsHttpModule } from './modules/referrals/referrals-http.module';
+import { ProviderIncentivesModule } from './modules/provider-incentives/provider-incentives.module';
 
 @Module({
   imports: [
@@ -78,6 +82,10 @@ import { PublicStatsModule } from './modules/public-stats/public-stats.module';
     PaymentAiModule,
     SupportModule,
     PublicStatsModule,
+    VouchersModule,
+    LoyaltyModule,
+    ReferralsHttpModule,
+    ProviderIncentivesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

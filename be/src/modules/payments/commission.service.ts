@@ -3,6 +3,7 @@ import { LedgerStatus, PaymentGateway, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EscrowService } from './escrow.service';
 import { COMMISSION_RATES } from './constants';
+import { PLATFORM_RATE_FLOOR } from '../provider-incentives/provider-incentives.constants';
 
 @Injectable()
 export class CommissionService {
@@ -33,14 +34,24 @@ export class CommissionService {
     const totalAmount = Number(booking.payment.totalAmount) - Number(booking.payment.refundedAmount);
     const hasStaff = !!booking.assignedStaffId;
 
-    const platformFee = totalAmount * (hasStaff ? COMMISSION_RATES.PLATFORM_BASE : COMMISSION_RATES.PLATFORM_NO_STAFF);
+    const baseRate = hasStaff ? COMMISSION_RATES.PLATFORM_BASE : COMMISSION_RATES.PLATFORM_NO_STAFF;
+    // Ưu đãi hết hạn (job đêm lỗi) thì không còn hiệu lực; phần staff giữ nguyên, chỉ phí nền tảng được giảm
+    const incentive = await this.prisma.providerIncentive.findUnique({ where: { providerId: booking.listing.providerId } });
+    const activeDiscountPct =
+      incentive?.isTopRated && incentive.validUntil.getTime() > Date.now() ? incentive.feeDiscountPct.toNumber() : 0;
+    const platformRate = Math.max(baseRate - activeDiscountPct / 100, Math.min(baseRate, PLATFORM_RATE_FLOOR));
+    const appliedDiscountPct = Math.round((baseRate - platformRate) * 10_000) / 100;
+
+    const platformFee = totalAmount * platformRate;
     const staffFee = hasStaff ? totalAmount * COMMISSION_RATES.STAFF_SHARE : 0;
     const providerNet = totalAmount - platformFee - staffFee;
 
     // Escrow only holds what the traveler paid from the wallet; gateway money never entered it
     const walletPaid =
       (booking.payment.gateway === PaymentGateway.WALLET ? Number(booking.payment.depositAmount) : 0) +
-      (booking.payment.rentalGateway === PaymentGateway.WALLET ? Number(booking.payment.rentalAmount) : 0);
+      (booking.payment.rentalGateway === PaymentGateway.WALLET ? Number(booking.payment.rentalAmount) : 0) +
+      // Phần giảm giá do ngân sách khuyến mãi bù vào escrow nên tính như tiền ví đã vào escrow
+      Number(booking.payment.discountAmount);
     const originalTotal = Number(booking.payment.totalAmount);
     const escrowOut = originalTotal > 0 ? ((providerNet + staffFee) * walletPaid) / originalTotal : 0;
 
@@ -101,6 +112,8 @@ export class CommissionService {
           staffFee,
           providerNet,
           staffUserId: booking.assignedStaffId,
+          platformRate,
+          incentiveDiscountPct: appliedDiscountPct,
           status: LedgerStatus.SETTLED,
           settledAt: new Date(),
         },
@@ -110,6 +123,8 @@ export class CommissionService {
           platformFee,
           staffFee,
           providerNet,
+          platformRate,
+          incentiveDiscountPct: appliedDiscountPct,
         },
       });
     });
