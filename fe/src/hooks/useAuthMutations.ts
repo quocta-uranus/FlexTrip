@@ -8,7 +8,7 @@ import { isStaffProfileComplete, STAFF_PROFILE_PATH } from '@/lib/staff-profile'
 
 export function useRegister() {
   return useMutation({
-    mutationFn: (data: { name: string; email: string; password: string; phone?: string }) =>
+    mutationFn: (data: { name: string; email: string; password: string; phone?: string; referralCode?: string }) =>
       authApi.register(data),
   });
 }

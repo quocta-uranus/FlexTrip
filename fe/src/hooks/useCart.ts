@@ -42,11 +42,12 @@ export function useRemoveCartItem() {
 export function useCartCheckout() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { paymentMethod: string; transactionRef?: string }) =>
+    mutationFn: (data: { paymentMethod: string; transactionRef?: string; vouchers?: Array<{ cartItemId: string; code: string }> }) =>
       cartApi.checkout(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cart'] });
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      qc.invalidateQueries({ queryKey: ['vouchers'] });
     },
   });
 }

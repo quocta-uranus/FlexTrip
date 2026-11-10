@@ -317,7 +317,7 @@ export const walletApi = {
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string; phone?: string }) =>
+  register: (data: { name: string; email: string; password: string; phone?: string; referralCode?: string }) =>
     api.post('/auth/register', data) as Promise<RegistrationResult>,
 
   verifyOtp: (email: string, code: string) =>
@@ -727,7 +727,7 @@ export const cartApi = {
   removeItem: (itemId: string) =>
     api.delete(`/cart/items/${itemId}`) as Promise<{ message: string }>,
 
-  checkout: (data: { paymentMethod: string; transactionRef?: string }) =>
+  checkout: (data: { paymentMethod: string; transactionRef?: string; vouchers?: Array<{ cartItemId: string; code: string }> }) =>
     api.post('/cart/checkout', data) as Promise<{
       message: string;
       bookings: Array<{ id: string; listingTitle: string; status: string }>;
