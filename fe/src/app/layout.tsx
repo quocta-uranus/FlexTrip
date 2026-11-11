@@ -12,13 +12,11 @@ import "./globals.css";
 const bodyFont = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
 });
 
 const headingFont = Manrope({
   variable: "--font-heading",
   subsets: ["latin", "vietnamese"],
-  weight: ["600", "700", "800"],
 });
 
 // Large editorial headings (Wayfare-style); Clash Grotesk has no Vietnamese glyphs, Hanken Grotesk is the closest one that does.

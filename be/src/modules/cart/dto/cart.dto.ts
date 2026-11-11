@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DeliveryMethod } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
-  IsDateString, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min,
+  ArrayMaxSize, IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 
 export class AddCartItemDto {
@@ -46,6 +46,11 @@ export class UpdateCartItemDto {
   deliveryAddress?: string;
 }
 
+export class CartItemVoucherDto {
+  @ApiProperty() @IsString() cartItemId: string;
+  @ApiProperty() @IsString() @MaxLength(32) code: string;
+}
+
 export class CheckoutDto {
   @ApiProperty({ example: 'BANK_TRANSFER', description: 'Phương thức thanh toán' })
   @IsString()
@@ -54,4 +59,8 @@ export class CheckoutDto {
   @ApiPropertyOptional({ description: 'Mã giao dịch từ cổng thanh toán' })
   @IsOptional() @IsString()
   transactionRef?: string;
+
+  @ApiPropertyOptional({ type: [CartItemVoucherDto], description: 'LOYALTY-04: mỗi mã chỉ áp cho một item trong giỏ' })
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @ValidateNested({ each: true }) @Type(() => CartItemVoucherDto)
+  vouchers?: CartItemVoucherDto[];
 }

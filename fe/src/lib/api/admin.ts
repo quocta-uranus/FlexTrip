@@ -1,5 +1,6 @@
 import { api, toQuery } from '@/lib/api/client';
 import type * as T from '@/types/admin';
+import type { ReportFrequency, ReportType, TicketCategory, TicketPriority, TicketStatus } from '@/types/support';
 
 type Q = Record<string, string | number | boolean | null | undefined>;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -111,5 +112,38 @@ export const adminApi = {
     stats: () => api.get('/admin/bookings-overview/stats') as Promise<T.AdminBookingStats>,
     list: (q: Q) => api.get(`/admin/bookings-overview${toQuery(q)}`) as Promise<T.Paginated<T.AdminBookingRow>>,
     detail: (id: string) => api.get(`/admin/bookings-overview/${id}`) as Promise<T.AdminBookingDetail>,
+  },
+
+  tickets: {
+    list: (q: Q) => api.get(`/admin/support/tickets${toQuery(q)}`) as Promise<T.Paginated<T.AdminTicketItem>>,
+    stats: () => api.get('/admin/support/tickets/stats') as Promise<T.TicketStats>,
+    detail: (id: string) => api.get(`/admin/support/tickets/${id}`) as Promise<T.AdminTicketDetail>,
+    reply: (id: string, body: { body: string; nextStatus?: 'IN_PROGRESS' | 'WAITING_USER' | 'RESOLVED' }) =>
+      api.post(`/admin/support/tickets/${id}/messages`, body) as Promise<T.AdminTicketDetail>,
+    update: (id: string, body: Partial<{ status: TicketStatus; category: TicketCategory; priority: TicketPriority; assignToMe: boolean }>) =>
+      api.patch(`/admin/support/tickets/${id}`, body) as Promise<T.AdminTicketDetail>,
+    retriage: (id: string) => api.post(`/admin/support/tickets/${id}/retriage`, {}) as Promise<T.AdminTicketDetail>,
+  },
+
+  faqs: {
+    list: () => api.get('/admin/support/faqs') as Promise<T.AdminFaq[]>,
+    suggestions: () => api.get('/admin/support/faqs/suggestions') as Promise<T.FaqSuggestion[]>,
+    create: (body: { question: string; answer: string; category: TicketCategory; isPublished?: boolean }) =>
+      api.post('/admin/support/faqs', body) as Promise<T.AdminFaq>,
+    update: (id: string, body: Partial<{ question: string; answer: string; category: TicketCategory; isPublished: boolean }>) =>
+      api.patch(`/admin/support/faqs/${id}`, body) as Promise<T.AdminFaq>,
+    remove: (id: string) => api.delete(`/admin/support/faqs/${id}`),
+  },
+
+  reports: {
+    export: (q: { type: ReportType; from: string; to: string }) =>
+      api.download(`/admin/reports/export${toQuery(q)}`, `bao-cao-${q.type.toLowerCase()}-${q.from}_${q.to}.csv`),
+    schedules: () => api.get('/admin/reports/schedules') as Promise<T.ReportSchedule[]>,
+    createSchedule: (body: { name: string; type: ReportType; frequency: ReportFrequency; recipients: string[] }) =>
+      api.post('/admin/reports/schedules', body) as Promise<T.ReportSchedule>,
+    updateSchedule: (id: string, body: Partial<{ name: string; type: ReportType; frequency: ReportFrequency; recipients: string[]; isActive: boolean }>) =>
+      api.patch(`/admin/reports/schedules/${id}`, body) as Promise<T.ReportSchedule>,
+    removeSchedule: (id: string) => api.delete(`/admin/reports/schedules/${id}`),
+    runSchedule: (id: string) => api.post(`/admin/reports/schedules/${id}/run`, {}) as Promise<{ sent: boolean }>,
   },
 };

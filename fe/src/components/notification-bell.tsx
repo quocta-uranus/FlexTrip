@@ -25,6 +25,7 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
   const data = notification.data ?? {};
   const bookingId = typeof data.bookingId === 'string' ? data.bookingId : null;
   const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
+  const ticketId = typeof data.ticketId === 'string' ? data.ticketId : null;
 
   if (notification.type === 'BOOKING') {
     // A single booking page serves both sides; without a booking id fall back to the matching list.
@@ -36,6 +37,7 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
     return conversationId ? `/messages?conversation=${conversationId}` : '/messages';
   }
   if (notification.type === 'PAYMENT') return '/profile/payments';
+  if (ticketId) return `/support/${ticketId}`;
   if (notification.type === 'REVIEW') {
     if (isProvider) return '/profile/shop';
     return bookingId ? `/bookings/${bookingId}` : '/profile/reviews';
@@ -160,7 +162,7 @@ export function NotificationBell({ isProvider, onDark = false }: { isProvider: b
       {open && (
         <>
           <div className="fixed inset-0 z-[55]" onClick={() => setOpen(false)} />
-          <div className="fixed left-3 right-3 top-[4.5rem] z-[60] overflow-hidden rounded-2xl border border-[#d9e8f5] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.20)] sm:left-auto sm:right-6 sm:w-[420px]">
+          <div className="fixed left-3 right-3 top-[4.5rem] z-[60] overflow-hidden rounded-2xl border border-[#d9e8f5] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.20)] sm:absolute sm:left-auto sm:right-[-3rem] sm:top-full sm:mt-3 sm:w-[420px]">
             <div className="flex items-center justify-between gap-4 border-b border-[#e6eef6] bg-gradient-to-r from-[#f8fbff] to-white px-5 py-4">
               <div>
                 <h2 className="text-lg font-bold text-[#0f1729]">Thông báo</h2>

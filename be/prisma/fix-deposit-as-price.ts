@@ -12,12 +12,14 @@ const MARKER = 'Cọc được tính vào tiền thuê booking';
 async function main() {
   const payments = await prisma.payment.findMany({
     where: {
-      booking: { status: BookingStatus.COMPLETED },
+      // Balance already paid, so the deposit should no longer be frozen
+      rentalPaidAt: { not: null },
+      booking: { status: { in: [BookingStatus.COMPLETED, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS, BookingStatus.DISPUTED] } },
       gateway: PaymentGateway.WALLET,
       rentalGateway: PaymentGateway.WALLET,
       depositAmount: { gt: 0 },
     },
-    include: { booking: { select: { id: true, travelerId: true, assignedStaffId: true, listing: { select: { providerId: true } } } } },
+    include: { booking: { select: { id: true, status: true, travelerId: true, assignedStaffId: true, listing: { select: { providerId: true } } } } },
   });
 
   let fixed = 0;
@@ -27,20 +29,34 @@ async function main() {
       where: { refType: 'payment', refId: payment.id, note: { startsWith: MARKER } },
     });
     const ledger = await prisma.commissionLedger.findUnique({ where: { paymentId: payment.id } });
-    if (done || ledger?.status !== LedgerStatus.SETTLED) continue;
+    if (done) continue;
+    // Not settled yet: the commission job will use the full price, so only the deposit needs moving
+    const settled = ledger?.status === LedgerStatus.SETTLED;
 
     const deposit = Number(payment.depositAmount);
-    const total = Number(payment.totalAmount);
+    // Same base as CommissionService.split: a partial dispute refund is not the provider's money
+    const total = Number(payment.totalAmount) - Number(payment.refundedAmount);
     const hasStaff = !!booking.assignedStaffId;
     const platformFee = total * (hasStaff ? COMMISSION_RATES.PLATFORM_BASE : COMMISSION_RATES.PLATFORM_NO_STAFF);
     const staffFee = hasStaff ? total * COMMISSION_RATES.STAFF_SHARE : 0;
     const providerNet = total - platformFee - staffFee;
-    const providerDelta = providerNet - Number(payment.providerNet);
-    const staffDelta = staffFee - Number(payment.staffFee);
+    const providerDelta = settled ? providerNet - Number(payment.providerNet) : 0;
+    const staffDelta = settled ? staffFee - Number(payment.staffFee) : 0;
+
+    const travelerWallet = await prisma.wallet.findUnique({ where: { userId: booking.travelerId } });
+    if (!travelerWallet || Number(travelerWallet.frozenBalance) < deposit) {
+      console.warn(`${booking.id}: SKIP, traveler frozen balance is below the deposit ${deposit}`);
+      continue;
+    }
+    // Only top-ups are handled; a negative delta would need a clawback from the provider/staff wallet
+    if (providerDelta < 0 || staffDelta < 0) {
+      console.warn(`${booking.id}: SKIP, commission would decrease (provider ${providerDelta}, staff ${staffDelta})`);
+      continue;
+    }
 
     console.log(
-      `${booking.id}: unfreeze ${deposit}, provider +${providerDelta}, staff +${staffDelta}, ` +
-      `platform ${Number(payment.platformFee)} -> ${platformFee}`,
+      `${booking.id} (${payment.booking.status}): unfreeze ${deposit}` +
+      (settled ? `, provider +${providerDelta}, staff +${staffDelta}, platform ${Number(payment.platformFee)} -> ${platformFee}` : ', commission not split yet'),
     );
     if (!APPLY) continue;
 
@@ -81,8 +97,10 @@ async function main() {
         where: { id: 'singleton' },
         data: { balance: { increment: deposit - providerDelta - staffDelta } },
       });
-      await tx.payment.update({ where: { id: payment.id }, data: { platformFee, staffFee, providerNet } });
-      await tx.commissionLedger.update({ where: { paymentId: payment.id }, data: { platformFee, staffFee, providerNet } });
+      if (settled) {
+        await tx.payment.update({ where: { id: payment.id }, data: { platformFee, staffFee, providerNet } });
+        await tx.commissionLedger.update({ where: { paymentId: payment.id }, data: { platformFee, staffFee, providerNet } });
+      }
     });
     fixed += 1;
   }
@@ -90,4 +108,9 @@ async function main() {
   console.log(APPLY ? `Applied to ${fixed} booking(s).` : 'Dry run — nothing written. Re-run with --apply.');
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

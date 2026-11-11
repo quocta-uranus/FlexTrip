@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException,
+  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -7,6 +7,7 @@ import { ContractStatus, NotificationType, Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaymentsService } from '../payments/payments.service';
 import { ContractParams, renderContract } from './contracts.templates';
 import { CheckinDto, CheckoutDto, PenaltyRule } from './dto/contract.dto';
 import {
@@ -23,6 +24,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue(BOOKING_QUEUE) private readonly bookingQueue: Queue,
+    @Optional() private readonly paymentsSvc?: PaymentsService,
   ) {
     const secret = this.config.get<string>('CONTRACT_ID_KEY') ?? 'default-contract-id-key-32bytes!!';
     this.encKey = scryptSync(secret, 'flextrip-contract-salt', 32);
@@ -228,6 +230,7 @@ export class ContractsService {
             status: true,
             travelerId: true,
             startDate: true,
+            discountAmount: true,
             listing: { select: { providerId: true, title: true } },
             payment: { select: { rentalAmount: true, rentalPaidAt: true } },
           },
@@ -264,6 +267,11 @@ export class ContractsService {
         { bookingId },
       ),
     ]);
+
+    // Voucher giảm hết tiền thuê thì không có bước trả nốt, nên chốt luôn tại đây để ngân sách khuyến mãi và escrow khớp
+    if (!needsBalance && pay && !pay.rentalPaidAt && Number(contract.booking.discountAmount) > 0) {
+      await this.paymentsSvc?.settleDiscountedRental(bookingId);
+    }
 
     if (needsBalance) {
       await this.bookingQueue.add(

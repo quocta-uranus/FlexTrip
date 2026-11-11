@@ -13,9 +13,11 @@ import {
 } from './guards/rate-limit.guard';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
+    ReferralsModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

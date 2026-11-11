@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, Length, MinLength, ValidateBy } from 'class-validator';
+import { IsOptional, IsString, Length, Matches, MaxLength, MinLength, ValidateBy } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { EmailDto } from './email.dto';
 
@@ -32,4 +32,11 @@ export class RegisterDto extends EmailDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiProperty({ required: false, description: 'LOYALTY-02: mã giới thiệu của người mời' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(16)
+  @Matches(/^[A-Za-z0-9]+$/)
+  referralCode?: string;
 }

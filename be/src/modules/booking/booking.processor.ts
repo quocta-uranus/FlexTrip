@@ -4,6 +4,7 @@ import { BookingStatus, CancelledBy, NotificationType, Prisma } from '@prisma/cl
 import { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
+import { VouchersService } from '../vouchers/vouchers.service';
 import { BOOKING_QUEUE, BookingJob, isRentalSettled } from './booking.constants';
 
 @Processor(BOOKING_QUEUE)
@@ -13,6 +14,7 @@ export class BookingProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly paymentsSvc?: PaymentsService,
+    @Optional() private readonly vouchersSvc?: VouchersService,
   ) {
     super();
   }
@@ -65,6 +67,7 @@ export class BookingProcessor extends WorkerHost {
         cancelledAt: new Date(),
       },
     });
+    await this.vouchersSvc?.onBookingCancelled(bookingId, CancelledBy.SYSTEM);
 
     await this.notify(
       booking.travelerId,
@@ -106,6 +109,7 @@ export class BookingProcessor extends WorkerHost {
     ]);
     // Huỷ do hệ thống → hoàn lại phần cọc đã trả
     await this.paymentsSvc?.onBookingCancelled(bookingId, CancelledBy.SYSTEM, BookingStatus.CONFIRMED);
+    await this.vouchersSvc?.onBookingCancelled(bookingId, CancelledBy.SYSTEM);
 
     await Promise.all([
       this.notify(booking.travelerId, NotificationType.BOOKING, 'Đơn thuê đã bị huỷ',

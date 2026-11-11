@@ -118,7 +118,8 @@ function BookingDetailContent() {
   const deposit = typeof booking.depositAmount === 'number'
     ? booking.depositAmount
     : Number(booking.depositAmount ?? 0);
-  const rentalAmount = Math.max(price - deposit, 0);
+  const discount = Number(booking.discountAmount ?? 0);
+  const rentalAmount = Math.max(price - deposit - discount, 0);
   const rentalUnpaid =
     booking.status === 'CONFIRMED' &&
     booking.payment?.status === 'PAID' &&
@@ -340,9 +341,15 @@ function BookingDetailContent() {
                   <span style={{ color: '#0f1729' }}>{deposit.toLocaleString('vi-VN')} VND</span>
                 </div>
               )}
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <span style={{ color: '#5a6b85' }}>Giảm giá (voucher)</span>
+                  <span className="font-semibold text-emerald-700">-{discount.toLocaleString('vi-VN')} VND</span>
+                </div>
+              )}
               <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
                 <span style={{ color: '#0f1729' }}>Tổng cộng</span>
-                <span style={{ color: '#2a7bd9' }}>{price.toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
+                <span style={{ color: '#2a7bd9' }}>{(price - discount).toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
               </div>
               {booking.payment?.status === 'PAID' && (
                 <div className="mt-3 flex items-center justify-between gap-2 rounded-xl px-4 py-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>

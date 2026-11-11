@@ -15,8 +15,15 @@ export default function RegisterPage() {
   const {
     register: field,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+
+  // Đọc ?ref= sau khi mount thay vì useSearchParams để trang không cần Suspense
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) setValue('referralCode', ref.toUpperCase());
+  }, [setValue]);
 
   // OTP input state — 6 individual cells
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -208,8 +215,8 @@ export default function RegisterPage() {
       )}
 
       <form
-        onSubmit={handleSubmit(({ name, email, phone, password }) =>
-          register({ name, email, password, phone: phone || undefined })
+        onSubmit={handleSubmit(({ name, email, phone, password, referralCode }) =>
+          register({ name, email, password, phone: phone || undefined, referralCode: referralCode || undefined })
         )}
         className="space-y-4"
       >
@@ -232,6 +239,14 @@ export default function RegisterPage() {
             type="tel"
             placeholder="+84 912 345 678 (không bắt buộc)"
             autoComplete="tel"
+          />
+        </AuthField>
+
+        <AuthField label="Mã giới thiệu" error={errors.referralCode?.message}>
+          <AuthInput
+            {...field('referralCode')}
+            placeholder="Nhập mã để nhận voucher (không bắt buộc)"
+            autoComplete="off"
           />
         </AuthField>
 

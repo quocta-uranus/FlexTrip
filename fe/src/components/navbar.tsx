@@ -8,7 +8,7 @@ import { useLogout } from '@/hooks/useAuthMutations';
 import { useCart } from '@/hooks/useCart';
 import { NotificationBell } from '@/components/notification-bell';
 import { PillButton } from '@/components/ui/pill-button';
-import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, CreditCard, Shield, Star, Package, LogOut, Menu, X } from 'lucide-react';
+import { Compass, Heart, ShoppingBag, ChevronDown, User, ClipboardList, CreditCard, Shield, Star, Package, LifeBuoy, LogOut, Menu, X } from 'lucide-react';
 import { WishlistHeaderLink } from '@/components/wishlist-header-link';
 
 const BASE_NAV_LINKS = [
@@ -174,6 +174,7 @@ export function Navbar() {
                                 { href: '/wishlist', label: 'Danh sách yêu thích', icon: <Heart className="h-4 w-4 text-[#68655E]" /> },
                                 { href: '/profile/payments', label: 'Thanh toán & Ví', icon: <CreditCard className="h-4 w-4 text-[#68655E]" /> },
                               ]),
+                                { href: '/support', label: 'Hỗ trợ', icon: <LifeBuoy className="h-4 w-4 text-[#68655E]" /> },
                         ...(!isAdmin && isProvider
                           ? [
                               { href: '/dashboard/listings', label: 'Quản lý sản phẩm', icon: <Package className="h-4 w-4 text-[#68655E]" /> },

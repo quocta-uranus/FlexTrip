@@ -4,12 +4,14 @@ import { BullModule } from '@nestjs/bullmq';
 import { ContractsService } from './contracts.service';
 import { ContractsController } from './contracts.controller';
 import { AuthModule } from '../auth/auth.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { BOOKING_QUEUE } from '../booking/booking.constants';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
+    PaymentsModule,
     BullModule.registerQueue({ name: BOOKING_QUEUE }),
   ],
   controllers: [ContractsController],

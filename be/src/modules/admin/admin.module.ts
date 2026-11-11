@@ -34,9 +34,27 @@ import { AdminCommissionsController } from './finance/admin-commissions.controll
 import { AdminCommissionsService } from './finance/admin-commissions.service';
 import { AdminModerationTermsController } from './moderation-terms/admin-moderation-terms.controller';
 import { AdminModerationTermsService } from './moderation-terms/admin-moderation-terms.service';
+import { BullModule } from '@nestjs/bullmq';
+import { SupportModule } from '../support/support.module';
+import { AdminTicketsController } from './support/admin-tickets.controller';
+import { AdminTicketsService } from './support/admin-tickets.service';
+import { AdminFaqsController } from './support/admin-faqs.controller';
+import { AdminFaqsService } from './support/admin-faqs.service';
+import { AdminReportsController } from './reports/admin-reports.controller';
+import { AdminReportsService } from './reports/admin-reports.service';
+import { AdminReportSchedulesService } from './reports/admin-report-schedules.service';
+import { ReportScheduleProcessor } from './reports/report-schedule.processor';
+import { ReportsService } from './reports/reports.service';
+import { REPORT_SCHEDULE_QUEUE } from './reports/report-schedule.constants';
+import { AdminVouchersController } from './vouchers/admin-vouchers.controller';
+import { AdminVouchersService } from './vouchers/admin-vouchers.service';
+import { AdminLoyaltyController } from './loyalty/admin-loyalty.controller';
+import { AdminLoyaltyService } from './loyalty/admin-loyalty.service';
+import { AdminReferralsController } from './referrals/admin-referrals.controller';
+import { AdminReferralsService } from './referrals/admin-referrals.service';
 
 @Module({
-  imports: [AuthModule, ReviewsModule, PaymentsModule],
+  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -52,6 +70,12 @@ import { AdminModerationTermsService } from './moderation-terms/admin-moderation
     AdminBookingsController,
     AdminCommissionsController,
     AdminModerationTermsController,
+    AdminTicketsController,
+    AdminFaqsController,
+    AdminReportsController,
+    AdminVouchersController,
+    AdminLoyaltyController,
+    AdminReferralsController,
   ],
   providers: [
     AccessTokenGuard,
@@ -72,6 +96,15 @@ import { AdminModerationTermsService } from './moderation-terms/admin-moderation
     AdminBookingsService,
     AdminCommissionsService,
     AdminModerationTermsService,
+    AdminTicketsService,
+    AdminFaqsService,
+    ReportsService,
+    AdminReportsService,
+    AdminReportSchedulesService,
+    ReportScheduleProcessor,
+    AdminVouchersService,
+    AdminLoyaltyService,
+    AdminReferralsService,
   ],
 })
 export class AdminModule {}

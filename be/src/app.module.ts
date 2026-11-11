@@ -22,6 +22,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
 import { AiSearchModule } from './modules/ai-search/ai-search.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MessagesModule } from './modules/messages/messages.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -31,7 +32,12 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { PriceAiModule } from './modules/price-ai/price-ai.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PaymentAiModule } from './modules/payment-ai/payment-ai.module';
+import { SupportModule } from './modules/support/support.module';
 import { PublicStatsModule } from './modules/public-stats/public-stats.module';
+import { VouchersModule } from './modules/vouchers/vouchers.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { ReferralsHttpModule } from './modules/referrals/referrals-http.module';
+import { ProviderIncentivesModule } from './modules/provider-incentives/provider-incentives.module';
 
 @Module({
   imports: [
@@ -64,6 +70,7 @@ import { PublicStatsModule } from './modules/public-stats/public-stats.module';
     AiSearchModule,
     RecommendationsModule,
     AdminModule,
+    MessagesModule,
     StaffModule,
     NotificationsModule,
     ReviewsModule,
@@ -73,7 +80,12 @@ import { PublicStatsModule } from './modules/public-stats/public-stats.module';
     PriceAiModule,
     PaymentsModule,
     PaymentAiModule,
+    SupportModule,
     PublicStatsModule,
+    VouchersModule,
+    LoyaltyModule,
+    ReferralsHttpModule,
+    ProviderIncentivesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
