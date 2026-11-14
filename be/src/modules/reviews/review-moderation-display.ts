@@ -27,6 +27,14 @@ const REASON_TRANSLATIONS: Array<[RegExp, string]> = [
   ],
 ];
 
+/** "Không có nội dung xúc phạm, spam": the model is clearing the review, not accusing it. */
+const DENIES_VIOLATION =
+  /(?:^|[\s,;.])(?:không|chẳng|chưa|no|not|without)(?:\s|$)[^.;]*(?:xúc phạm|tục|spam|offensive|profan|insult|harass|abusive)/iu;
+
+/** English counterparts: "contains no violation", "does not violate", "appears safe". */
+const DENIES_VIOLATION_EN =
+  /\b(?:no|not|without|never)\b[^.;]*\b(?:violation|violate|violates|inappropriate|harmful|abusive|spam|offensive|profan\w*|insult\w*|harass\w*)\b|\b(?:appears?|seems?|looks?|is)\s+(?:to\s+be\s+)?(?:safe|clean|appropriate|genuine|legitimate|fine)\b|\bdoes(?:n't| not)\s+violate\b/iu;
+
 function stripSourcePrefix(reason: string) {
   return reason.replace(/^\s*\[(?:RULE|AI)\]\s*/iu, '').trim();
 }
@@ -37,20 +45,37 @@ function looksLikeUntranslatedEnglish(reason: string) {
   );
 }
 
-export function toVietnameseDisplayReasons(value: unknown): string[] {
+export interface DisplayReasonOptions {
+  /**
+   * Every score is below its threshold, so nothing was found. An English reason we cannot
+   * translate must not turn into an accusation; it is dropped instead of the generic fallback.
+   */
+  clean?: boolean;
+}
+
+export function toVietnameseDisplayReasons(
+  value: unknown,
+  options: DisplayReasonOptions = {},
+): string[] {
   if (!Array.isArray(value)) return [];
 
   const localized = value
     .filter((reason): reason is string => typeof reason === 'string')
     .map(stripSourcePrefix)
     .filter(Boolean)
-    .map((reason) => {
+    .filter(
+      (reason) =>
+        !DENIES_VIOLATION.test(reason) && !DENIES_VIOLATION_EN.test(reason),
+    )
+    .map((reason): string | null => {
       const translated = REASON_TRANSLATIONS.find(([pattern]) =>
         pattern.test(reason),
       );
       if (translated) return translated[1];
-      return looksLikeUntranslatedEnglish(reason) ? SAFE_FALLBACK : reason;
-    });
+      if (!looksLikeUntranslatedEnglish(reason)) return reason;
+      return options.clean ? null : SAFE_FALLBACK;
+    })
+    .filter((reason): reason is string => reason !== null);
 
   return [...new Set(localized)];
 }

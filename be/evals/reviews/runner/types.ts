@@ -67,6 +67,37 @@ export interface EvaluationCheckpoint {
   updatedAt: string;
 }
 
+/** What the platform actually does: hide a review for spam or toxicity (suspicion alone only flags it). */
+export interface PipelineQuality {
+  /** Cases where the review should be hidden: expected spam or toxic. */
+  shouldHide: number;
+  rulesOnly: BinaryMetrics;
+  aiOnly: BinaryMetrics;
+  /** Rule filter OR AI: the production decision. */
+  combined: BinaryMetrics;
+  /** Cases the production decision gets wrong, for review of the dictionary and prompt. */
+  missed: string[];
+  wronglyHidden: string[];
+}
+
+/** What happens when the local classifiers answer first and the LLM is asked only for hard cases. */
+export interface CascadeQuality {
+  /** False when the classifier service could not be reached; nothing else is filled in then. */
+  available: boolean;
+  thresholds: { toxicClear: number; toxicBlock: number; sentimentMin: number };
+  cases: number;
+  /** Share of reviews the cascade still sends to the LLM. */
+  aiCallRate: number;
+  routes: Record<string, number>;
+  hide: { cascade: BinaryMetrics; rulesAndAi: BinaryMetrics };
+  sentimentAccuracy: { cascade: number; ai: number; local: number };
+  /** The local models on their own: toxic probability >= 0.5 against the toxic label. */
+  localToxicity: BinaryMetrics;
+  /** Reviews answered locally whose hide decision or sentiment is wrong. */
+  localWrong: Array<{ id: string; reason: string }>;
+  averageLocalLatencyMs: number;
+}
+
 export interface EvaluationReport {
   status: EvaluationStatus;
   stopReason: string | null;
@@ -93,6 +124,8 @@ export interface EvaluationReport {
     toxicity: BinaryMetrics;
     suspicious: BinaryMetrics;
   };
+  pipeline: PipelineQuality;
+  cascade?: CascadeQuality;
   reliability: {
     successfulRequestRate: number;
     failedRequests: number;

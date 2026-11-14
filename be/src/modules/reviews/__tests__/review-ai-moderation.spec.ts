@@ -82,15 +82,156 @@ describe('REVIEW-03 AI and Admin moderation', () => {
     expect(stored.sentiment).toBe('POSITIVE');
     expect(profile.reviewsCount).toBe(1);
     expect(Number(profile.ratingAvg)).toBe(5);
+    // The author sees the result on the page; a clean pass sends no notification.
     expect(
       await h.prisma.notification.count({
         where: { userId: traveler.id, type: 'REVIEW' },
       }),
-    ).toBe(1);
+    ).toBe(0);
     expect(h.reviewAnalyzer.analyze).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['spamScore', 'toxicityScore', 'suspicionScore'] as const)(
+  describe('post-publication check', () => {
+    const clean = {
+      sentiment: 'POSITIVE' as const,
+      spamScore: 0,
+      toxicityScore: 0,
+      suspicionScore: 0,
+      reasons: ['Nội dung tích cực.'],
+    };
+
+    async function publicReview() {
+      const ctx = await setup(ReviewStatus.PUBLISHED);
+      await h.prisma.$transaction((tx) =>
+        moderation.refreshProviderRating(tx, ctx.provider.id),
+      );
+      return ctx;
+    }
+
+    it('keeps a clean public review public, marks it checked and stays silent', async () => {
+      const { provider, traveler, review } = await publicReview();
+      h.reviewAnalyzer.analyze.mockResolvedValue(clean);
+
+      await moderation.analyze(review.id);
+      await moderation.analyze(review.id);
+
+      const stored = await h.prisma.review.findUniqueOrThrow({
+        where: { id: review.id },
+      });
+      expect(stored).toMatchObject({
+        status: 'PUBLISHED',
+        moderationSource: 'AI',
+      });
+      expect(stored.moderatedAt).not.toBeNull();
+      expect(h.reviewAnalyzer.analyze).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          await h.prisma.providerProfile.findUniqueOrThrow({
+            where: { userId: provider.id },
+          })
+        ).reviewsCount,
+      ).toBe(1);
+      expect(
+        await h.prisma.notification.count({ where: { userId: traveler.id } }),
+      ).toBe(0);
+    });
+
+    it('hides a public review that turns out toxic, fixes the rating and tells the author once', async () => {
+      const { provider, traveler, review } = await publicReview();
+      h.reviewAnalyzer.analyze.mockResolvedValue({
+        ...clean,
+        sentiment: 'NEGATIVE',
+        toxicityScore: 90,
+        reasons: ['Nội dung xúc phạm.'],
+      });
+
+      await moderation.analyze(review.id);
+
+      expect(
+        (await h.prisma.review.findUniqueOrThrow({ where: { id: review.id } }))
+          .status,
+      ).toBe('FLAGGED');
+      expect(
+        await h.prisma.providerProfile.findUniqueOrThrow({
+          where: { userId: provider.id },
+        }),
+      ).toMatchObject({ reviewsCount: 0 });
+      const notes = await h.prisma.notification.findMany({
+        where: { userId: traveler.id },
+      });
+      expect(notes).toHaveLength(1);
+      expect(notes[0].title).toBe('Đánh giá của bạn đã bị ẩn');
+    });
+
+    it('hides a public review that copies another review', async () => {
+      const { provider, review } = await publicReview();
+      const other = await createUser(h);
+      const listing = await createListing(h, provider.id);
+      const booking = await createBooking(h, {
+        travelerId: other.id,
+        listingId: listing.id,
+      });
+      await h.prisma.review.create({
+        data: {
+          authorId: other.id,
+          targetId: provider.id,
+          listingId: listing.id,
+          bookingId: booking.id,
+          rating: 5,
+          comment: 'Đánh giá đang chờ AI kiểm duyệt.',
+          status: 'PUBLISHED',
+          moderatedAt: new Date(),
+        },
+      });
+      h.reviewAnalyzer.analyze.mockResolvedValue(clean);
+
+      await moderation.analyze(review.id);
+
+      expect(
+        (await h.prisma.review.findUniqueOrThrow({ where: { id: review.id } }))
+          .status,
+      ).toBe('FLAGGED');
+    });
+
+    it('keeps a public review public and lists it as suspicious when only soft signals fire', async () => {
+      const { admin, review } = await publicReview();
+      await h.prisma.review.update({
+        where: { id: review.id },
+        data: {
+          rating: 5,
+          comment: 'Sản phẩm rất tệ, bị hỏng và không giống mô tả.',
+        },
+      });
+      h.reviewAnalyzer.analyze.mockResolvedValue({
+        ...clean,
+        sentiment: 'NEGATIVE',
+      });
+
+      await moderation.analyze(review.id);
+
+      expect(
+        await h.prisma.review.findUniqueOrThrow({ where: { id: review.id } }),
+      ).toMatchObject({ status: 'PUBLISHED', suspicionScore: 80 });
+      const list = await http(h, admin.accessToken).get(
+        '/admin/reviews?suspicious=true',
+      );
+      expect(list.body.items.map((r: { id: string }) => r.id)).toEqual([
+        review.id,
+      ]);
+
+      const approved = await http(h, admin.accessToken).patch(
+        `/admin/reviews/${review.id}/moderate`,
+        { decision: 'APPROVE' },
+      );
+      expect(approved.status).toBe(200);
+      expect(
+        (await http(h, admin.accessToken).get('/admin/reviews?suspicious=true'))
+          .body.total,
+      ).toBe(0);
+    });
+  });
+
+  it.each(['spamScore', 'toxicityScore'] as const)(
     'flags score at the threshold for %s',
     async (score) => {
       const { review } = await setup();
@@ -109,6 +250,21 @@ describe('REVIEW-03 AI and Admin moderation', () => {
       ).toBe('FLAGGED');
     },
   );
+
+  it('does not hide a review for suspicion alone', async () => {
+    const { review } = await setup();
+    h.reviewAnalyzer.analyze.mockResolvedValue({
+      sentiment: 'POSITIVE',
+      spamScore: 1,
+      toxicityScore: 1,
+      suspicionScore: 70,
+      reasons: ['Đáng ngờ'],
+    });
+    await moderation.analyze(review.id);
+    expect(
+      await h.prisma.review.findUniqueOrThrow({ where: { id: review.id } }),
+    ).toMatchObject({ status: 'PUBLISHED', suspicionScore: 70 });
+  });
 
   it('flags profanity when AI returns a contradictory zero toxicity score', async () => {
     const { admin, review } = await setup();
@@ -147,6 +303,7 @@ describe('REVIEW-03 AI and Admin moderation', () => {
     expect(response.body.items[0].analysisSource).toBe('RULE_AND_AI');
     expect(response.body.items[0].displayReasons).toEqual([
       'Nội dung chứa từ ngữ tục tĩu hoặc xúc phạm.',
+      'Số sao và nội dung đánh giá có dấu hiệu mâu thuẫn.',
     ]);
     expect(response.body.items[0]).not.toHaveProperty('analysisReasons');
   });
@@ -211,7 +368,7 @@ describe('REVIEW-03 AI and Admin moderation', () => {
       comment: 'Sản phẩm tuyệt vời, sạch sẽ và hỗ trợ rất tốt.',
     },
   ])(
-    'flags a $rating-star review when rating and $sentiment sentiment conflict',
+    'keeps a $rating-star review public but suspicious when rating and $sentiment sentiment conflict',
     async ({ rating, sentiment, comment }) => {
       const { review } = await setup();
       await h.prisma.review.update({
@@ -232,7 +389,7 @@ describe('REVIEW-03 AI and Admin moderation', () => {
         where: { id: review.id },
       });
       expect(stored).toMatchObject({
-        status: 'FLAGGED',
+        status: 'PUBLISHED',
         sentiment,
         suspicionScore: 80,
       });
@@ -282,6 +439,12 @@ describe('REVIEW-03 AI and Admin moderation', () => {
         )
       ).status,
     ).toBe(400);
+    const reanalyze = await http(h, admin.accessToken).post(
+      `/admin/reviews/${review.id}/reanalyze`,
+      {},
+    );
+    expect(reanalyze.status).toBe(202);
+    expect(reanalyze.body).toMatchObject({ status: 'PENDING', queued: true });
     expect(
       (
         await http(h, admin.accessToken).patch(
@@ -290,12 +453,15 @@ describe('REVIEW-03 AI and Admin moderation', () => {
         )
       ).status,
     ).toBe(200);
-    const reanalyze = await http(h, admin.accessToken).post(
-      `/admin/reviews/${review.id}/reanalyze`,
-      {},
-    );
-    expect(reanalyze.status).toBe(202);
-    expect(reanalyze.body).toMatchObject({ status: 'PENDING', queued: true });
+    // A decided review is no longer re-analysed behind the Admin's back.
+    expect(
+      (
+        await http(h, admin.accessToken).post(
+          `/admin/reviews/${review.id}/reanalyze`,
+          {},
+        )
+      ).status,
+    ).toBe(409);
     expect(
       await h.prisma.auditLog.count({ where: { entityId: review.id } }),
     ).toBe(2);

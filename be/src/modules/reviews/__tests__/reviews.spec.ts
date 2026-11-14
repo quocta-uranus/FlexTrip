@@ -44,11 +44,13 @@ describe('REVIEW-01 submit rating and review', () => {
       travelerId: traveler.id,
       listingId: listing.id,
       status,
+      startDate: new Date(Date.now() - 3 * 86_400_000),
+      endDate: new Date(Date.now() - 86_400_000),
     });
     return { provider, traveler, stranger, listing, booking };
   }
 
-  it('derives provider/listing, commits PENDING, then enqueues moderation', async () => {
+  it('derives provider/listing, publishes a clean review at once, then enqueues the AI check', async () => {
     const { provider, traveler, listing, booking } = await setup();
     const result = await http(h, traveler.accessToken).post('/reviews', {
       bookingId: booking.id,
@@ -61,7 +63,7 @@ describe('REVIEW-01 submit rating and review', () => {
       bookingId: booking.id,
       listingId: listing.id,
       rating: 5,
-      status: 'PENDING',
+      status: 'PUBLISHED',
     });
     expect(result.body).not.toHaveProperty('moderationNote');
 
@@ -69,11 +71,12 @@ describe('REVIEW-01 submit rating and review', () => {
       where: { bookingId: booking.id },
     });
     expect(stored.targetId).toBe(provider.id);
+    expect(stored.moderatedAt).toBeNull();
     const profile = await h.prisma.providerProfile.findUniqueOrThrow({
       where: { userId: provider.id },
     });
-    expect(Number(profile.ratingAvg)).toBe(0);
-    expect(profile.reviewsCount).toBe(0);
+    expect(Number(profile.ratingAvg)).toBe(5);
+    expect(profile.reviewsCount).toBe(1);
   });
 
   it('rejects non-owner and non-completed bookings', async () => {
@@ -187,7 +190,7 @@ describe('REVIEW-01 submit rating and review', () => {
     ).toBe(400);
   });
 
-  it('keeps the committed review pending when enqueue fails', async () => {
+  it('keeps the committed review public and awaiting its AI check when enqueue fails', async () => {
     const { traveler, booking } = await setup();
     jest.spyOn(moderation, 'enqueue').mockResolvedValueOnce(false);
     const result = await http(h, traveler.accessToken).post('/reviews', {
@@ -196,7 +199,14 @@ describe('REVIEW-01 submit rating and review', () => {
       comment: 'Đánh giá hợp lệ nhưng Redis đang tạm thời bị lỗi.',
     });
     expect(result.status).toBe(201);
-    expect(result.body.status).toBe('PENDING');
+    expect(result.body.status).toBe('PUBLISHED');
+    expect(
+      (
+        await h.prisma.review.findUniqueOrThrow({
+          where: { bookingId: booking.id },
+        })
+      ).moderatedAt,
+    ).toBeNull();
     expect(
       await h.prisma.review.count({ where: { bookingId: booking.id } }),
     ).toBe(1);

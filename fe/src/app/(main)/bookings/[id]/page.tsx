@@ -11,6 +11,7 @@ import { CATEGORY_LABELS } from '@/types/listing';
 import { useAuthStore } from '@/store/auth.store';
 import { ReviewForm } from '@/components/reviews/review-form';
 import { SubmittedReview } from '@/components/reviews/submitted-review';
+import { ReviewActions } from '@/components/reviews/review-actions';
 import { useMyReviews } from '@/hooks/useReviews';
 import { useContract } from '@/hooks/useContracts';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
@@ -53,6 +54,8 @@ function BookingDetailContent() {
   const payRental = usePayRental();
   const { data: wallet } = useWallet();
   const [payError, setPayError] = useState<string | null>(null);
+  // Read once per visit: the countdown below only needs day precision, and Date.now() must not run during render.
+  const [now] = useState(() => Date.now());
 
   const handlePay = async (gateway: 'PAYOS' | 'WALLET', stage: 'deposit' | 'rental' = 'deposit') => {
     if (!booking) return;
@@ -126,7 +129,7 @@ function BookingDetailContent() {
     ? new Date(booking.balanceDueAt).toLocaleString('vi-VN')
     : null;
   const daysUntilStart = Math.ceil(
-    (new Date(booking.startDate).getTime() - Date.now()) / 86_400_000,
+    (new Date(booking.startDate).getTime() - now) / 86_400_000,
   );
 
   // Compute expected refund for traveler cancel
@@ -929,7 +932,11 @@ function BookingDetailContent() {
         <ReviewForm bookingId={booking.id} />
       )}
 
-      {!isProvider && currentReview && <SubmittedReview review={currentReview} />}
+      {!isProvider && currentReview && (
+        <SubmittedReview review={currentReview}>
+          <ReviewActions review={currentReview} />
+        </SubmittedReview>
+      )}
 
       {/* Modify requests history */}
       {!!modifyRequests?.length && (
@@ -1024,7 +1031,7 @@ function ModifyRequestsSection({
 
               {req.reason && (
                 <p className="mt-1.5 text-xs italic" style={{ color: '#8694ad' }}>
-                  "{req.reason}"
+                  &ldquo;{req.reason}&rdquo;
                 </p>
               )}
 

@@ -94,9 +94,11 @@ export class AuthHarness {
     add: jest.fn<
       (name: string, data: unknown, options: unknown) => Promise<{ id: string }>
     >(),
-    getJobs: jest
-      .fn<(...args: unknown[]) => Promise<never[]>>()
-      .mockResolvedValue([]),
+    getJob: jest
+      .fn<(...args: unknown[]) => Promise<undefined>>()
+      .mockResolvedValue(undefined),
+    upsertJobScheduler: jest.fn<(...args: unknown[]) => Promise<void>>(),
+    rateLimit: jest.fn<(...args: unknown[]) => Promise<void>>(),
   };
   bookingQueue = {
     add: jest.fn(),
@@ -152,6 +154,8 @@ export class AuthHarness {
     process.env.KYC_FINGERPRINT_SECRET =
       'auth05-test-fingerprint-secret-32-characters';
     process.env.RESEND_API_KEY = 'test_key';
+    // Tests must never reach the developer's local classifier service, even when be/.env points at it.
+    process.env.REVIEW_CLASSIFIER_URL = '';
 
     this.resend.sendOtp.mockResolvedValue(true);
     this.resend.sendPasswordReset.mockResolvedValue(true);
