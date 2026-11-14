@@ -46,10 +46,13 @@ export class AdminReviewsService {
 
   async list(query: ListAdminReviewsQueryDto) {
     const search = query.search?.trim();
-    const [suspicionThreshold, slaHours] = await Promise.all([
-      this.config.get('review_suspicion_threshold'),
-      this.config.get('review_sla_hours'),
-    ]);
+    const [suspicionThreshold, spamThreshold, toxicityThreshold, slaHours] =
+      await Promise.all([
+        this.config.get('review_suspicion_threshold'),
+        this.config.get('review_spam_threshold'),
+        this.config.get('review_toxicity_threshold'),
+        this.config.get('review_sla_hours'),
+      ]);
     const now = Date.now();
     const cutoff = new Date(now - slaHours * HOUR_MS);
     const where: Prisma.ReviewWhereInput = {
@@ -140,7 +143,12 @@ export class AdminReviewsService {
             item.moderationSource,
             analysisReasons,
           ),
-          displayReasons: toVietnameseDisplayReasons(analysisReasons),
+          displayReasons: toVietnameseDisplayReasons(analysisReasons, {
+            clean:
+              (item.spamScore ?? 0) < spamThreshold &&
+              (item.toxicityScore ?? 0) < toxicityThreshold &&
+              (item.suspicionScore ?? 0) < suspicionThreshold,
+          }),
           queueStatus:
             item.status === 'PENDING' ? queueStatuses[item.id].status : null,
           analysisErrorCode:
@@ -239,7 +247,13 @@ export class AdminReviewsService {
   }
 
   moderate(id: string, dto: ModerateReviewDto, context: RequestContext) {
-    return this.moderation.moderateByAdmin(id, dto.decision, dto.note, context);
+    return this.moderation.moderateByAdmin(
+      id,
+      dto.decision,
+      dto.note,
+      context,
+      { allowRestore: true },
+    );
   }
 
   dismissReports(id: string, dto: DismissReportsDto, context: RequestContext) {

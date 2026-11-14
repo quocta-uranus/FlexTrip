@@ -439,6 +439,12 @@ describe('REVIEW-03 AI and Admin moderation', () => {
         )
       ).status,
     ).toBe(400);
+    const reanalyze = await http(h, admin.accessToken).post(
+      `/admin/reviews/${review.id}/reanalyze`,
+      {},
+    );
+    expect(reanalyze.status).toBe(202);
+    expect(reanalyze.body).toMatchObject({ status: 'PENDING', queued: true });
     expect(
       (
         await http(h, admin.accessToken).patch(
@@ -447,12 +453,15 @@ describe('REVIEW-03 AI and Admin moderation', () => {
         )
       ).status,
     ).toBe(200);
-    const reanalyze = await http(h, admin.accessToken).post(
-      `/admin/reviews/${review.id}/reanalyze`,
-      {},
-    );
-    expect(reanalyze.status).toBe(202);
-    expect(reanalyze.body).toMatchObject({ status: 'PENDING', queued: true });
+    // A decided review is no longer re-analysed behind the Admin's back.
+    expect(
+      (
+        await http(h, admin.accessToken).post(
+          `/admin/reviews/${review.id}/reanalyze`,
+          {},
+        )
+      ).status,
+    ).toBe(409);
     expect(
       await h.prisma.auditLog.count({ where: { entityId: review.id } }),
     ).toBe(2);

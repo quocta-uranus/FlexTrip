@@ -330,4 +330,118 @@ describe('REVIEW-03 admin queue: SLA, summary and bulk moderation', () => {
       ).toBe('FLAGGED');
     });
   });
+
+  describe('an Admin decision is changed only by another Admin decision', () => {
+    const moderate = (token: string, id: string, body: object) =>
+      http(h, token).patch(`/admin/reviews/${id}/moderate`, body);
+    const reanalyze = (token: string, id: string) =>
+      http(h, token).post(`/admin/reviews/${id}/reanalyze`, {});
+
+    it('refuses to re-run the analysis on a decided review and leaves it untouched', async () => {
+      const w = await world();
+      const approved = await seed(w, {
+        status: ReviewStatus.PUBLISHED,
+        moderationSource: ReviewModerationSource.ADMIN,
+        moderatedAt: ago(1),
+        spamScore: 80,
+      });
+      const rejected = await seed(w, {
+        status: ReviewStatus.REJECTED,
+        moderationSource: ReviewModerationSource.ADMIN,
+        moderatedAt: ago(1),
+      });
+
+      for (const [review, status] of [
+        [approved, 'PUBLISHED'],
+        [rejected, 'REJECTED'],
+      ] as const) {
+        const res = await reanalyze(w.admin.accessToken, review.id);
+        expect(res.status).toBe(409);
+        expect(res.body.code).toBe('REVIEW_ALREADY_DECIDED');
+        expect(
+          await h.prisma.review.findUniqueOrThrow({ where: { id: review.id } }),
+        ).toMatchObject({
+          status,
+          moderationSource: ReviewModerationSource.ADMIN,
+        });
+      }
+      expect(
+        (await h.prisma.review.findUniqueOrThrow({ where: { id: approved.id } }))
+          .spamScore,
+      ).toBe(80);
+    });
+
+    it('still re-runs the analysis on a review waiting for a decision', async () => {
+      const w = await world();
+      const flagged = await seed(w);
+
+      const res = await reanalyze(w.admin.accessToken, flagged.id);
+
+      expect(res.status).toBe(202);
+      expect(res.body.status).toBe('PENDING');
+    });
+
+    it('restores a rejected review: public again, rating counted, author told', async () => {
+      const w = await world();
+      const rejected = await seed(w, {
+        status: ReviewStatus.REJECTED,
+        moderationSource: ReviewModerationSource.ADMIN,
+        moderatedAt: ago(2),
+      });
+
+      const res = await moderate(w.admin.accessToken, rejected.id, {
+        decision: 'APPROVE',
+        note: 'Admin khôi phục đánh giá.',
+      });
+
+      expect(res.status).toBe(200);
+      expect(
+        await h.prisma.review.findUniqueOrThrow({ where: { id: rejected.id } }),
+      ).toMatchObject({
+        status: ReviewStatus.PUBLISHED,
+        moderationSource: ReviewModerationSource.ADMIN,
+      });
+      expect(
+        (
+          await h.prisma.providerProfile.findUniqueOrThrow({
+            where: { userId: w.provider.id },
+          })
+        ).reviewsCount,
+      ).toBe(1);
+      expect(
+        await h.prisma.notification.count({
+          where: { userId: w.traveler.id, title: 'Đánh giá đã được công khai' },
+        }),
+      ).toBe(1);
+    });
+
+    it('lets an Admin reject a public review and restore it again', async () => {
+      const w = await world();
+      const published = await seed(w, {
+        status: ReviewStatus.PUBLISHED,
+        moderationSource: ReviewModerationSource.ADMIN,
+        moderatedAt: ago(1),
+      });
+
+      expect(
+        (
+          await moderate(w.admin.accessToken, published.id, {
+            decision: 'REJECT',
+            note: 'Không phù hợp.',
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await moderate(w.admin.accessToken, published.id, {
+            decision: 'APPROVE',
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (await h.prisma.review.findUniqueOrThrow({ where: { id: published.id } }))
+          .status,
+      ).toBe(ReviewStatus.PUBLISHED);
+    });
+  });
 });

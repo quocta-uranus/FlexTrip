@@ -584,6 +584,7 @@ export class ReviewModerationService implements OnModuleInit {
     decision: 'APPROVE' | 'REJECT',
     note: string | undefined,
     ctx: RequestContext,
+    options: { allowRestore?: boolean } = {},
   ) {
     return this.prisma.$transaction(async (tx) => {
       await this.lockReview(tx, reviewId);
@@ -601,6 +602,8 @@ export class ReviewModerationService implements OnModuleInit {
               ReviewStatus.FLAGGED,
               // Approving a public review clears it from the "suspicious" queue.
               ReviewStatus.PUBLISHED,
+              // Restoring a rejected review is a deliberate single-review action, never bulk.
+              ...(options.allowRestore ? [ReviewStatus.REJECTED] : []),
             ]
           : [
               ReviewStatus.PENDING,
@@ -738,9 +741,20 @@ export class ReviewModerationService implements OnModuleInit {
       await this.lockReview(tx, reviewId);
       const review = await tx.review.findUnique({
         where: { id: reviewId },
-        select: { status: true, targetId: true },
+        select: { status: true },
       });
       if (!review) throw new NotFoundException('Đánh giá không tồn tại');
+      // An Admin's approval or rejection is only changed by another Admin decision,
+      // never silently wiped (and a public review is never pulled down) by a re-run.
+      if (
+        review.status !== ReviewStatus.PENDING &&
+        review.status !== ReviewStatus.FLAGGED
+      )
+        throw new ConflictException({
+          code: 'REVIEW_ALREADY_DECIDED',
+          message:
+            'Đánh giá đã được quyết định. Muốn đổi, hãy dùng Từ chối hoặc Khôi phục.',
+        });
       await tx.review.update({
         where: { id: reviewId },
         data: {
@@ -756,8 +770,6 @@ export class ReviewModerationService implements OnModuleInit {
           moderatedById: ctx.actorId,
         },
       });
-      if (review.status === ReviewStatus.PUBLISHED)
-        await this.refreshProviderRating(tx, review.targetId);
       await this.audit.log(tx, ctx, {
         action: 'REVIEW_REANALYZED',
         entityType: 'Review',

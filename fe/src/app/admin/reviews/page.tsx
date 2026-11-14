@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { LoaderCircle, Sparkles } from "lucide-react";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { useAdminToast } from "@/components/admin/use-admin-toast";
 import {
   useAdminReviewSummary,
@@ -23,7 +24,7 @@ import type {
 const STATUS_LABEL: Record<ReviewStatus, string> = {
   PENDING: "Đang chờ kiểm duyệt",
   PUBLISHED: "Đã công khai",
-  FLAGGED: "Đáng ngờ",
+  FLAGGED: "Cần duyệt",
   REJECTED: "Đã từ chối",
 };
 const ANALYSIS_ERROR_LABEL: Record<ReviewAnalysisErrorCode, string> = {
@@ -93,6 +94,7 @@ export default function AdminReviewsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rejecting, setRejecting] = useState<AdminReview | null>(null);
+  const [restoring, setRestoring] = useState<AdminReview | null>(null);
   const [bulkRejecting, setBulkRejecting] = useState(false);
   const [note, setNote] = useState("");
   const filters = useMemo(
@@ -502,15 +504,22 @@ export default function AdminReviewsPage() {
               </div>
             )}
             <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-              {((review.status !== "PUBLISHED" &&
-                review.status !== "REJECTED") ||
+              {(review.status !== "PUBLISHED" ||
                 isSuspiciousPublic(review)) && (
                 <button
-                  onClick={() => approve(review)}
+                  onClick={() =>
+                    review.status === "REJECTED"
+                      ? setRestoring(review)
+                      : approve(review)
+                  }
                   disabled={moderate.isPending}
                   className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                 >
-                  {review.status === "PUBLISHED" ? "Giữ nguyên" : "Duyệt"}
+                  {review.status === "PUBLISHED"
+                    ? "Giữ nguyên"
+                    : review.status === "REJECTED"
+                      ? "Khôi phục"
+                      : "Duyệt"}
                 </button>
               )}
               {review.openReports.length > 0 && (
@@ -539,34 +548,36 @@ export default function AdminReviewsPage() {
                   Từ chối
                 </button>
               )}
-              <button
-                onClick={() =>
-                  reanalyze.mutate(review.id, {
-                    onSuccess: (result) =>
-                      toast.success(
-                        result.queued
-                          ? "Đã đưa vào hàng đợi phân tích"
-                          : "Review đang chờ nhưng chưa thể thêm vào hàng đợi",
-                      ),
-                    onError: toast.error,
-                  })
-                }
-                disabled={reanalyze.isPending}
-                title="Yêu cầu AI Groq phân tích lại đánh giá"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-violet-700 hover:to-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {reanalyze.isPending ? (
-                  <LoaderCircle
-                    className="h-4 w-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                )}
-                {reanalyze.isPending
-                  ? "AI đang phân tích…"
-                  : "AI phân tích lại"}
-              </button>
+              {(review.status === "PENDING" || review.status === "FLAGGED") && (
+                <button
+                  onClick={() =>
+                    reanalyze.mutate(review.id, {
+                      onSuccess: (result) =>
+                        toast.success(
+                          result.queued
+                            ? "Đã đưa vào hàng đợi phân tích"
+                            : "Review đang chờ nhưng chưa thể thêm vào hàng đợi",
+                        ),
+                      onError: toast.error,
+                    })
+                  }
+                  disabled={reanalyze.isPending}
+                  title="Yêu cầu AI Groq phân tích lại đánh giá"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:from-violet-700 hover:to-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {reanalyze.isPending ? (
+                    <LoaderCircle
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {reanalyze.isPending
+                    ? "AI đang phân tích…"
+                    : "AI phân tích lại"}
+                </button>
+              )}
             </div>
           </article>
         ))}
@@ -623,6 +634,32 @@ export default function AdminReviewsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={restoring !== null}
+        onOpenChange={(open) => !open && setRestoring(null)}
+        title="Khôi phục đánh giá này?"
+        description="Đánh giá sẽ được công khai lại, điểm trung bình của Provider tính lại và tác giả nhận thông báo."
+        confirmLabel="Khôi phục"
+        pending={moderate.isPending}
+        onConfirm={() => {
+          if (!restoring) return;
+          moderate.mutate(
+            {
+              id: restoring.id,
+              decision: "APPROVE",
+              note: "Admin khôi phục đánh giá.",
+            },
+            {
+              onSuccess: () => {
+                toast.success("Đã khôi phục đánh giá");
+                setRestoring(null);
+              },
+              onError: toast.error,
+            },
+          );
+        }}
+      />
 
       {(rejecting || bulkRejecting) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
