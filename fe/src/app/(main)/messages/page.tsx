@@ -36,8 +36,12 @@ function MessagesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once for the initial URL
   }, []);
 
+  // Dưới md chỉ hiện một khung: danh sách hoặc cuộc trò chuyện.
+  const [mobileChat, setMobileChat] = useState(!!urlId);
+
   function select(id: string) {
     setSelectedId(id);
+    setMobileChat(true);
     router.replace(`/messages?c=${id}`);
   }
 
@@ -52,8 +56,8 @@ function MessagesContent() {
   const currentUserId = user?.id ?? '';
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#f6fbfe] text-[#0f1729]">
-      <div className="flex w-80 shrink-0 flex-col border-r border-[#DCEFFB] bg-white">
+    <div className="flex h-dvh pt-20 bg-[#f6fbfe] text-[#0f1729]">
+      <div className={`${mobileChat ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col border-r border-[#DCEFFB] bg-white md:w-80`}>
         <div className="border-b border-[#DCEFFB] px-4 py-4">
           <h1 className="text-lg! leading-normal! font-bold! tracking-normal! text-[#0f1729]">Tin nhắn</h1>
           <p className="mt-0.5 text-xs text-[#8694ad]">{conversations?.length ?? 0} cuộc trò chuyện</p>
@@ -69,8 +73,10 @@ function MessagesContent() {
         </div>
       </div>
       {/* Hold off until the auth bootstrap has loaded the user, otherwise own messages render as "theirs". */}
+      <div className={`${mobileChat ? 'flex' : 'hidden md:flex'} min-w-0 flex-1`}>
       {activeId && currentUserId ? (
         <ChatWindow
+          onBack={() => setMobileChat(false)}
           key={activeId}
           conversation={active}
           conversationId={activeId}
@@ -86,6 +92,7 @@ function MessagesContent() {
           <p className="text-sm text-[#8694ad]">Hoặc liên hệ Provider từ trang sản phẩm.</p>
         </div>
       )}
+      </div>
     </div>
   );
 }
