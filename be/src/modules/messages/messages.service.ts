@@ -155,13 +155,41 @@ export class MessagesService {
     });
     const [message] = await this.hydrate([row]);
     this.gateway.emitToUsers(memberIds, 'message:new', message);
+    await this.notifyRecipients(userId, memberIds, conversationId);
     return message;
+  }
+
+  // Một cuộc trò chuyện chỉ giữ một thông báo chưa đọc, để nhiều tin liên tiếp không tạo hàng loạt thông báo.
+  private async notifyRecipients(senderId: string, memberIds: string[], conversationId: string) {
+    const recipients = memberIds.filter((id) => id !== senderId);
+    if (!recipients.length) return;
+    const sender = await this.prisma.user.findUnique({ where: { id: senderId }, select: { name: true } });
+    for (const userId of recipients) {
+      const existing = await this.prisma.notification.findFirst({
+        where: { userId, type: 'MESSAGE', isRead: false, data: { path: ['conversationId'], equals: conversationId } },
+        select: { id: true },
+      });
+      if (existing) continue;
+      await this.prisma.notification.create({
+        data: {
+          userId,
+          type: 'MESSAGE',
+          title: 'Tin nhắn mới',
+          body: `${sender?.name ?? 'Một người dùng'} vừa gửi tin nhắn cho bạn.`,
+          data: { conversationId },
+        },
+      });
+    }
   }
 
   async markRead(userId: string, conversationId: string): Promise<{ ok: true }> {
     const memberIds = await this.requireMember(userId, conversationId);
     const { count } = await this.prisma.message.updateMany({
       where: { conversationId, senderId: { not: userId }, isRead: false },
+      data: { isRead: true },
+    });
+    await this.prisma.notification.updateMany({
+      where: { userId, type: 'MESSAGE', isRead: false, data: { path: ['conversationId'], equals: conversationId } },
       data: { isRead: true },
     });
     if (count) this.gateway.emitToUsers(memberIds, 'message:read', { conversationId, readerId: userId });

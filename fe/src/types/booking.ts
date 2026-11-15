@@ -108,6 +108,7 @@ export interface CreateBookingPayload {
   quantity?: number;
   deliveryMethod?: DeliveryMethod;
   deliveryAddress?: string;
+  voucherCode?: string;
 }
 
 export interface ConfirmPaymentPayload {
@@ -129,7 +130,7 @@ export interface CartItem {
   rentalDays: number;
   isHoldValid: boolean;
   holdExpiresAt?: string | null;
-  listing: Listing & { provider: { id: string; name: string; avatarUrl?: string | null } };
+  listing: Listing & { provider: { id: string; name: string; avatarUrl?: string | null; providerProfile?: { shopName?: string | null } | null } };
 }
 
 export interface Cart {

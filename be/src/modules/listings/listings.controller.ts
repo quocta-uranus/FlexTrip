@@ -38,6 +38,9 @@ import {
   AiQualityDto,
   PublicListingsQueryDto,
 } from './listings.dto';
+import { Role } from '@prisma/client';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import {
   AccessTokenGuard,
   AuthenticatedRequest,
@@ -69,7 +72,8 @@ export class ListingsController {
 
   @Get('me')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'Provider: my listings' })
   findMine(
     @Req() req: AuthenticatedRequest,
@@ -96,7 +100,8 @@ export class ListingsController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-01: Create listing' })
   create(@Req() req: AuthenticatedRequest, @Body() dto: CreateListingDto) {
     return this.svc.create(req.authUserId, dto);
@@ -104,7 +109,8 @@ export class ListingsController {
 
   @Patch(':id')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-01: Update listing' })
   update(
     @Param('id') id: string,
@@ -117,7 +123,8 @@ export class ListingsController {
   @Delete(':id')
   @HttpCode(204)
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-01: Delete listing' })
   async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     await this.svc.remove(id, req.authUserId);
@@ -137,7 +144,8 @@ export class ListingsController {
 
   @Patch(':id/publish')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-01: Publish draft → ACTIVE' })
   publish(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.publish(id, req.authUserId);
@@ -145,7 +153,8 @@ export class ListingsController {
 
   @Patch(':id/pause')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-06: Pause listing (ACTIVE → INACTIVE)' })
   pause(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.pause(id, req.authUserId);
@@ -153,7 +162,8 @@ export class ListingsController {
 
   @Patch(':id/resume')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-06: Resume listing (INACTIVE → ACTIVE)' })
   resume(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.svc.resume(id, req.authUserId);
@@ -163,7 +173,8 @@ export class ListingsController {
 
   @Post('upload-image')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload một ảnh lên Supabase, trả về URL' })
@@ -174,7 +185,8 @@ export class ListingsController {
 
   @Delete('delete-image')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'Xoá ảnh khỏi Supabase' })
   deleteImage(@Body('url') url: string) {
     return this.svc.deleteImage(url);
@@ -184,7 +196,8 @@ export class ListingsController {
 
   @Post('bulk-upload')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'LIST-02: Bulk upload via CSV/Excel' })
@@ -225,7 +238,8 @@ export class ListingsController {
 
   @Post('ai/suggest-category')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-03: AI auto-tag & category suggestion' })
   aiSuggest(@Body() dto: AiSuggestDto) {
     return this.svc.aiSuggestCategory(dto);
@@ -233,7 +247,8 @@ export class ListingsController {
 
   @Post('ai/generate-description')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-04: AI generate product description' })
   aiGenerate(@Body() dto: AiDescriptionDto) {
     return this.svc.aiGenerateDescription(dto);
@@ -241,7 +256,8 @@ export class ListingsController {
 
   @Post('ai/optimize-description')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-07: AI copywriting optimization' })
   aiOptimize(@Body() dto: AiOptimizeDto) {
     return this.svc.aiOptimizeDescription(dto);
@@ -249,7 +265,8 @@ export class ListingsController {
 
   @Post('ai/quality-score')
   @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
+  @UseGuards(AccessTokenGuard, RolesGuard)
+  @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'LIST-05: AI listing quality score' })
   aiQuality(@Body() dto: AiQualityDto) {
     return this.svc.aiQualityScore(dto);

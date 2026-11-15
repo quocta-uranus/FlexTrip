@@ -122,7 +122,7 @@ function TopupReturnContent() {
 export default function TopupReturnPage() {
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-lg px-4 py-8">
+      <div className="mx-auto max-w-lg px-4 pb-8 pt-24 sm:pt-28">
         <Suspense fallback={
           <div className="flex flex-col items-center justify-center py-24">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#2a7bd9] border-t-transparent" />

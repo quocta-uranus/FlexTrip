@@ -37,7 +37,7 @@ function TwoFactorChallengeForm() {
           style={{ color: '#2a7bd9' }}
         >
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
-          AUTH-04
+          Xác thực 2 bước
         </div>
         <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Xác thực 2 bước</h1>
         <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>

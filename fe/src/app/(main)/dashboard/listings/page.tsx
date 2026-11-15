@@ -355,7 +355,7 @@ export default function ManageListingsPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-6 pt-24 sm:pt-28 sm:px-6">
 
         {/* ── Upload result ── */}
         {uploadResult && (

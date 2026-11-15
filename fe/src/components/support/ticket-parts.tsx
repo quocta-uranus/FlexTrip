@@ -1,4 +1,4 @@
-import { TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS, TICKET_STATUS_STYLES } from '@/types/support';
+import { TICKET_CATEGORY_LABELS, TICKET_PRIORITY_LABELS, TICKET_STATUS_LABELS, TICKET_STATUS_STYLES } from '@/types/support';
 import type { TicketCategory, TicketMessage, TicketPriority, TicketStatus } from '@/types/support';
 import { formatDateTime } from '@/lib/format';
 
@@ -15,7 +15,7 @@ export function TicketStatusBadge({ status, audience = 'user' }: { status: Ticke
 }
 
 export function TicketPriorityBadge({ priority }: { priority: TicketPriority }) {
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PRIORITY_STYLES[priority]}`}>{priority}</span>;
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PRIORITY_STYLES[priority]}`}>{TICKET_PRIORITY_LABELS[priority]}</span>;
 }
 
 export function TicketCategoryBadge({ category }: { category: TicketCategory }) {

@@ -31,7 +31,7 @@ export default function FaqManagementPage() {
       {toast.node}
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-1"><LiveDot label="KNOWLEDGE BASE" tone="blue" /></div>
+          <div className="mb-1"><LiveDot label="CÂU HỎI THƯỜNG GẶP" tone="blue" /></div>
           <h1 className="text-3xl font-bold text-[#0f1729]">Knowledge Base / FAQ</h1>
           <p className="mt-1 text-sm text-[#5a6b85]">Quản lý câu hỏi thường gặp hiển thị trong Trung tâm hỗ trợ</p>
         </div>

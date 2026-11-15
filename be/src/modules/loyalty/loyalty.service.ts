@@ -119,19 +119,25 @@ export class LoyaltyService {
       const reward = await tx.loyaltyReward.findUnique({ where: { id: rewardId } });
       if (!reward || !reward.isActive) throw new NotFoundException('Phần thưởng không tồn tại hoặc đã ngừng');
 
-      // Khoá ngân sách để hai lượt đổi cùng lúc không cùng thấy "còn đủ"
+      // Giữ ngân sách mặc định luôn tồn tại, nhưng quỹ thật là ngân sách Admin nạp qua trang Ngân sách (cùng tên, id khác nhau).
       await tx.promoBudget.upsert({
         where: { id: LOYALTY_BUDGET_ID },
         create: { id: LOYALTY_BUDGET_ID, name: LOYALTY_BUDGET_NAME, totalAmount: 0 },
         update: {},
       });
-      await tx.$queryRaw`SELECT "id" FROM "PromoBudget" WHERE "id" = ${LOYALTY_BUDGET_ID} FOR UPDATE`;
-      const budget = await tx.promoBudget.findUniqueOrThrow({ where: { id: LOYALTY_BUDGET_ID } });
+      // Khoá mọi ngân sách đổi điểm để hai lượt đổi cùng lúc không cùng thấy "còn đủ"
+      await tx.$queryRaw`SELECT "id" FROM "PromoBudget" WHERE "name" = ${LOYALTY_BUDGET_NAME} FOR UPDATE`;
+      const budgets = await tx.promoBudget.findMany({
+        where: { name: LOYALTY_BUDGET_NAME, isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
 
       // Với PERCENT, mức giảm lớn nhất chính là maxDiscount
       const faceValue = (reward.voucherType === VoucherType.PERCENT ? reward.maxDiscount : reward.voucherValue)?.toNumber() ?? 0;
-      const left = budget.totalAmount.toNumber() - budget.spentAmount.toNumber() - budget.reservedAmount.toNumber();
-      if (!budget.isActive || left < faceValue) {
+      const budget = budgets.find(
+        (b) => b.totalAmount.toNumber() - b.spentAmount.toNumber() - b.reservedAmount.toNumber() >= faceValue,
+      );
+      if (!budget) {
         throw new BadRequestException('Quỹ đổi thưởng tạm hết, vui lòng thử lại sau');
       }
 
@@ -159,7 +165,7 @@ export class LoyaltyService {
           endsAt: new Date(now.getTime() + reward.validDays * 86_400_000),
           totalQuota: 1,
           perUserLimit: 1,
-          budgetId: LOYALTY_BUDGET_ID,
+          budgetId: budget.id,
         },
       });
       await tx.loyaltyTransaction.create({

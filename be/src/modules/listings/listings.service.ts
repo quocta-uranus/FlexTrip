@@ -106,6 +106,13 @@ export class ListingsService {
               {
                 description: { contains: params.keyword, mode: 'insensitive' },
               },
+              {
+                provider: {
+                  providerProfile: {
+                    shopName: { contains: params.keyword, mode: 'insensitive' },
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -582,7 +589,7 @@ Yêu cầu bắt buộc:
 4. Câu giữa: lợi ích cụ thể cho người thuê (tiết kiệm, tiện lợi, trải nghiệm tốt hơn)
 5. Nếu có đi kèm phụ kiện: nhắc đến để tăng giá trị
 6. Câu cuối: kêu gọi hành động nhẹ nhàng (đặt lịch, liên hệ, v.v.)
-7. KHÔNG bịa thông tin không có trong input
+7. KHÔNG bịa thông tin không có trong input: tuyệt đối không tự nêu thông số kỹ thuật (độ phân giải, dung lượng pin, công suất, kích thước, trọng lượng, năm sản xuất…), tên hãng/model, tình trạng "mới 100%" hay chính sách bảo hành nếu input không ghi. Thiếu dữ kiện thì viết chung chung, đừng đoán
 8. KHÔNG dùng từ hoa toàn bộ, KHÔNG spam dấu chấm than
 
 Trả về CHỈ đoạn mô tả hoàn chỉnh, không thêm tiêu đề hay giải thích.`;
@@ -603,6 +610,8 @@ Nhiệm vụ:
 2. Viết lại hấp dẫn hơn, ngắn gọn hơn (80-150 từ)
 3. Thêm từ khoá tự nhiên để tăng khả năng tìm kiếm
 4. Tạo cảm giác tin tưởng và thu hút click
+5. KHÔNG thêm thông số kỹ thuật, tên hãng/model, tình trạng hay chính sách nào không có trong mô tả hiện tại; chỉ diễn đạt lại và sắp xếp ý
+6. Không dùng từ thô tục hay lời lẽ xúc phạm
 
 Trả về JSON thuần (không markdown): {"optimized": "...", "improvements": ["...", "..."]}`;
 

@@ -62,10 +62,9 @@ function ConditionDialog({ open, type, bookingId, onClose, onDone, onReportIssue
   const items = INSPECTION_ITEMS[type];
   const [checked, setChecked] = useState<boolean[]>([]);
   const ticks = items.map((_, i) => checked[i] ?? false);
-  // Return completes the rental and releases money, so every item must pass; handover only records the state
-  const mustPass = type === 'RETURN';
+  // Cả hai biên bản đều là bằng chứng khi tranh chấp: phải tick đủ mới xác nhận được (nhận lại còn quyết định hoàn tiền).
   const failed = items.filter((_, i) => !ticks[i]);
-  const blocked = mustPass && failed.length > 0;
+  const blocked = failed.length > 0;
 
   const submit = form.handleSubmit((v) => {
     mutation.mutate(
@@ -101,7 +100,11 @@ function ConditionDialog({ open, type, bookingId, onClose, onDone, onReportIssue
             </div>
             {blocked && (
               <div className="flex items-start justify-between gap-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                <span>Chưa thể hoàn thành vì còn hạng mục chưa đạt. Nếu phát hiện vấn đề, hãy lập biên bản thương lượng.</span>
+                <span>
+                  {type === 'RETURN'
+                    ? 'Chưa thể hoàn thành vì còn hạng mục chưa đạt. Nếu phát hiện vấn đề, hãy lập biên bản thương lượng.'
+                    : 'Cần tick đủ các hạng mục trước khi bàn giao. Nếu thiết bị có vấn đề, hãy lập biên bản thương lượng thay vì bàn giao.'}
+                </span>
                 <button type="button" onClick={() => { onClose(); onReportIssue(); }} className="shrink-0 font-semibold underline">
                   Lập biên bản
                 </button>
@@ -228,7 +231,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const [notice, setNotice] = useState('');
 
   if (isLoading) return (
-    <div className="mx-auto max-w-4xl space-y-4 px-6 py-8">
+    <div className="mx-auto max-w-4xl space-y-4 px-6 pb-8 pt-24 sm:pt-28">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-48 w-full" />
       <Skeleton className="h-64 w-full" />
@@ -236,7 +239,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   );
 
   if (isError || !booking) return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-4xl px-6 pb-8 pt-24 sm:pt-28">
       <Button variant="outline" onClick={() => router.back()} className="mb-4"><ArrowLeft className="h-4 w-4" />Quay lại</Button>
       <p className="rounded-xl bg-red-50 p-4 text-red-700">Không tìm thấy booking hoặc bạn không có quyền xem.</p>
     </div>
@@ -252,7 +255,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const openMediations = booking.staffMediations?.filter((m: { status: string }) => m.status === 'OPEN') ?? [];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
+    <div className="mx-auto max-w-4xl space-y-6 px-6 pb-8 pt-24 sm:pt-28">
       {/* Back + notice */}
       <Button variant="ghost" onClick={() => router.push('/staff/bookings')} className="-ml-2 text-[#5a6b85] hover:text-[#0f1729]">
         <ArrowLeft className="h-4 w-4" />Booking của tôi

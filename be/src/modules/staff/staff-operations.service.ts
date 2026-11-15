@@ -118,6 +118,12 @@ export class StaffOperationsService {
       throw new ConflictException({ code: 'HANDOVER_ALREADY_CONFIRMED', message: 'Tác vụ bàn giao đã hoàn thành.' });
     if (booking.payment && !isRentalSettled(booking.payment))
       throw new ConflictException({ code: 'RENTAL_UNPAID', message: RENTAL_UNPAID_MESSAGE });
+    // Biên bản là bằng chứng khi tranh chấp: không cho bàn giao khi chưa kiểm đủ, tránh ghi "✗" cho đồ đã giao.
+    if (!dto.checklist?.length || dto.checklist.some((i) => !i.ok))
+      throw new ConflictException({
+        code: 'HANDOVER_CHECKLIST_INCOMPLETE',
+        message: 'Cần kiểm tra và tick đủ các hạng mục trước khi bàn giao.',
+      });
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
       await tx.booking.update({

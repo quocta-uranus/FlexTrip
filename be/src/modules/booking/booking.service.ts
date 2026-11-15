@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional,
+  BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BookingStatus, CancelledBy, DeliveryMethod, NotificationType, Prisma } from '@prisma/client';
@@ -13,7 +13,7 @@ import {
   DeclineBookingDto, ListBookingsQueryDto,
 } from './dto/booking.dto';
 import {
-  BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, RENTAL_UNPAID_MESSAGE, STAFF_ASSIGNED_MESSAGE, isRentalSettled,
+  BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, throwProviderHandoverBlocked,
 } from './booking.constants';
 import { PaymentsService } from '../payments/payments.service';
 import { VouchersService } from '../vouchers/vouchers.service';
@@ -24,7 +24,7 @@ const BOOKING_INCLUDE = {
     select: {
       id: true, title: true, imageUrls: true, location: true,
       price: true, currency: true, providerId: true,
-      provider: { select: { id: true, name: true, avatarUrl: true } },
+      provider: { select: { id: true, name: true, avatarUrl: true, providerProfile: { select: { shopName: true } } } },
     },
   },
   traveler: { select: { id: true, name: true, avatarUrl: true, email: true } },
@@ -94,7 +94,7 @@ export class BookingService {
 
       const unitPrice = listing.price.toNumber();
       const { totalPrice, depositAmount } = priceBooking({
-        unitPrice, quantity: qty, rentalDays, depositRate: listing.depositRate.toNumber(),
+        unitPrice, quantity: qty, rentalDays,
       });
       const holdExpiresAt = new Date(Date.now() + HOLD_MINUTES * 60_000);
 
@@ -318,6 +318,8 @@ export class BookingService {
       ),
     ]);
 
+    await this.bookingQueue?.remove(`approval-${bookingId}`).catch(() => null);
+
     // The status flip above does not move money; the refund job credits the wallet and releases the frozen deposit
     if (booking.payment && this.paymentsSvc) {
       await this.paymentsSvc.onBookingCancelled(bookingId, CancelledBy.PROVIDER, BookingStatus.PENDING_APPROVAL);
@@ -334,28 +336,7 @@ export class BookingService {
 
     if (booking.status !== BookingStatus.CONFIRMED)
       throw new BadRequestException('Chỉ có thể bắt đầu booking đang ở trạng thái CONFIRMED');
-    if (booking.assignedStaffId)
-      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
-    if (booking.payment && !isRentalSettled(booking.payment))
-      throw new BadRequestException(RENTAL_UNPAID_MESSAGE);
-
-    const updated = await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: BookingStatus.IN_PROGRESS },
-      include: BOOKING_INCLUDE,
-    });
-
-    await Promise.all([
-      this.notify(
-        booking.travelerId,
-        NotificationType.BOOKING,
-        'Chuyến thuê đã bắt đầu!',
-        `Provider đã xác nhận giao đồ "${booking.listing.title}". Chúc bạn có chuyến đi vui!`,
-        { bookingId },
-      ),
-    ]);
-
-    return updated;
+    throwProviderHandoverBlocked(booking.assignedStaffId);
   }
 
   // ─── Provider: IN_PROGRESS → COMPLETED (hoàn thành cho thuê) ────────────
@@ -365,27 +346,7 @@ export class BookingService {
 
     if (booking.status !== BookingStatus.IN_PROGRESS)
       throw new BadRequestException('Chỉ có thể hoàn thành booking đang ở trạng thái IN_PROGRESS');
-    if (booking.assignedStaffId)
-      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
-
-    const updated = await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: BookingStatus.COMPLETED },
-      include: BOOKING_INCLUDE,
-    });
-
-    await this.notify(
-      booking.travelerId,
-      NotificationType.BOOKING,
-      'Chuyến thuê đã hoàn thành',
-      `Đơn thuê "${booking.listing.title}" đã được hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ!`,
-      { bookingId },
-    );
-
-    // Trigger commission split + deposit release timer
-    await this.paymentsSvc?.onBookingCompleted(bookingId);
-
-    return updated;
+    throwProviderHandoverBlocked(booking.assignedStaffId);
   }
 
   // ─── BOOK-07: Cancel booking ──────────────────────────────────────────────

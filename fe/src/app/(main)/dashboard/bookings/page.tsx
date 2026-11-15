@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useProviderBookings, useApproveBooking, useDeclineBooking, useCompleteBooking } from '@/hooks/useBookings';
+import { useProviderBookings, useApproveBooking, useDeclineBooking } from '@/hooks/useBookings';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus } from '@/types/booking';
+import { bookingCode } from '@/lib/booking-code';
+import { rentalDays as rentalDaysFn } from '@/lib/rental-days';
 
 type Tab = 'PENDING_APPROVAL' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'ALL';
 
@@ -69,7 +71,6 @@ export default function ProviderBookingsPage() {
   const [tab, setTab] = useState<Tab>('PENDING_APPROVAL');
   const [declineTarget, setDeclineTarget] = useState<string | null>(null);
   const approve = useApproveBooking();
-  const completeBooking = useCompleteBooking();
 
   const { data: bookings, isLoading } = useProviderBookings({
     status: tab === 'ALL' ? undefined : tab,
@@ -84,7 +85,7 @@ export default function ProviderBookingsPage() {
         <DeclineModal bookingId={declineTarget} onClose={() => setDeclineTarget(null)} />
       )}
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -142,11 +143,7 @@ export default function ProviderBookingsPage() {
                 typeof booking.totalPrice === 'number'
                   ? booking.totalPrice
                   : Number(booking.totalPrice);
-              const rentalDays =
-                Math.round(
-                  (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) /
-                    86_400_000,
-                ) + 1;
+              const rentalDays = rentalDaysFn(booking.startDate, booking.endDate);
               const isPending = booking.status === 'PENDING_APPROVAL';
               const isApproving = approve.isPending && approve.variables === booking.id;
 
@@ -178,10 +175,10 @@ export default function ProviderBookingsPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate font-semibold" style={{ color: '#0f1729' }}>
-                            {booking.listing?.title ?? `Đơn #${booking.id.slice(-8).toUpperCase()}`}
+                            {booking.listing?.title ?? `Đơn ${bookingCode(booking.id)}`}
                           </p>
                           <p className="mt-0.5 text-xs" style={{ color: '#8694ad' }}>
-                            Mã đơn: #{booking.id.slice(-8).toUpperCase()}
+                            Mã đơn: {bookingCode(booking.id)}
                           </p>
                         </div>
                         <BookingStatusBadge status={booking.status as BookingStatus} />
@@ -291,24 +288,10 @@ export default function ProviderBookingsPage() {
                       </span>
                     )}
 
-                    {!booking.assignedStaff && booking.status === 'CONFIRMED' && (
-                      <Link
-                        href={`/bookings/${booking.id}/checkin`}
-                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-                        style={{ background: '#16a34a' }}
-                      >
-                        📷 Checkin & Giao hàng
-                      </Link>
-                    )}
-
-                    {!booking.assignedStaff && booking.status === 'IN_PROGRESS' && (
-                      <Link
-                        href={`/bookings/${booking.id}/checkout`}
-                        className="ml-auto rounded-lg px-4 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-                        style={{ background: '#2a7bd9' }}
-                      >
-                        📦 Checkout & Nhận lại
-                      </Link>
+                    {!booking.assignedStaff && ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && (
+                      <span className="ml-auto rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">
+                        Chờ gán nhân viên
+                      </span>
                     )}
                   </div>
                 </div>

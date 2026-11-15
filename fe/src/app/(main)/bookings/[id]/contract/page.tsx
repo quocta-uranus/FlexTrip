@@ -11,6 +11,7 @@ import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
 import type { ContractStatus } from '@/types/contract';
 import { printContract } from '@/lib/printContract';
+import { bookingCode } from '@/lib/booking-code';
 
 function ContractSignContent() {
   const { id: bookingId } = useParams<{ id: string }>();
@@ -38,7 +39,11 @@ function ContractSignContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <span className="mb-4 text-5xl">📄</span>
-        <p className="text-sm mb-4" style={{ color: '#8694ad' }}>Không tìm thấy hợp đồng.</p>
+        <p className="mb-4 max-w-sm text-center text-sm" style={{ color: '#8694ad' }}>
+          {booking
+            ? 'Hợp đồng chưa được tạo. Hợp đồng xuất hiện sau khi khách thuê ký, bạn sẽ nhận thông báo khi khách đặt cọc.'
+            : 'Không tìm thấy đơn thuê.'}
+        </p>
         <Link href={`/bookings/${bookingId}`} className="rounded-full px-5 py-2.5 text-sm font-semibold text-white" style={{ background: '#2a7bd9' }}>
           Về chi tiết đơn
         </Link>
@@ -69,7 +74,7 @@ function ContractSignContent() {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm" style={{ color: '#8694ad' }}>
-            Đơn #{booking.id.slice(-12).toUpperCase()}
+            Đơn {bookingCode(booking.id)}
           </p>
           <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>
             Hợp đồng thuê thiết bị
@@ -81,7 +86,7 @@ function ContractSignContent() {
               printContract(
                 contract,
                 booking.traveler?.name ?? 'Khách thuê',
-                booking.listing?.title ?? 'Người cho thuê',
+                booking.listing?.provider?.providerProfile?.shopName || booking.listing?.provider?.name || 'Người cho thuê',
               )
             }
             className="flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-[#f6fbfe]"
@@ -213,7 +218,7 @@ export default function ContractPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-3xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
           <Link href="/dashboard/bookings" className="hover:underline" style={{ color: '#2a7bd9' }}>
             Quản lý đặt thuê

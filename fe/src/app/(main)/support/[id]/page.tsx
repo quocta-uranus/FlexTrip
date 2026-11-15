@@ -32,7 +32,7 @@ export default function TicketDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-64 w-full" />
       </main>
@@ -40,7 +40,7 @@ export default function TicketDetailPage() {
   }
   if (error || !data) {
     return (
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
         <p className="mt-4 text-sm text-red-600">{error instanceof Error ? error.message : 'Không tìm thấy ticket'}</p>
       </main>
@@ -50,7 +50,7 @@ export default function TicketDetailPage() {
   const closed = data.status === 'CLOSED';
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
       <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
 
       <div className="mt-3 rounded-2xl border border-[#e2e8f3] bg-white p-6">

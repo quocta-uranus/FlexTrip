@@ -3,7 +3,7 @@
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useBooking, useCancelBooking, useDeclineBooking, useStartBooking, useCompleteBooking } from '@/hooks/useBookings';
+import { useBooking, useCancelBooking, useDeclineBooking } from '@/hooks/useBookings';
 import { useModifyRequests, useCreateModifyRequest, useAcceptModifyRequest, useRejectModifyRequest } from '@/hooks/useModifyBooking';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
 import type { BookingStatus, ModifyRequestStatus } from '@/types/booking';
@@ -18,6 +18,9 @@ import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
 import type { ContractStatus } from '@/types/contract';
 import { printContract } from '@/lib/printContract';
 import { useInitiatePayment, usePayRental, useWallet } from '@/hooks/usePayments';
+import { bookingCode } from '@/lib/booking-code';
+import { PaymentMethodPicker } from '@/components/booking/payment-method-picker';
+import { rentalDays } from '@/lib/rental-days';
 
 const STATUS_STEPS: BookingStatus[] = ['PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -31,8 +34,6 @@ function BookingDetailContent() {
   const { data: myReviews } = useMyReviews(user?.roles.includes('TRAVELER') ?? false);
   const { data: booking, isLoading, error } = useBooking(id);
   const { mutateAsync: cancelBookingAsync, isPending: cancelling } = useCancelBooking();
-  const startBooking = useStartBooking();
-  const completeBooking = useCompleteBooking();
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const decline = useDeclineBooking();
@@ -104,7 +105,7 @@ function BookingDetailContent() {
   const price = typeof booking.totalPrice === 'number' ? booking.totalPrice : Number(booking.totalPrice);
   const startDate = new Date(booking.startDate);
   const endDate = new Date(booking.endDate);
-  const nights = Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000);
+  const nights = rentalDays(startDate, endDate);
   const currentStepIdx = STATUS_STEPS.indexOf(booking.status as BookingStatus);
   const canCancel = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED'].includes(booking.status);
   const isProvider = user?.id === booking.listing?.providerId;
@@ -171,7 +172,7 @@ function BookingDetailContent() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm" style={{ color: '#8694ad' }}>Đơn #{booking.id.slice(-12).toUpperCase()}</p>
+          <p className="text-sm" style={{ color: '#8694ad' }}>Đơn {bookingCode(booking.id)}</p>
           <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>Chi tiết đặt thuê</h1>
         </div>
         <BookingStatusBadge status={booking.status as BookingStatus} />
@@ -390,40 +391,16 @@ function BookingDetailContent() {
                   Bây giờ bạn chỉ cần <strong className="text-[#0f1729]">đặt cọc {deposit.toLocaleString('vi-VN')} VND</strong>.
                   Phần tiền thuê còn lại ({rentalAmount.toLocaleString('vi-VN')} VND) thanh toán sau khi provider xác nhận đơn, trong vòng 24 giờ.
                 </div>
-                <p className="text-xs font-semibold" style={{ color: '#0f1729' }}>Chọn phương thức thanh toán</p>
                 {payError && (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{payError}</p>
                 )}
-                <button
-                  type="button"
-                  disabled={initiatePayment.isPending}
-                  onClick={() => handlePay('PAYOS')}
-                  className="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:opacity-50"
-                  style={{ borderColor: '#DCEFFB' }}
-                >
-                  <span style={{ color: '#0f1729' }}>PayOS</span>
-                  <span className="text-xs" style={{ color: '#5a6b85' }}>Chuyển khoản · Thẻ ATM · VISA</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={initiatePayment.isPending || !wallet || wallet.availableBalance < deposit}
-                  onClick={() => handlePay('WALLET')}
-                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="text-[#0f1729]">Ví FlexTrip</span>
-                  <span className={`text-xs ${wallet && wallet.availableBalance >= deposit ? 'text-green-600' : 'text-red-500'}`}>
-                    Số dư: {(wallet?.availableBalance ?? 0).toLocaleString('vi-VN')} VND
-                    {wallet && wallet.availableBalance < deposit ? ' · không đủ' : ''}
-                  </span>
-                </button>
-                {(!wallet || wallet.availableBalance < deposit) && (
-                  <Link href="/profile/payments" className="block text-center text-xs font-semibold text-[#2a7bd9] hover:underline">
-                    Nạp thêm tiền vào ví
-                  </Link>
-                )}
-                {initiatePayment.isPending && (
-                  <p className="text-center text-xs" style={{ color: '#8694ad' }}>Đang xử lý…</p>
-                )}
+                <PaymentMethodPicker
+                  amount={deposit}
+                  actionLabel="Thanh toán cọc"
+                  walletBalance={wallet?.availableBalance ?? null}
+                  pending={initiatePayment.isPending}
+                  onPay={(g) => handlePay(g)}
+                />
               </div>
             )}
 
@@ -437,35 +414,13 @@ function BookingDetailContent() {
                 {payError && (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{payError}</p>
                 )}
-                <button
-                  type="button"
-                  disabled={payRental.isPending}
-                  onClick={() => handlePay('PAYOS', 'rental')}
-                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:opacity-50"
-                >
-                  <span className="text-[#0f1729]">Thanh toán qua PayOS</span>
-                  <span className="text-xs text-[#5a6b85]">Chuyển khoản · Thẻ ATM · VISA</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={payRental.isPending || !wallet || wallet.availableBalance < rentalAmount}
-                  onClick={() => handlePay('WALLET', 'rental')}
-                  className="flex w-full items-center justify-between rounded-xl border border-[#DCEFFB] px-4 py-3 text-sm font-semibold transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="text-[#0f1729]">Ví FlexTrip</span>
-                  <span className={`text-xs ${wallet && wallet.availableBalance >= rentalAmount ? 'text-green-600' : 'text-red-500'}`}>
-                    Số dư: {(wallet?.availableBalance ?? 0).toLocaleString('vi-VN')} VND
-                    {wallet && wallet.availableBalance < rentalAmount ? ' · không đủ' : ''}
-                  </span>
-                </button>
-                {(!wallet || wallet.availableBalance < rentalAmount) && (
-                  <Link href="/profile/payments" className="block text-center text-xs font-semibold text-[#2a7bd9] hover:underline">
-                    Nạp thêm tiền vào ví
-                  </Link>
-                )}
-                {payRental.isPending && (
-                  <p className="text-center text-xs text-[#8694ad]">Đang xử lý…</p>
-                )}
+                <PaymentMethodPicker
+                  amount={rentalAmount}
+                  actionLabel="Thanh toán tiền thuê"
+                  walletBalance={wallet?.availableBalance ?? null}
+                  pending={payRental.isPending}
+                  onPay={(g) => handlePay(g, 'rental')}
+                />
               </div>
             )}
 
@@ -518,27 +473,14 @@ function BookingDetailContent() {
                 Bạn không cần thao tác bước này.
               </p>
             )}
-            {isProvider && !booking.assignedStaff && booking.status === 'CONFIRMED' && (
-              <button
-                onClick={() => startBooking.mutate(booking.id)}
-                disabled={startBooking.isPending || rentalUnpaid}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-50"
-                style={{ background: '#16a34a' }}
-              >
-                {startBooking.isPending ? 'Đang xử lý…' : rentalUnpaid ? 'Chờ khách thanh toán' : '▶ Bắt đầu cho thuê'}
-              </button>
-            )}
-
-            {/* Provider: complete rental */}
-            {isProvider && !booking.assignedStaff && booking.status === 'IN_PROGRESS' && (
-              <button
-                onClick={() => completeBooking.mutate(booking.id)}
-                disabled={completeBooking.isPending}
-                className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-50"
-                style={{ background: '#2a7bd9' }}
-              >
-                {completeBooking.isPending ? 'Đang xử lý…' : '✓ Hoàn thành cho thuê'}
-              </button>
+            {/* Chưa gán Staff: bàn giao, nhận lại và hoàn thành đều chờ Staff */}
+            {!booking.assignedStaff && ['CONFIRMED', 'IN_PROGRESS'].includes(booking.status) && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+                <strong>Chờ gán nhân viên.</strong>{' '}
+                {isProvider
+                  ? 'Admin sẽ gán nhân viên vận hành để bàn giao và nhận lại thiết bị. Bạn không cần thao tác bước này.'
+                  : 'FlexTrip đang gán nhân viên để bàn giao thiết bị cho bạn. Bạn sẽ nhận thông báo khi có nhân viên phụ trách.'}
+              </p>
             )}
 
             {/* Traveler: contact provider */}
@@ -882,7 +824,7 @@ function BookingDetailContent() {
                   printContract(
                     contract,
                     booking.traveler?.name ?? 'Khách thuê',
-                    booking.listing?.title ?? 'Người cho thuê',
+                    booking.listing?.provider?.providerProfile?.shopName || booking.listing?.provider?.name || 'Người cho thuê',
                   )
                 }
                 className="text-xs font-medium"
@@ -922,6 +864,14 @@ function BookingDetailContent() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {!isProvider && booking.status === 'COMPLETED' && (
+        <div className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: '#DCEFFB', background: '#f6fbfe', color: '#5a6b85' }}>
+          Thiết bị có vấn đề sau khi nhận lại? Báo cho nhân viên bàn giao hoặc{' '}
+          <Link href="/support/new" className="font-semibold text-[#2a7bd9] hover:underline">gửi yêu cầu hỗ trợ</Link>
+          {' '}để FlexTrip xử lý tranh chấp.
         </div>
       )}
 
@@ -974,7 +924,7 @@ function ModifyRequestsSection({
           const cfg = MODIFY_STATUS_CONFIG[req.status];
           const newStart = new Date(req.newStartDate);
           const newEnd = new Date(req.newEndDate);
-          const newDays = Math.round((newEnd.getTime() - newStart.getTime()) / 86_400_000) + 1;
+          const newDays = rentalDays(newStart, newEnd);
           const isAccepting = acceptModify.isPending && (acceptModify.variables as { requestId: string })?.requestId === req.id;
 
           return (
@@ -1059,7 +1009,7 @@ function ModifyRequestsSection({
 export default function BookingDetailPage() {
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
           <Link href="/bookings" className="hover:underline" style={{ color: '#2a7bd9' }}>Đặt thuê của tôi</Link>

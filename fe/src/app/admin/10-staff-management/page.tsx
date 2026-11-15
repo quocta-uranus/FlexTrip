@@ -15,9 +15,9 @@ export default function StaffManagementPage() {
     <div className="p-8">
       <div className="mb-8">
         <div className="mb-1 flex items-center gap-3">
-          <LiveDot label="MANAGING" tone="blue" />
+          <LiveDot label="ĐANG QUẢN LÝ" tone="blue" />
         </div>
-        <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>Staff Management</h1>
+        <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>Quản lý nhân viên</h1>
         <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>Tạo/quản lý tài khoản nhân viên, thiết lập rule chỉ định theo khu vực</p>
       </div>
 

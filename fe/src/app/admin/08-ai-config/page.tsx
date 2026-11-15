@@ -49,7 +49,7 @@ export default function AIConfigPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="CONFIGURING" tone="blue" />
+            <LiveDot label="ĐANG CẤU HÌNH" tone="blue" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>AI Model Configuration</h1>
           <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>Điều chỉnh ngưỡng cảnh báo gian lận, độ nhạy kiểm duyệt AI, và ngưỡng chính sách vận hành</p>

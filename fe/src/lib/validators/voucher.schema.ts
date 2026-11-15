@@ -15,8 +15,9 @@ export const createVoucherSchema = z
     audience: z.enum(['ALL', 'NEW_USER', 'PERSONAL']),
     assignedUserId: z.string().optional(),
     status: z.enum(['DRAFT', 'ACTIVE']),
-    startsAt: z.string().min(1, 'Chọn ngày bắt đầu'),
-    endsAt: z.string().min(1, 'Chọn ngày kết thúc'),
+    // datetime-local không mang múi giờ: đổi sang ISO theo giờ của trình duyệt, nếu không server hiểu là UTC và ngày lệch +1.
+    startsAt: z.string().min(1, 'Chọn ngày bắt đầu').transform((v) => new Date(v).toISOString()),
+    endsAt: z.string().min(1, 'Chọn ngày kết thúc').transform((v) => new Date(v).toISOString()),
     totalQuota: z.preprocess((v) => (v === '' || v == null ? undefined : v), z.coerce.number().int().positive().optional()),
     perUserLimit: z.coerce.number().int().min(1),
     budgetId: z.string().min(1, 'Chọn ngân sách'),

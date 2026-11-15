@@ -6,7 +6,10 @@ import {
   Clock3, FileText, MapPin, Package, Phone, Search, Shield, Truck, User2, X,
 } from 'lucide-react';
 import { useAdminBookingDetail, useAdminBookingList, useAdminBookingStats } from '@/hooks/admin/use-admin-bookings';
-import type { AdminBookingRow } from '@/types/admin';
+import { PAYMENT_STATUS_LABEL, type AdminBookingRow, type PaymentStatus } from '@/types/admin';
+import { CONTRACT_STATUS_LABEL, type ContractStatus } from '@/types/contract';
+import { bookingCode } from '@/lib/booking-code';
+import { rentalDays } from '@/lib/rental-days';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmt(iso: string) {
@@ -55,7 +58,7 @@ function StatusBadge({ status }: { status: string }) {
 // ── booking row ───────────────────────────────────────────────────────────────
 function BookingRow({ row, onSelect }: { row: AdminBookingRow; onSelect: () => void }) {
   const cfg = STATUS_CFG[row.status] ?? STATUS_CFG.COMPLETED;
-  const nights = Math.round((new Date(row.endDate).getTime() - new Date(row.startDate).getTime()) / 86_400_000);
+  const nights = rentalDays(row.startDate, row.endDate);
   return (
     <div
       onClick={onSelect}
@@ -161,7 +164,7 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         <div className="flex items-center justify-between border-b border-[#e2e8f3] px-6 py-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-[#2a7bd9]">Chi tiết booking</p>
-            <p className="mt-0.5 font-mono text-sm text-[#5a6b85]">#{id.slice(0, 12).toUpperCase()}</p>
+            <p className="mt-0.5 font-mono text-sm text-[#5a6b85]">{bookingCode(id)}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-2 text-[#8694ad] hover:bg-[#f1f5f9]">
             <X className="h-5 w-5" />
@@ -220,7 +223,7 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 <div className="mt-2 flex gap-2 text-xs">
                   <span className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[#5a6b85]">{b.payment.gateway}</span>
                   <span className={`rounded-full px-2 py-0.5 font-semibold ${b.payment.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {b.payment.status}
+                    {PAYMENT_STATUS_LABEL[b.payment.status as PaymentStatus] ?? b.payment.status}
                   </span>
                 </div>
               )}
@@ -269,7 +272,7 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
                     <p className="text-[#8694ad]">Trạng thái</p>
-                    <p className="font-semibold text-[#0f1729]">{b.contract.status}</p>
+                    <p className="font-semibold text-[#0f1729]">{CONTRACT_STATUS_LABEL[b.contract.status as ContractStatus] ?? b.contract.status}</p>
                   </div>
                   <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
                     <p className="text-[#8694ad]">Traveler ký</p>

@@ -157,10 +157,10 @@ export default function ListingDetailPage() {
                       onClick={() => setSelectedImage((i) => (i + 1) % images.length)}
                       className="absolute inset-0 cursor-pointer"
                     >
-                      <img src={images[selectedImage]} alt={listing.title} className="h-full w-full object-cover" />
+                      <img src={images[selectedImage]} alt={listing.title} className="h-full w-full object-contain" />
                     </button>
                   ) : (
-                    <img src={images[selectedImage]} alt={listing.title} className="absolute inset-0 h-full w-full object-cover" />
+                    <img src={images[selectedImage]} alt={listing.title} className="absolute inset-0 h-full w-full object-contain" />
                   )}
                 </div>
 

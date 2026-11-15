@@ -25,6 +25,11 @@ export interface Invoice {
     totalAmount: number;
     rentalAmount: number;
     depositAmount: number;
+    discountAmount: number;
+    depositPaid: number;
+    balancePaid: number;
+    paidAmount: number;
+    remainingAmount: number;
     paidAt: string | null;
   };
 }

@@ -128,11 +128,7 @@ export class ProviderApplicationsService {
     });
 
     // Send approval email
-    const rawFrontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
-    // FRONTEND_URL may be comma-separated (shared with CORS config) — take the first value
-    const frontendUrl = rawFrontendUrl.split(',')[0].trim();
-    const setupUrl = `${frontendUrl}/setup-password?token=${plainToken}`;
-    await this.resend.sendProviderApproved(app.email, app.name, setupUrl);
+    await this.resend.sendProviderApproved(app.email, app.name);
 
     return { message: 'Đã duyệt và gửi email cho provider.' };
   }

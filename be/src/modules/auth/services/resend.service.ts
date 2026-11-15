@@ -46,7 +46,7 @@ export class ResendService {
     }
   }
 
-  async sendProviderApproved(email: string, name: string, setupUrl: string): Promise<boolean> {
+  async sendProviderApproved(email: string, name: string): Promise<boolean> {
     try {
       const { error } = await this.resend.emails.send({
         from: this.from,
@@ -60,21 +60,12 @@ export class ResendService {
             </div>
             <p style="margin:0 0 16px;color:#0f1729;font-size:15px">Xin chào <strong>${name}</strong>,</p>
             <p style="margin:0 0 24px;color:#5a6b85;font-size:14px;line-height:1.6">
-              FlexTrip rất vui được chào đón bạn trong cộng đồng Provider! Nhấn nút bên dưới để
-              tạo mật khẩu và bắt đầu đăng tin cho thuê ngay hôm nay.
+              FlexTrip rất vui được chào đón bạn trong cộng đồng Provider! Hồ sơ của bạn đã được xác nhận,
+              bạn có thể đăng nhập bằng tài khoản hiện tại và bắt đầu đăng tin cho thuê ngay hôm nay.
             </p>
-            <div style="text-align:center;margin-bottom:28px">
-              <a href="${setupUrl}"
-                 style="display:inline-block;background:linear-gradient(135deg,#1e5aa8,#2a7bd9);color:#fff;
-                        text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700;
-                        font-size:15px;box-shadow:0 4px 16px rgba(42,123,217,0.4)">
-                Tạo mật khẩu ngay →
-              </a>
-            </div>
             <div style="background:#f1f5fa;border-radius:10px;padding:16px;margin-bottom:20px">
               <p style="margin:0;font-size:13px;color:#5a6b85">
-                ⏰ Link có hiệu lực trong <strong>48 giờ</strong>.<br/>
-                Nếu link hết hạn, hãy liên hệ <a href="mailto:support@flextrip.vn" style="color:#2a7bd9">support@flextrip.vn</a>.
+                Cần hỗ trợ? Hãy liên hệ <a href="mailto:support@flextrip.vn" style="color:#2a7bd9">support@flextrip.vn</a>.
               </p>
             </div>
             <p style="margin:0;color:#8694ad;font-size:12px;text-align:center">

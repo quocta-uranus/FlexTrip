@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAdminTickets, useTicketStats } from "@/hooks/admin/use-admin-support";
 import { formatDateTime } from "@/lib/format";
-import { TICKET_CATEGORY_LABELS, TICKET_STATUS_LABELS } from "@/types/support";
+import { TICKET_CATEGORY_LABELS, TICKET_PRIORITY_LABELS, TICKET_STATUS_LABELS } from "@/types/support";
 import type { TicketCategory, TicketPriority, TicketStatus } from "@/types/support";
 
 const STATUS_TABS: Array<TicketStatus | "ALL"> = ["ALL", "OPEN", "IN_PROGRESS", "WAITING_USER", "RESOLVED", "CLOSED"];
@@ -40,7 +40,7 @@ export default function SupportTicketsPage() {
     <div className="p-8">
       <div className="mb-8">
         <div className="mb-1 flex items-center gap-3">
-          <LiveDot label="SUPPORT" tone="red" />
+          <LiveDot label="HỖ TRỢ" tone="red" />
         </div>
         <h1 className="text-3xl font-bold text-[#0f1729]">Ticket hỗ trợ</h1>
         <p className="mt-1 text-sm text-[#5a6b85]">Theo dõi, phản hồi và đóng yêu cầu hỗ trợ từ Traveler và Provider</p>
@@ -77,7 +77,7 @@ export default function SupportTicketsPage() {
         </select>
         <select value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | "ALL")} className={SELECT_CLASS}>
           <option value="ALL">Tất cả ưu tiên</option>
-          {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((p) => <option key={p} value={p}>{p}</option>)}
+          {(["URGENT", "HIGH", "MEDIUM", "LOW"] as const).map((p) => <option key={p} value={p}>{TICKET_PRIORITY_LABELS[p]}</option>)}
         </select>
       </div>
 

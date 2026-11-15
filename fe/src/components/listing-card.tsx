@@ -33,7 +33,7 @@ export function ListingCard({ listing, href }: ListingCardProps) {
       style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
     >
       {/* ── Image ── */}
-      <div className="relative overflow-hidden" style={{ height: 210 }}>
+      <div className="relative overflow-hidden bg-slate-100" style={{ height: 210 }}>
         {listing.imageUrls?.[0] ? (
           <img
             src={listing.imageUrls[0]}
