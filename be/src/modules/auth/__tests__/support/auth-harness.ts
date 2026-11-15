@@ -123,7 +123,7 @@ export class AuthHarness {
     sendStaffInvite:
       jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
     sendProviderApproved:
-      jest.fn<(email: string, name: string, url: string) => Promise<boolean>>(),
+      jest.fn<(email: string, name: string) => Promise<boolean>>(),
     sendReport:
       jest.fn<(to: string[], subject: string, summary: string, file: { filename: string; content: Buffer }) => Promise<boolean>>(),
   };
@@ -133,6 +133,9 @@ export class AuthHarness {
     verify:
       jest.fn<(ns: string, key: string, code: string) => Promise<boolean>>(),
     canResend: jest.fn<(ns: string, key: string) => Promise<boolean>>(),
+    assertNotLocked: jest.fn<(keys: string[]) => Promise<void>>(),
+    recordFailure: jest.fn<(keys: string[]) => Promise<void>>(),
+    clearFailures: jest.fn<(keys: string[]) => Promise<void>>(),
   };
 
   async open(
@@ -161,6 +164,9 @@ export class AuthHarness {
     this.otp.generate.mockResolvedValue('123456');
     this.otp.verify.mockResolvedValue(true);
     this.otp.canResend.mockResolvedValue(true);
+    this.otp.assertNotLocked.mockResolvedValue(undefined);
+    this.otp.recordFailure.mockResolvedValue(undefined);
+    this.otp.clearFailures.mockResolvedValue(undefined);
     this.reviewQueue.add.mockResolvedValue({ id: 'review-test-job' });
     this.reviewAnalyzer.analyze.mockResolvedValue({
       sentiment: 'POSITIVE',

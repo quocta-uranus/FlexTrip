@@ -9,6 +9,7 @@ import type { BookingStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { TrendingUp, Package, Clock, CheckCircle, DollarSign, ArrowRight, Plus, BarChart2, ShoppingBag, Store } from 'lucide-react';
 import { CashflowForecastCard } from '@/components/payment/CashflowForecastCard';
+import { bookingCode } from '@/lib/booking-code';
 
 function StatCard({
   label, value, icon: Icon, sub, accent,
@@ -106,7 +107,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6 lg:px-8">
 
         {/* ── Header ── */}
         <div className="mb-8 flex items-start justify-between gap-4">
@@ -205,7 +206,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="truncate text-sm font-semibold text-slate-800">
-                            {booking.listing?.title ?? `Đơn #${booking.id.slice(-8)}`}
+                            {booking.listing?.title ?? `Đơn ${bookingCode(booking.id)}`}
                           </p>
                           <p className="mt-0.5 text-xs text-slate-400">
                             {new Date(booking.startDate).toLocaleDateString('vi-VN')} →{' '}

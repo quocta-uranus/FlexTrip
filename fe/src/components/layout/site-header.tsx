@@ -35,8 +35,8 @@ import {
   Ticket,
   Gift,
   UserPlus,
-  Award,
-} from 'lucide-react';
+  Award, LifeBuoy } from 'lucide-react';
+import { useConversations } from '@/hooks/useMessages';
 
 interface SiteHeaderProps {
   isRoot?: boolean;
@@ -52,6 +52,19 @@ const GUEST_SECTIONS = [
   { id: 'faq', label: 'FAQ' },
 ] as const;
 
+
+function ChatUnreadDot() {
+  const { data } = useConversations();
+  const unread = data?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
+  if (!unread) return null;
+  return (
+    <span
+      role="status"
+      aria-label={`${unread} tin nhắn chưa đọc`}
+      className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"
+    />
+  );
+}
 
 function isLinkActive(pathname: string, href: string) {
   if (href.includes('#')) return false;
@@ -198,6 +211,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   const loyaltyItem = { href: '/profile/loyalty', label: 'Điểm thưởng', icon: icon(Gift) };
   const voucherItem = { href: '/profile/vouchers', label: 'Voucher của tôi', icon: icon(Ticket) };
   const walletItem = { href: '/profile/payments', label: 'Thanh toán & Ví', icon: icon(CreditCard) };
+  const supportItem = { href: '/support', label: 'Hỗ trợ', icon: icon(LifeBuoy) };
   const travelerItems = [
     profileItem,
     { href: '/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
@@ -206,6 +220,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     referralItem,
     voucherItem,
     walletItem,
+    supportItem,
   ];
   const providerItems = [
     profileItem,
@@ -218,6 +233,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     referralItem,
     voucherItem,
     walletItem,
+    supportItem,
   ];
   const menuItems = isAdmin
     ? [
@@ -233,7 +249,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
       : isDual
         ? mode === 'provider' ? providerItems : travelerItems
         : isProvider
-          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem)]
+          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== supportItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem)]
           : travelerItems;
 
   const onHome = pathname === '/';
@@ -372,7 +388,10 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                     overlay ? 'text-white hover:bg-white/10' : 'text-[#68655E] hover:bg-black/5'
                   } ${pathname.startsWith('/messages') ? 'bg-black/5' : ''}`}
                 >
-                  <MessageCircle className="h-5 w-5" />
+                  <span className="relative">
+                    <MessageCircle className="h-5 w-5" />
+                    <ChatUnreadDot />
+                  </span>
                 </Link>
               )}
               {!isAdmin && !isStaff && !providerModeOnly && <CartIcon onDark={overlay} />}

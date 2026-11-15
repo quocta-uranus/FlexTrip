@@ -1,5 +1,11 @@
 import type { Contract } from '@/types/contract';
 
+import { bookingCode } from '@/lib/booking-code';
+
+function escapeHtml(v: string): string {
+  return v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
+}
+
 export function printContract(contract: Contract, travelerName: string, providerName: string) {
   const fmt = (n: number) => n.toLocaleString('vi-VN');
 
@@ -147,7 +153,7 @@ export function printContract(contract: Contract, travelerName: string, provider
   <div class="header">
     <div class="logo">FLEXTRIP</div>
     <h1>Hợp đồng thuê thiết bị</h1>
-    <div class="subtitle">Mã hợp đồng: ${contract.id.slice(-12).toUpperCase()}</div>
+    <div class="subtitle">Mã đơn: ${bookingCode(contract.bookingId)}</div>
     ${highValueBadge}
   </div>
 
@@ -156,14 +162,14 @@ export function printContract(contract: Contract, travelerName: string, provider
   <div class="parties">
     <div class="party">
       <div class="role">Bên A – Người cho thuê</div>
-      <div class="name">${providerName}</div>
+      <div class="name">${escapeHtml(providerName)}</div>
       <div class="${contract.providerSignedAt ? 'signed' : 'unsigned'}">
         ${contract.providerSignedAt ? '✓ Đã ký: ' + sigFmt(contract.providerSignedAt) : '⏳ Chưa ký'}
       </div>
     </div>
     <div class="party">
       <div class="role">Bên B – Người thuê</div>
-      <div class="name">${travelerName}</div>
+      <div class="name">${escapeHtml(travelerName)}</div>
       <div class="${contract.travelerSignedAt ? 'signed' : 'unsigned'}">
         ${contract.travelerSignedAt ? '✓ Đã ký: ' + sigFmt(contract.travelerSignedAt) : '⏳ Chưa ký'}
       </div>
@@ -186,12 +192,12 @@ export function printContract(contract: Contract, travelerName: string, provider
     <div class="sig-block">
       <div class="role">Bên A (Người cho thuê)</div>
       <div class="datetime">${sigFmt(contract.providerSignedAt)}</div>
-      <div class="line">${providerName}</div>
+      <div class="line">${escapeHtml(providerName)}</div>
     </div>
     <div class="sig-block">
       <div class="role">Bên B (Người thuê)</div>
       <div class="datetime">${sigFmt(contract.travelerSignedAt)}</div>
-      <div class="line">${travelerName}</div>
+      <div class="line">${escapeHtml(travelerName)}</div>
     </div>
   </div>
 

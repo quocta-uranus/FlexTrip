@@ -317,22 +317,18 @@ export class ReviewsService {
     };
   }
 
+  // Bucket theo ngày giờ Việt Nam (UTC+7): đánh giá lúc 03:00 ngày 14/11 giờ VN là 20:00 ngày 13/11 UTC nên cắt theo UTC sẽ lệch 1 ngày.
   private sentimentBucketStart(date: Date, days: number, from: Date) {
-    const start = new Date(date);
-    if (days === 30) {
-      start.setUTCHours(0, 0, 0, 0);
-    } else if (days === 90) {
-      const elapsedDays = Math.floor(
-        (start.getTime() - from.getTime()) / (24 * 60 * 60 * 1000),
-      );
-      start.setTime(
-        from.getTime() + Math.floor(elapsedDays / 7) * 7 * 24 * 60 * 60 * 1000,
-      );
-    } else {
-      start.setUTCDate(1);
-      start.setUTCHours(0, 0, 0, 0);
+    const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    if (days === 90) {
+      const elapsedDays = Math.floor((date.getTime() - from.getTime()) / DAY_MS);
+      const start = new Date(from.getTime() + Math.floor(elapsedDays / 7) * 7 * DAY_MS);
+      return new Date(start.getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
     }
-    return start.toISOString().slice(0, 10);
+    const local = new Date(date.getTime() + VN_OFFSET_MS);
+    if (days !== 30) local.setUTCDate(1);
+    return local.toISOString().slice(0, 10);
   }
 
   async respond(

@@ -52,7 +52,7 @@ export function AutoAdjustSettings({ listingId }: Props) {
           </svg>
         </div>
         <div>
-          <h3 className="font-bold" style={{ color: '#0f1729' }}>Tự động điều chỉnh giá (PRICE-08)</h3>
+          <h3 className="font-bold" style={{ color: '#0f1729' }}>Tự động điều chỉnh giá</h3>
           <p className="mt-0.5 text-xs" style={{ color: '#8694ad' }}>
             AI tự cập nhật giá lúc 2:00 SA mỗi ngày theo dữ liệu thị trường
           </p>

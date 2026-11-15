@@ -9,7 +9,9 @@ import { useContractPreview, useTravelerSignContract } from '@/hooks/useContract
 import { CATEGORY_LABELS } from '@/types/listing';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
-import { DepositAiBadge } from '@/components/payment/DepositAiBadge';
+import { CartItemVoucher, type AppliedVoucher } from '@/components/voucher/cart-item-voucher';
+import { DEPOSIT_RATE } from '@/lib/deposit';
+import { rentalDays as calcRentalDays } from '@/lib/rental-days';
 
 function BookingCheckoutForm() {
   const router = useRouter();
@@ -26,6 +28,7 @@ function BookingCheckoutForm() {
   const createBooking = useCreateBooking();
   const travelerSign = useTravelerSignContract();
 
+  const [voucher, setVoucher] = useState<AppliedVoucher | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1); // 1=info, 2=contract
   const [contractAgreed, setContractAgreed] = useState(false);
   const [step, setStep] = useState<'form' | 'processing' | 'done'>('form');
@@ -39,9 +42,9 @@ function BookingCheckoutForm() {
   const { data: contractPreview } = useContractPreview(bookingId ?? '', !!bookingId);
 
   const price = listing ? (typeof listing.price === 'number' ? listing.price : Number(listing.price)) : 0;
-  const depositRate = listing ? parseFloat(String((listing as { depositRate?: string }).depositRate ?? '0.2')) : 0.2;
+  const depositRate = DEPOSIT_RATE;
   const rentalDays = from && to
-    ? Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000) + 1
+    ? calcRentalDays(from, to)
     : 0;
   const subtotal = price * qty * rentalDays;
   const deposit = subtotal * depositRate;
@@ -68,6 +71,7 @@ function BookingCheckoutForm() {
         quantity: qty,
         deliveryMethod: delivery,
         deliveryAddress: delivery === 'DELIVERY' ? address : undefined,
+        voucherCode: voucher?.code,
       });
       setBookingId(booking.id);
       if (booking.holdExpiresAt) setHoldExpiry(new Date(booking.holdExpiresAt));
@@ -106,7 +110,7 @@ function BookingCheckoutForm() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
           <Link href="/search" className="hover:underline" style={{ color: '#2a7bd9' }}>Tìm kiếm</Link>
@@ -270,16 +274,23 @@ function BookingCheckoutForm() {
                   )}
                 </div>
 
-                {/* AI deposit suggestion — shown in Step 1 while listing is loaded */}
-                {checkoutStep === 1 && listingId && (
-                  <div className="mt-3">
-                    <DepositAiBadge listingId={listingId} currentRate={depositRate} />
+                {checkoutStep === 1 && (
+                  <CartItemVoucher
+                    item={{ listingId, startDate: from, endDate: to, quantity: qty }}
+                    applied={voucher ?? undefined}
+                    onChange={setVoucher}
+                  />
+                )}
+                {voucher && (
+                  <div className="mt-3 flex justify-between text-sm" style={{ color: '#15803d' }}>
+                    <span>Giảm giá ({voucher.code})</span>
+                    <span>-{voucher.discount.toLocaleString('vi-VN')}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between border-t pt-2.5 mt-3 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
                   <span style={{ color: '#0f1729' }}>Tổng cộng</span>
-                  <span style={{ color: '#2a7bd9' }}>{subtotal.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
+                  <span style={{ color: '#2a7bd9' }}>{(subtotal - (voucher?.discount ?? 0)).toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
                 </div>
 
                 {checkoutStep === 1 ? (

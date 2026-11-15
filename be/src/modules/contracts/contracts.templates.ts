@@ -65,7 +65,7 @@ export function renderContract(p: ContractParams): string {
     : '';
 
   return `HỢP ĐỒNG THUÊ THIẾT BỊ ĐIỆN TỬ
-Số hợp đồng: ${p.contractId.slice(-8).toUpperCase()}
+Số hợp đồng: ${p.contractId.slice(-12).toUpperCase()}
 Ngày lập: ${fmtDate(new Date())}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -88,7 +88,7 @@ II. THÔNG TIN THIẾT BỊ THUÊ
   Danh mục     : ${categoryLabel}
   Địa điểm     : ${p.listingLocation}
   Số lượng     : ${p.quantity} thiết bị
-  Mã booking   : ${p.bookingId.slice(-10).toUpperCase()}
+  Mã booking   : ${p.bookingId.slice(-12).toUpperCase()}
 
 ${conditionSection}
 
@@ -141,8 +141,8 @@ VII. HOÀN CỌC & THANH TOÁN
 
   • Hoàn cọc 100%: Bên A từ chối đơn; Bên B hủy trước 3 ngày so với ngày bắt đầu.
   • Không hoàn cọc: Bên B hủy trong vòng 3 ngày trước ngày bắt đầu.
-  • Khấu trừ từ cọc: thiệt hại có bằng chứng theo bảng mức phạt tại mục IV.
-  • Phần cọc còn lại (nếu có) được hoàn trong 3–5 ngày làm việc sau khi kết thúc thuê.
+  • Đặt cọc là khoản trả trước ${Math.round(p.depositRate * 100)}% tổng giá trị thuê và được tính vào tổng giá trị; Bên B thanh toán phần còn lại sau khi Bên A duyệt đơn.
+  • Thiệt hại có bằng chứng được xử lý theo bảng mức phạt tại mục IV.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

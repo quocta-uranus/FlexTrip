@@ -348,7 +348,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
 
           {isEdit && listing && <AutoAdjustSettings listingId={listing.id} />}
 
-          <SectionCard icon={<ImageIcon className="h-4 w-4" />} title="Hình ảnh sản phẩm" subtitle="Ảnh rõ nét giúp tăng tỷ lệ thuê lên 3×">
+          <SectionCard icon={<ImageIcon className="h-4 w-4" />} title="Hình ảnh sản phẩm" subtitle="Ảnh rõ nét giúp khách tin tưởng và dễ quyết định thuê hơn">
             <div className="mb-4 grid grid-cols-3 gap-2">
               {[
                 { emoji: '☀️', tip: 'Chụp đủ ánh sáng' },

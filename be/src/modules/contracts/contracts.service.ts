@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional,
+  BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -11,10 +11,10 @@ import { PaymentsService } from '../payments/payments.service';
 import { ContractParams, renderContract } from './contracts.templates';
 import { CheckinDto, CheckoutDto, PenaltyRule } from './dto/contract.dto';
 import {
-  BALANCE_DUE_MS, BOOKING_QUEUE, BookingJob, RENTAL_UNPAID_MESSAGE, STAFF_ASSIGNED_MESSAGE, isRentalSettled,
+  BALANCE_DUE_MS, BOOKING_QUEUE, BookingJob, throwProviderHandoverBlocked,
 } from '../booking/booking.constants';
+import { DEPOSIT_RATE, rentalDaysBetween } from '../booking/booking-price.util';
 
-const HIGH_VALUE_THRESHOLD = 5_000_000;
 
 @Injectable()
 export class ContractsService {
@@ -52,10 +52,7 @@ export class ContractsService {
     });
     if (!booking) throw new NotFoundException('Booking không tồn tại');
 
-    const rentalDays =
-      Math.round(
-        (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / 86_400_000,
-      ) + 1;
+    const rentalDays = rentalDaysBetween(booking.startDate, booking.endDate);
 
     const penaltyRules = ((booking.listing.penaltyRules ?? []) as unknown) as PenaltyRule[];
     const isHighValue = booking.listing.isHighValue;
@@ -81,7 +78,7 @@ export class ContractsService {
       unitPrice: Number(booking.listing.price),
       totalPrice: Number(booking.totalPrice),
       depositAmount: Number(booking.depositAmount),
-      depositRate: Number(booking.listing.depositRate),
+      depositRate: DEPOSIT_RATE,
       deliveryMethod: booking.deliveryMethod,
       deliveryAddress: booking.deliveryAddress ?? undefined,
       penaltyRules,
@@ -176,10 +173,7 @@ export class ContractsService {
     if (!booking) throw new NotFoundException('Booking không tồn tại');
     if (booking.travelerId !== userId) throw new ForbiddenException();
 
-    const rentalDays =
-      Math.round(
-        (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / 86_400_000,
-      ) + 1;
+    const rentalDays = rentalDaysBetween(booking.startDate, booking.endDate);
 
     const penaltyRules = ((booking.listing.penaltyRules ?? []) as unknown) as PenaltyRule[];
     const isHighValue = booking.listing.isHighValue;
@@ -202,7 +196,7 @@ export class ContractsService {
       unitPrice: Number(booking.listing.price),
       totalPrice: Number(booking.totalPrice),
       depositAmount: Number(booking.depositAmount),
-      depositRate: Number(booking.listing.depositRate),
+      depositRate: DEPOSIT_RATE,
       deliveryMethod: booking.deliveryMethod,
       deliveryAddress: booking.deliveryAddress ?? undefined,
       penaltyRules,
@@ -267,6 +261,25 @@ export class ContractsService {
         { bookingId },
       ),
     ]);
+
+    await this.bookingQueue.remove(`approval-${bookingId}`).catch(() => null);
+
+    // Staff bắt buộc: Admin cần biết ngay để gán nhân viên cho đơn vừa được xác nhận
+    const admins = await this.prisma.user.findMany({
+      where: { roles: { some: { role: 'ADMIN' } }, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (admins.length) {
+      await this.prisma.notification.createMany({
+        data: admins.map((admin) => ({
+          userId: admin.id,
+          type: NotificationType.BOOKING,
+          title: 'Đơn cần gán nhân viên',
+          body: `Provider đã xác nhận đơn "${contract.booking.listing.title}". Vui lòng gán nhân viên vận hành.`,
+          data: { bookingId },
+        })),
+      });
+    }
 
     // Voucher giảm hết tiền thuê thì không có bước trả nốt, nên chốt luôn tại đây để ngân sách khuyến mãi và escrow khớp
     if (!needsBalance && pay && !pay.rentalPaidAt && Number(contract.booking.discountAmount) > 0) {
@@ -343,60 +356,8 @@ export class ContractsService {
     if (contract.booking.listing.providerId !== providerId) throw new ForbiddenException();
     if (contract.booking.status !== 'CONFIRMED')
       throw new BadRequestException('Chỉ có thể checkin khi booking đã xác nhận (CONFIRMED)');
-    if (contract.booking.assignedStaffId)
-      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
-    if (contract.booking.payment && !isRentalSettled(contract.booking.payment))
-      throw new BadRequestException(RENTAL_UNPAID_MESSAGE);
-
-    const encryptedUrl = this.encrypt(dto.idDocumentUrl);
-    const now = new Date();
-
-    await this.prisma.$transaction([
-      this.prisma.contract.update({
-        where: { bookingId },
-        data: {
-          status: ContractStatus.ACTIVE,
-          idDocumentUrl: encryptedUrl,
-          idDocumentType: dto.idDocumentType,
-          checkInPhotos: dto.checkInPhotos,
-        },
-      }),
-      this.prisma.booking.update({
-        where: { id: bookingId },
-        data: { status: 'IN_PROGRESS' },
-      }),
-      this.notify(
-        contract.booking.travelerId,
-        NotificationType.BOOKING,
-        'Chuyến thuê đã bắt đầu!',
-        `Provider đã xác nhận giao đồ "${contract.booking.listing.title}". Chúc bạn có chuyến đi vui!`,
-        { bookingId },
-      ),
-    ]);
-
-    // Auto-complete sau endDate + 48h
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: { endDate: true },
-    });
-    if (booking) {
-      const autoCompleteAt = new Date(booking.endDate).getTime() + 48 * 60 * 60 * 1000;
-      const delay = autoCompleteAt - now.getTime();
-      if (delay > 0) {
-        await this.bookingQueue.add(
-          BookingJob.AUTO_COMPLETE,
-          { bookingId },
-          { delay, jobId: `auto-complete-${bookingId}`, removeOnComplete: true },
-        );
-      }
-    }
-
-    // Purge CCCD sau 90 ngày
-    await this.bookingQueue.add(
-      BookingJob.ID_DOC_PURGE,
-      { bookingId },
-      { delay: 90 * 24 * 60 * 60 * 1000, jobId: `id-doc-purge-${bookingId}`, removeOnComplete: true },
-    );
+    // Bàn giao do Staff thực hiện (kể cả khi chưa gán), Provider không tự checkin được.
+    throwProviderHandoverBlocked(contract.booking.assignedStaffId);
   }
 
   // ─── CONTR-04: Checkout (cả hai bên upload ảnh trả đồ) ───────────────────────
@@ -424,8 +385,7 @@ export class ContractsService {
     if (contract.booking.status !== 'IN_PROGRESS')
       throw new BadRequestException('Chỉ có thể checkout khi đang trong kỳ thuê');
 
-    if (isProvider && dto.action === 'complete' && contract.booking.assignedStaffId)
-      throw new ConflictException({ code: 'STAFF_ASSIGNED', message: STAFF_ASSIGNED_MESSAGE });
+    if (isProvider && dto.action === 'complete') throwProviderHandoverBlocked(contract.booking.assignedStaffId);
 
     const role = isProvider ? 'PROVIDER' : 'TRAVELER';
     const now = new Date().toISOString();
@@ -436,34 +396,19 @@ export class ContractsService {
       ...dto.photos.map((url) => ({ url, uploadedBy: role, uploadedAt: now, note: dto.note })),
     ];
 
-    if (isProvider && dto.action === 'complete') {
-      // Provider xác nhận hoàn thành
-      await this.prisma.$transaction([
-        this.prisma.contract.update({
-          where: { bookingId },
-          data: { status: ContractStatus.CLOSED, checkOutPhotos: newPhotos as unknown as Prisma.InputJsonValue },
-        }),
-        this.prisma.booking.update({
-          where: { id: bookingId },
-          data: { status: 'COMPLETED' },
-        }),
-        this.notify(
-          contract.booking.travelerId,
-          NotificationType.BOOKING,
-          'Chuyến thuê đã hoàn thành',
-          `Đơn thuê "${contract.booking.listing.title}" đã được xác nhận hoàn thành.`,
-          { bookingId },
-        ),
-      ]);
-
-      // Hủy auto-complete vì đã complete manual
-      await this.bookingQueue.remove(`auto-complete-${bookingId}`).catch(() => null);
-    } else {
-      // Chỉ lưu ảnh, chưa complete
-      await this.prisma.contract.update({
-        where: { bookingId },
-        data: { checkOutPhotos: newPhotos as unknown as Prisma.InputJsonValue },
-      });
+    // Chỉ lưu ảnh: hoàn thành đơn do Staff hoặc Admin xác nhận
+    await this.prisma.contract.update({
+      where: { bookingId },
+      data: { checkOutPhotos: newPhotos as unknown as Prisma.InputJsonValue },
+    });
+    if (isTraveler) {
+      await this.notify(
+        contract.booking.listing.providerId,
+        NotificationType.BOOKING,
+        'Khách đã trả đồ',
+        `Khách đã gửi ảnh trả đồ cho "${contract.booking.listing.title}". Vui lòng kiểm tra và xác nhận nhận lại.`,
+        { bookingId },
+      );
     }
   }
 

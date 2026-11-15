@@ -94,7 +94,7 @@ export default function CheckinPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-2xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Breadcrumb */}
         <nav className="mb-6 flex items-center gap-2 text-sm" style={{ color: '#8694ad' }}>
           <Link href="/dashboard/bookings" className="hover:underline" style={{ color: '#2a7bd9' }}>Quản lý đặt thuê</Link>

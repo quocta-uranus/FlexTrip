@@ -231,7 +231,7 @@ export default function ShopProfilePage() {
             </MagneticAvatar>
             {/* Live badge "LIVE" đập đỏ trên avatar shop */}
             <div className="absolute -bottom-2 -right-2">
-              <LiveDot label="LIVE" tone="red" />
+              <LiveDot label="TRỰC TIẾP" tone="red" />
             </div>
           </div>
         }

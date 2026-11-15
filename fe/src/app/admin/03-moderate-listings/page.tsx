@@ -16,7 +16,7 @@ import {
   useModerateListing,
 } from "@/hooks/admin/use-admin-listings";
 import { formatDate, formatDateTime, formatVnd } from "@/lib/format";
-import type { AdminListing, ListingTab, ModerateAction } from "@/types/admin";
+import { LISTING_STATUS_LABEL, type AdminListing, type ListingTab, type ModerateAction } from "@/types/admin";
 
 const statusStyles: Record<string, { label: string; color: string; bg: string }> = {
   ACTIVE: { label: "Active", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
@@ -111,7 +111,7 @@ export default function ModerateListingsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="MODERATING" tone="red" />
+            <LiveDot label="ĐANG KIỂM DUYỆT" tone="red" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Moderate Listings</h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Duyệt hoặc gỡ bỏ tin đăng bị gắn cờ vi phạm chính sách</p>
@@ -216,7 +216,7 @@ export default function ModerateListingsPage() {
                           style={{ color: st.color, background: st.bg }}
                         >
                           {flagged && "🚩"}
-                          {listing.status}
+                          {LISTING_STATUS_LABEL[listing.status] ?? listing.status}
                         </span>
                       </div>
                       <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>

@@ -13,7 +13,7 @@ export interface AppliedVoucher {
 }
 
 interface Props {
-  item: CartItem;
+  item: Pick<CartItem, 'listingId' | 'startDate' | 'endDate' | 'quantity'>;
   applied?: AppliedVoucher;
   onChange: (voucher: AppliedVoucher | null) => void;
 }

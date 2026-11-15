@@ -36,13 +36,16 @@ export class BookingProcessor extends WorkerHost {
         await this.handleContractSignReminder(bookingId);
         break;
       case BookingJob.AUTO_COMPLETE:
-        await this.handleAutoComplete(bookingId);
+        this.handleAutoComplete(bookingId);
         break;
       case BookingJob.ID_DOC_PURGE:
         await this.handleIdDocPurge(bookingId);
         break;
       case BookingJob.BALANCE_EXPIRY:
         await this.handleBalanceExpiry(bookingId);
+        break;
+      case BookingJob.APPROVAL_EXPIRY:
+        await this.handleApprovalExpiry(bookingId);
         break;
       default:
         this.logger.warn(`Unknown job: ${job.name}`);
@@ -121,6 +124,51 @@ export class BookingProcessor extends WorkerHost {
     ]);
 
     this.logger.log(`Balance expired → CANCELLED: ${bookingId}`);
+  }
+
+  // ─── Approval expiry: PENDING_APPROVAL → CANCELLED nếu Provider im lặng quá 24h ──
+
+  private async handleApprovalExpiry(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true, status: true, travelerId: true,
+        listing: { select: { title: true, providerId: true } },
+        payment: { select: { id: true } },
+      },
+    });
+    if (!booking || booking.status !== BookingStatus.PENDING_APPROVAL) return;
+
+    await this.prisma.$transaction([
+      this.prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledBy: CancelledBy.SYSTEM,
+          cancellationReason: 'Provider không phản hồi trong 24 giờ',
+          cancelledAt: new Date(),
+        },
+      }),
+      ...(booking.payment
+        ? [this.prisma.payment.update({ where: { bookingId }, data: { status: 'REFUNDED' } })]
+        : []),
+    ]);
+    // Huỷ do hệ thống → hoàn lại toàn bộ phần cọc đã trả
+    if (booking.payment) {
+      await this.paymentsSvc?.onBookingCancelled(bookingId, CancelledBy.SYSTEM, BookingStatus.PENDING_APPROVAL);
+    }
+    await this.vouchersSvc?.onBookingCancelled(bookingId, CancelledBy.SYSTEM);
+
+    await Promise.all([
+      this.notify(booking.travelerId, NotificationType.BOOKING, 'Đơn thuê đã bị huỷ',
+        `Chủ đồ không phản hồi đơn "${booking.listing.title}" trong 24 giờ nên đơn đã bị huỷ. Tiền cọc được hoàn vào ví.`,
+        { bookingId }),
+      this.notify(booking.listing.providerId, NotificationType.BOOKING, 'Đơn thuê đã bị huỷ',
+        `Bạn không phản hồi đơn "${booking.listing.title}" trong 24 giờ nên đơn đã tự huỷ. Hãy duyệt hoặc từ chối đơn kịp thời để giữ uy tín.`,
+        { bookingId }),
+    ]);
+
+    this.logger.log(`Approval expired → CANCELLED: ${bookingId}`);
   }
 
   // ─── Auto-start: CONFIRMED → IN_PROGRESS khi đến startDate ───────────────
@@ -226,40 +274,9 @@ export class BookingProcessor extends WorkerHost {
 
   // ─── Auto-complete: IN_PROGRESS → COMPLETED sau endDate + 48h ───────────────
 
-  private async handleAutoComplete(bookingId: string) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        id: true, status: true, travelerId: true, assignedStaffId: true,
-        listing: { select: { title: true, providerId: true } },
-      },
-    });
-    if (!booking || booking.status !== 'IN_PROGRESS') return;
-    // Có staff phụ trách thì chỉ staff mới được hoàn thành sau khi kiểm tra thiết bị
-    if (booking.assignedStaffId) return;
-
-    await this.prisma.$transaction([
-      this.prisma.booking.update({
-        where: { id: bookingId },
-        data: { status: 'COMPLETED' },
-      }),
-      this.prisma.contract.update({
-        where: { bookingId },
-        data: { status: 'CLOSED' },
-      }),
-    ]);
-
-    await Promise.all([
-      this.notify(booking.travelerId, NotificationType.BOOKING, 'Chuyến thuê đã hoàn thành (tự động)',
-        `Đơn thuê "${booking.listing.title}" đã được tự động đánh dấu hoàn thành sau 48 giờ.`, { bookingId }),
-      this.notify(booking.listing.providerId, NotificationType.BOOKING, 'Chuyến thuê đã hoàn thành (tự động)',
-        `Đơn thuê "${booking.listing.title}" đã được tự động hoàn thành.`, { bookingId }),
-    ]);
-
-    // Trigger commission split + deposit release timer (same as manual complete)
-    await this.paymentsSvc?.onBookingCompleted(bookingId);
-
-    this.logger.log(`Auto-complete → COMPLETED: ${bookingId}`);
+  private handleAutoComplete(bookingId: string) {
+    // Staff bắt buộc: chỉ Staff mới xác nhận hoàn thành sau khi kiểm tra thiết bị, nên không tự hoàn thành dù đã quá hạn.
+    this.logger.log(`Auto-complete bỏ qua, chờ Staff xác nhận: ${bookingId}`);
   }
 
   // ─── ID doc purge: xóa idDocumentUrl sau 90 ngày ─────────────────────────────

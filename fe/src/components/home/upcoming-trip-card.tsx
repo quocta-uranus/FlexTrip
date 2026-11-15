@@ -15,6 +15,7 @@ import { useMyBookings } from '@/hooks/useBookings';
 import { formatShortDate as shortDate } from '@/lib/format-date';
 import { BOOKING_STATUS_LABEL } from '@/types/booking';
 import type { Booking, BookingStatus } from '@/types/booking';
+import { bookingCode } from '@/lib/booking-code';
 
 // Ordered by how urgently the traveler has to act; the first match wins.
 const ATTENTION_ORDER: BookingStatus[] = [
@@ -147,7 +148,7 @@ export function UpcomingTripCard() {
         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-700">
           {isRecent ? 'Chuyến gần nhất' : 'Cần chú ý'} · {BOOKING_STATUS_LABEL[booking.status]}
         </span>
-        <span className="text-xs text-slate-500">Mã đơn: #{booking.id.slice(0, 8).toUpperCase()}</span>
+        <span className="text-xs text-slate-500">Mã đơn: {bookingCode(booking.id)}</span>
         <Link
           href="/bookings"
           className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-brand-blue hover:underline"

@@ -43,8 +43,8 @@ describe('AUTH-02 — Login, Refresh and Logout', () => {
       .post('login', { email, password: 'incorrect-password' })
       .expect(401);
 
-    expect(unknown.body.message).toBe('Invalid credentials');
-    expect(incorrect.body.message).toBe('Invalid credentials');
+    expect(unknown.body.message).toBe('Email hoặc mật khẩu không đúng');
+    expect(incorrect.body.message).toBe('Email hoặc mật khẩu không đúng');
   });
 
   it('rotates refresh token and rejects the replaced token', async () => {

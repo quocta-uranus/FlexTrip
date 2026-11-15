@@ -201,7 +201,7 @@ export default function CartPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
           <div className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
               <div
@@ -219,7 +219,7 @@ export default function CartPage() {
   if (error) {
     return (
       <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
           <div
             className="rounded-lg border px-4 py-3 text-sm"
             style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}
@@ -235,7 +235,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>

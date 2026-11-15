@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { BOOKING_QUEUE, BookingJob, REMINDER_DAYS_BEFORE } from '../booking/booking.constants';
 import { CreateModifyRequestDto, RespondModifyRequestDto } from './dto/modify-booking.dto';
+import { DEPOSIT_RATE, rentalDaysBetween } from '../booking/booking-price.util';
 
 @Injectable()
 export class ModifyBookingService {
@@ -124,18 +125,18 @@ export class ModifyBookingService {
     const newQty = request.newQuantity ?? booking.quantity;
 
     const rentalDays =
-      Math.round((newEndDate.getTime() - newStartDate.getTime()) / 86_400_000) + 1;
+      rentalDaysBetween(newStartDate, newEndDate);
 
     // Lấy giá từ listing
     const listing = await this.prisma.listing.findUnique({
       where: { id: booking.listingId },
-      select: { price: true, depositRate: true },
+      select: { price: true },
     });
     if (!listing) throw new NotFoundException('Listing không tồn tại');
 
     const unitPrice = listing.price.toNumber();
     const totalPrice = unitPrice * newQty * rentalDays;
-    const depositAmount = totalPrice * listing.depositRate.toNumber();
+    const depositAmount = totalPrice * DEPOSIT_RATE;
 
     // Cập nhật request + booking trong 1 transaction có lock Listing
     await this.prisma.$transaction(async (tx) => {

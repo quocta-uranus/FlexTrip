@@ -131,7 +131,7 @@ export default function MyBookingsPage() {
   const bookings = data?.items ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
+    <div className="mx-auto max-w-5xl space-y-6 px-6 pb-8 pt-24 sm:pt-28">
       {/* Header */}
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2a7bd9]">Staff Portal</p>

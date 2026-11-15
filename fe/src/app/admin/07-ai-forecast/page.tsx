@@ -29,7 +29,7 @@ export default function AIForecastPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="AI ACTIVE" tone="blue" />
+            <LiveDot label="AI ĐANG CHẠY" tone="blue" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>AI Revenue Forecast</h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Dự báo doanh thu/tăng trưởng dựa trên dữ liệu lịch sử</p>

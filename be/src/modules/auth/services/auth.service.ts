@@ -113,7 +113,11 @@ export class AuthService {
     email: string,
     code: string,
   ): Promise<{ code: string }> {
+    const lockKeys = [`otp:${email}`];
+    await this.otp.assertNotLocked(lockKeys);
     const valid = await this.otp.verify('register', email, code);
+    if (!valid) await this.otp.recordFailure(lockKeys);
+    else await this.otp.clearFailures(lockKeys);
     if (!valid)
       throw new BadRequestException({ code: 'INVALID_OTP', message: 'Mã OTP không đúng hoặc đã hết hạn.' });
     const user = await this.prisma.user.findUnique({
@@ -150,12 +154,17 @@ export class AuthService {
     dto: LoginDto,
     context: SessionContext = {},
   ): Promise<LoginResult> {
+    const lockKeys = [`login:${dto.email}`, `login:${dto.email}|${context.ipAddress ?? 'unknown'}`];
+    await this.otp.assertNotLocked(lockKeys);
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: AUTH_USER_INCLUDE,
     });
-    if (!user || !(await bcrypt.compare(dto.password, user.password)))
-      throw new UnauthorizedException('Invalid credentials');
+    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+      await this.otp.recordFailure(lockKeys);
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
+    await this.otp.clearFailures(lockKeys);
     this.assertCanAuthenticate(user);
     if (user.twoFactorEnabled) {
       return {
@@ -253,6 +262,8 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException();
     this.assertCanAuthenticate(user);
+    const lockKeys = [`2fa:${user.id}`];
+    await this.otp.assertNotLocked(lockKeys);
     if (
       !user.twoFactorEnabled ||
       !user.twoFactorSecret ||
@@ -262,8 +273,11 @@ export class AuthService {
         user.twoFactorRecoveryCodes,
         code,
       ))
-    )
+    ) {
+      await this.otp.recordFailure(lockKeys);
       throw new UnauthorizedException({ code: 'INVALID_TWO_FACTOR_CODE' });
+    }
+    await this.otp.clearFailures(lockKeys);
     return this.signTokens(user, payload.context ?? {});
   }
 

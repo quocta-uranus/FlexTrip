@@ -12,7 +12,7 @@ import { WalletService } from './wallet.service';
 import { EscrowService } from './escrow.service';
 import { PayOsGateway } from './gateways/payos.gateway';
 import { PAYMENT_QUEUE, PaymentJob } from './constants';
-import { BOOKING_QUEUE } from '../booking/booking.constants';
+import { APPROVAL_WINDOW_MS, BOOKING_QUEUE, BookingJob, isRentalSettled } from '../booking/booking.constants';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { TopupDto } from './dto/topup.dto';
 import { PayoutRequestDto } from './dto/payout-request.dto';
@@ -20,6 +20,7 @@ import { PaymentAiService } from '../payment-ai/payment-ai.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { ReferralsService } from '../referrals/referrals.service';
+import { rentalDaysBetween } from '../booking/booking-price.util';
 
 @Injectable()
 export class PaymentsService implements OnApplicationBootstrap {
@@ -104,6 +105,7 @@ export class PaymentsService implements OnApplicationBootstrap {
           data: { status: BookingStatus.PENDING_APPROVAL },
         }),
       ]);
+      await this.notifyDepositPaid(bookingId);
       return { gateway: dto.gateway, status: 'PAID', orderCode };
     }
 
@@ -164,6 +166,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         });
       });
 
+      await this.notifyDepositPaid(bookingId);
       return { gateway: PaymentGateway.WALLET, status: 'PAID', orderCode };
     }
 
@@ -302,7 +305,7 @@ export class PaymentsService implements OnApplicationBootstrap {
     response: unknown,
     linkWebhookLog: boolean,
   ) {
-    await this.prisma.$transaction(async (tx) => {
+    const flipped = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.payment.updateMany({
         where: { id: paymentId, status: { not: PaymentStatus.PAID } },
         data: {
@@ -311,7 +314,7 @@ export class PaymentsService implements OnApplicationBootstrap {
           gatewayResponse: response as object,
         },
       });
-      if (count === 0) return;
+      if (count === 0) return false;
 
       if (linkWebhookLog) {
         await tx.paymentWebhookLog.updateMany({
@@ -324,6 +327,44 @@ export class PaymentsService implements OnApplicationBootstrap {
         where: { id: bookingId },
         data: { status: BookingStatus.PENDING_APPROVAL },
       });
+      return true;
+    });
+    if (flipped) await this.notifyDepositPaid(bookingId);
+  }
+
+  async scheduleApprovalExpiry(bookingId: string, delay: number = APPROVAL_WINDOW_MS) {
+    await this.bookingQueue.add(
+      BookingJob.APPROVAL_EXPIRY,
+      { bookingId },
+      { delay, jobId: `approval-${bookingId}`, removeOnComplete: true },
+    );
+  }
+
+  // Webhook và trả về PayOS có thể cùng gọi nên chỉ gọi sau khi đã chuyển trạng thái thật sự (flipped).
+  private async notifyDepositPaid(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { travelerId: true, listing: { select: { providerId: true, title: true } } },
+    });
+    if (!booking) return;
+    await this.scheduleApprovalExpiry(bookingId);
+    await this.prisma.notification.createMany({
+      data: [
+        {
+          userId: booking.listing.providerId,
+          type: 'BOOKING',
+          title: 'Yêu cầu đặt chỗ mới',
+          body: `Khách vừa đặt cọc cho "${booking.listing.title}". Vui lòng duyệt hoặc từ chối trong 24 giờ.`,
+          data: { bookingId },
+        },
+        {
+          userId: booking.travelerId,
+          type: 'PAYMENT',
+          title: 'Đặt cọc thành công',
+          body: `Bạn đã đặt cọc cho "${booking.listing.title}". Đơn đang chờ chủ đồ xác nhận.`,
+          data: { bookingId },
+        },
+      ],
     });
   }
 
@@ -692,12 +733,21 @@ export class PaymentsService implements OnApplicationBootstrap {
       throw new NotFoundException('Booking không tồn tại');
     }
 
-    const nights = Math.round(
-      (new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / 86_400_000,
-    );
+    const nights = rentalDaysBetween(booking.startDate, booking.endDate);
+
+    // totalAmount là tiền thuê gốc; cọc và phần còn lại đều là các đợt trả của chính khoản này, không cộng thêm.
+    const pay = booking.payment;
+    const totalAmount = Number(pay?.totalAmount ?? booking.totalPrice);
+    const discountAmount = Number(pay?.discountAmount ?? booking.discountAmount ?? 0);
+    const depositAmount = Number(pay?.depositAmount ?? booking.depositAmount ?? 0);
+    const balanceAmount = Number(pay?.rentalAmount ?? 0);
+    const depositPaid = pay?.status === PaymentStatus.PAID ? depositAmount : 0;
+    const balancePaid = depositPaid > 0 && pay && isRentalSettled(pay) ? balanceAmount : 0;
+    const paidAmount = depositPaid + balancePaid;
+    const remainingAmount = Math.max(0, totalAmount - discountAmount - paidAmount);
 
     return {
-      invoiceNumber: `INV-${booking.id.slice(-8).toUpperCase()}`,
+      invoiceNumber: `INV-${booking.id.slice(-12).toUpperCase()}`,
       issuedAt: booking.payment?.updatedAt ?? booking.createdAt,
       booking: {
         id: booking.id,
@@ -726,9 +776,14 @@ export class PaymentsService implements OnApplicationBootstrap {
       payment: {
         status: booking.payment?.status ?? 'PENDING',
         gateway: booking.payment?.gateway ?? '—',
-        totalAmount: Number(booking.payment?.totalAmount ?? booking.totalPrice),
-        rentalAmount: Number(booking.payment?.rentalAmount ?? 0),
-        depositAmount: Number(booking.payment?.depositAmount ?? booking.depositAmount ?? 0),
+        totalAmount,
+        discountAmount,
+        rentalAmount: balanceAmount,
+        depositAmount,
+        depositPaid,
+        balancePaid,
+        paidAmount,
+        remainingAmount,
         paidAt: booking.payment?.updatedAt ?? null,
       },
     };

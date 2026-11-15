@@ -49,7 +49,7 @@ export default function ReportsPage() {
     <div className="p-8">
       {toast.node}
       <div className="mb-8">
-        <div className="mb-1"><LiveDot label="REPORTS" tone="blue" /></div>
+        <div className="mb-1"><LiveDot label="BÁO CÁO" tone="blue" /></div>
         <h1 className="text-3xl font-bold text-[#0f1729]">Báo cáo kinh doanh</h1>
         <p className="mt-1 text-sm text-[#5a6b85]">Xuất báo cáo doanh thu, booking, hoa hồng và lên lịch gửi tự động qua email</p>
       </div>
