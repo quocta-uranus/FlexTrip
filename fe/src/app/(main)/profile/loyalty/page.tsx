@@ -24,7 +24,7 @@ export default function LoyaltyPage() {
   const [done, setDone] = useState<RedeemResult | null>(null);
 
   const next = me?.nextReward;
-  const progress = next ? Math.min(((next.pointsCost - next.pointsNeeded) / next.pointsCost) * 100, 100) : 100;
+  const progress = next ? Math.min(((next.pointsCost - next.pointsNeeded) / next.pointsCost) * 100, 100) : (rewards?.length ?? 0) > 0 ? 100 : 0;
 
   function confirmRedeem(reward: LoyaltyReward) {
     redeem.mutate(reward.id, {

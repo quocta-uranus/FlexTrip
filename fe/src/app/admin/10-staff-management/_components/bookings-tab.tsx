@@ -13,6 +13,7 @@ import {
 import { formatDate } from '@/lib/format';
 import type { ApiError } from '@/lib/api/client';
 import type { BookingStatus } from '@/types/admin';
+import { BOOKING_STATUS_LABEL } from '@/types/booking';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
   PENDING_APPROVAL: { bg: 'bg-yellow-50',  text: 'text-yellow-700', dot: 'bg-yellow-400' },
@@ -28,7 +29,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${s.bg} ${s.text}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
-      {status}
+      {BOOKING_STATUS_LABEL[status as keyof typeof BOOKING_STATUS_LABEL] ?? status}
     </span>
   );
 }
@@ -74,9 +75,9 @@ export function BookingsTab() {
         </select>
         <select value={status} onChange={(e) => setStatus(e.target.value as BookingStatus | 'ALL')} className={FILTER_SELECT}>
           <option value="ALL">Tất cả trạng thái</option>
-          <option value="PENDING_APPROVAL">PENDING_APPROVAL</option>
-          <option value="CONFIRMED">CONFIRMED</option>
-          <option value="IN_PROGRESS">IN_PROGRESS</option>
+          <option value="PENDING_APPROVAL">{BOOKING_STATUS_LABEL.PENDING_APPROVAL}</option>
+          <option value="CONFIRMED">{BOOKING_STATUS_LABEL.CONFIRMED}</option>
+          <option value="IN_PROGRESS">{BOOKING_STATUS_LABEL.IN_PROGRESS}</option>
         </select>
       </div>
 

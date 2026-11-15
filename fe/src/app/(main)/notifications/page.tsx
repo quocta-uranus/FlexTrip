@@ -32,7 +32,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-[#2a7bd9]">

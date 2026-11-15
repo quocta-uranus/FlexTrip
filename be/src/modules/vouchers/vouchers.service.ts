@@ -46,7 +46,6 @@ export class VouchersService {
       unitPrice: listing.price.toNumber(),
       quantity: dto.quantity ?? 1,
       rentalDays,
-      depositRate: listing.depositRate.toNumber(),
     });
     const quote = await this.quote(userId, dto.code, { totalPrice, depositAmount, category: listing.category });
     const rentalAmount = totalPrice - depositAmount;

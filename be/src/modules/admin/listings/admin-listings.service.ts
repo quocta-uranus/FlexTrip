@@ -9,6 +9,12 @@ import { ListAdminListingsQueryDto, ListingTab, ModerateAction, ModerateListingD
 
 const { ACTIVE, INACTIVE, DRAFT, SUSPENDED, REMOVED } = ListingStatus;
 
+const MODERATION_NOTICE: Partial<Record<string, { title: string; body: string }>> = {
+  HIDE: { title: 'Tin của bạn đã bị ẩn', body: 'đã bị quản trị viên ẩn khỏi trang tìm kiếm.' },
+  REMOVE: { title: 'Tin của bạn đã bị gỡ', body: 'đã bị quản trị viên gỡ do vi phạm.' },
+  RESTORE: { title: 'Tin của bạn đã được hiển thị lại', body: 'đã được hiển thị lại.' },
+};
+
 const TRANSITIONS: Record<ModerateAction, { from: ListingStatus[]; to?: ListingStatus; flags?: ListingFlagStatus }> = {
   HIDE: { from: [ACTIVE, INACTIVE], to: SUSPENDED, flags: ListingFlagStatus.RESOLVED },
   REMOVE: { from: [DRAFT, ACTIVE, INACTIVE, SUSPENDED], to: REMOVED, flags: ListingFlagStatus.RESOLVED },
@@ -94,7 +100,7 @@ export class AdminListingsService {
 
   async moderate(id: string, dto: ModerateListingDto, ctx: RequestContext) {
     return this.prisma.$transaction(async (tx) => {
-      const listing = await tx.listing.findUnique({ where: { id }, select: { status: true } });
+      const listing = await tx.listing.findUnique({ where: { id }, select: { status: true, title: true, providerId: true } });
       if (!listing) throw new NotFoundException({ code: 'LISTING_NOT_FOUND', message: 'Không tìm thấy tin đăng.' });
       const rule = TRANSITIONS[dto.action];
       if (!rule.from.includes(listing.status))
@@ -121,6 +127,18 @@ export class AdminListingsService {
         before: { status: listing.status },
         after: { status, flagsUpdated, note: dto.note ?? null },
       });
+      const notice = MODERATION_NOTICE[dto.action];
+      if (notice && rule.to) {
+        await tx.notification.create({
+          data: {
+            userId: listing.providerId,
+            type: 'SYSTEM',
+            title: notice.title,
+            body: `Tin "${listing.title}" ${notice.body}${dto.note ? ` Lý do: ${dto.note}` : ''}`,
+            data: { listingId: id },
+          },
+        });
+      }
       return { id, status, flagsUpdated };
     });
   }

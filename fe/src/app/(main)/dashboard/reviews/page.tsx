@@ -116,7 +116,7 @@ export default function ProviderReviewsPage() {
 
   return (
     <div className="min-h-screen bg-[#f6fbfe]">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         <div className="mb-6">
           <Link href="/dashboard" className="text-sm text-slate-500 hover:text-blue-700">← Dashboard</Link>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">

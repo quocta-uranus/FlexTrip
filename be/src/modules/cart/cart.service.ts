@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AvailabilityService } from '../availability/availability.service';
 import { AddCartItemDto, CheckoutDto, UpdateCartItemDto } from './dto/cart.dto';
 import { VouchersService } from '../vouchers/vouchers.service';
-import { priceBooking, rentalDaysBetween } from '../booking/booking-price.util';
+import { DEPOSIT_RATE, priceBooking, rentalDaysBetween } from '../booking/booking-price.util';
 
 const HOLD_MINUTES = 15;
 
@@ -271,7 +271,7 @@ export class CartService {
         const rentalDays = rentalDaysBetween(item.startDate, item.endDate);
         const unitPrice = item.listing.price.toNumber();
         const { totalPrice, depositAmount } = priceBooking({
-          unitPrice, quantity: item.quantity, rentalDays, depositRate: item.listing.depositRate.toNumber(),
+          unitPrice, quantity: item.quantity, rentalDays,
         });
         const voucherCode = voucherByItem.get(item.id);
         const quote = voucherCode
@@ -365,14 +365,13 @@ export class CartService {
   private enrichItem<T extends {
     id: string; startDate: Date; endDate: Date;
     quantity: number; unitPrice: Prisma.Decimal;
-    listing: { depositRate: Prisma.Decimal };
     holdExpiresAt: Date | null;
   }>(item: T) {
     const rentalDays =
       Math.round((new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) / 86_400_000) + 1;
     const unitPrice = item.unitPrice.toNumber();
     const subtotal = unitPrice * item.quantity * rentalDays;
-    const depositAmount = subtotal * item.listing.depositRate.toNumber();
+    const depositAmount = subtotal * DEPOSIT_RATE;
     const holdExpiresAt = item.holdExpiresAt;
     const isHoldValid = holdExpiresAt ? holdExpiresAt > new Date() : false;
 

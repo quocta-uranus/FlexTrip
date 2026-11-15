@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
 import type { Booking, BookingStatus } from '@/types/booking';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { bookingCode } from '@/lib/booking-code';
 
 const TABS: Array<{ value: string; label: string }> = [
   { value: '', label: 'Tất cả' },
@@ -191,7 +192,7 @@ function FeaturedCard({ booking, now, reviewed }: { booking: Booking; now: Date;
         </div>
         <h2 className="font-display text-3xl font-medium leading-tight tracking-[-0.02em] text-ink">
           <Link href={`/bookings/${booking.id}`} className="after:absolute after:inset-0">
-            {booking.listing?.title ?? `Đơn #${booking.id.slice(-8)}`}
+            {booking.listing?.title ?? `Đơn ${bookingCode(booking.id)}`}
           </Link>
         </h2>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
@@ -243,7 +244,7 @@ function OrderCard({ booking, reviewed }: { booking: Booking; reviewed: boolean 
         <BookingStatusBadge status={booking.status} className="self-start" />
         <h3 className="truncate text-base font-bold tracking-tight text-ink">
           <Link href={`/bookings/${booking.id}`} className="after:absolute after:inset-0">
-            {booking.listing?.title ?? `Đơn #${booking.id.slice(-8)}`}
+            {booking.listing?.title ?? `Đơn ${bookingCode(booking.id)}`}
           </Link>
         </h3>
         <p className="text-xs text-slate-500">

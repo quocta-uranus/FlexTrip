@@ -63,9 +63,9 @@ export default function AnalyticsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="LIVE" tone="blue" />
+            <LiveDot label="TRỰC TIẾP" tone="blue" />
           </div>
-          <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>Platform Analytics</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#0f1729' }}>Thống kê nền tảng</h1>
           <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>Số liệu tổng quan: doanh thu, hoa hồng, người dùng, tỷ lệ huỷ đơn</p>
         </div>
         <select

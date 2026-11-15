@@ -13,7 +13,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAdminUsers, useAdminUserStats, useSuspendUser, useUnsuspendUser } from "@/hooks/admin/use-admin-users";
 import { useAuthStore } from "@/store/auth.store";
 import { formatDate } from "@/lib/format";
-import type { AdminUser, Role, UserStatus } from "@/types/admin";
+import { USER_STATUS_LABEL, type AdminUser, type Role, type UserStatus } from "@/types/admin";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
   ACTIVE: { bg: "rgba(34,197,94,0.1)", text: "#16a34a" },
@@ -72,7 +72,7 @@ export default function UserAccountsPage() {
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
-            <LiveDot label="ON-DUTY" tone="red" />
+            <LiveDot label="ĐANG TRỰC" tone="red" />
           </div>
           <h1 className="text-3xl font-bold" style={{ color: "#0f1729" }}>Manage User Accounts</h1>
           <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>Khoá/mở khoá tài khoản Traveler · Provider vi phạm chính sách</p>
@@ -235,7 +235,7 @@ export default function UserAccountsPage() {
                           style={{ color: statusStyle.text, background: statusStyle.bg }}
                         >
                           <span className={`h-1.5 w-1.5 rounded-full ${user.status === "ACTIVE" ? "animate-pulse" : ""}`} style={{ background: statusStyle.text }} />
-                          {user.status}
+                          {USER_STATUS_LABEL[user.status] ?? user.status}
                         </span>
                         {user.status === "SUSPENDED" && user.suspensionReason && (
                           <div className="mt-1 max-w-[180px] truncate text-[10px]" style={{ color: "#ca8a04" }} title={user.suspensionReason}>

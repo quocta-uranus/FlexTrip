@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { BookingStatus, DisputeStatus, KycStatus, ListingFlagStatus, ListingStatus, PaymentStatus, Prisma, Role } from '@prisma/client';
+import { BookingStatus, CancelledBy, DisputeStatus, KycStatus, ListingFlagStatus, ListingStatus, PaymentStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DateRangeQueryDto, resolveRange, startOfTodayVn } from '../../../common/dto/date-range.dto';
 import { toNumber } from '../../../common/money.util';
@@ -20,8 +20,9 @@ export class AdminAnalyticsService {
     const createdAt = { gte: from, lte: to };
     const [paid, bookings, cancelled, active, newTravelers, newProviders, repeat, churn] = await Promise.all([
       this.prisma.payment.aggregate({ where: { status: PaymentStatus.PAID, createdAt }, _sum: { totalAmount: true, platformFee: true }, _count: { _all: true } }),
-      this.prisma.booking.count({ where: { createdAt } }),
-      this.prisma.booking.count({ where: { createdAt, status: BookingStatus.CANCELLED } }),
+      // Đơn do hệ thống tự huỷ (hết hạn giữ chỗ, quá hạn duyệt) không phản ánh hành vi người dùng nên loại khỏi tỷ lệ huỷ
+      this.prisma.booking.count({ where: { createdAt, NOT: { status: BookingStatus.CANCELLED, cancelledBy: CancelledBy.SYSTEM } } }),
+      this.prisma.booking.count({ where: { createdAt, status: BookingStatus.CANCELLED, OR: [{ cancelledBy: null }, { cancelledBy: { not: CancelledBy.SYSTEM } }] } }),
       this.prisma.$queryRaw<{ n: number }[]>`SELECT COUNT(DISTINCT "userId")::int AS n FROM "AuthSession" WHERE "lastUsedAt" BETWEEN ${from} AND ${to}`,
       this.prisma.user.count({ where: { createdAt, roles: { some: { role: Role.TRAVELER } } } }),
       this.prisma.user.count({ where: { createdAt, roles: { some: { role: Role.PROVIDER } } } }),

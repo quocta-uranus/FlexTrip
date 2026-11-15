@@ -41,7 +41,7 @@ function ResetPasswordForm() {
           style={{ color: '#2a7bd9' }}
         >
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
-          AUTH-03
+          Đặt lại mật khẩu
         </div>
         <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Đặt lại mật khẩu</h1>
         <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>Mật khẩu mới phải có ít nhất 8 ký tự.</p>

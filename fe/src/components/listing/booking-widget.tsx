@@ -1,5 +1,6 @@
 'use client';
 
+import { DEPOSIT_RATE } from '@/lib/deposit';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -43,7 +44,7 @@ export function BookingWidget({ listing }: Props) {
   const isOwner = Boolean(user && listing.providerId === user.id);
 
   const price = Number(listing.price);
-  const depositRate = listing.depositRate != null ? Number(listing.depositRate) : 0;
+  const depositRate = DEPOSIT_RATE;
   const maxQty = listing.quantity ?? 1;
   const minDays = listing.minRentalDays ?? 1;
   const maxDays = listing.maxRentalDays ?? null;

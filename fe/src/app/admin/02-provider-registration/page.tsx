@@ -140,7 +140,7 @@ export default function ProviderRegistrationPage() {
                           className="rounded-full px-2 py-0.5 text-[10px] font-bold"
                           style={{ background: "rgba(42,123,217,0.1)", color: "#2a7bd9" }}
                         >
-                          {app.status}
+                          {{ PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Đã từ chối" }[app.status as string] ?? app.status}
                         </span>
                       </div>
                       <p className="mt-1 text-sm" style={{ color: "#5a6b85" }}>

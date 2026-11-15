@@ -34,7 +34,7 @@ function NewTicketForm() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
       <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
       <h1 className="mt-3 text-3xl font-bold text-[#0f1729]">Gửi yêu cầu hỗ trợ</h1>
       <p className="mt-1 text-sm text-[#5a6b85]">

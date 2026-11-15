@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               <span style={{ color: '#92eee8' }}>góc khuất</span> Việt Nam.
             </h2>
             <p className="mt-4 text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              Thuê thiết bị camping, trekking, phương tiện và trải nghiệm từ hàng nghìn provider uy tín.
+              Thuê thiết bị camping, trekking, phương tiện và trải nghiệm từ các chủ đồ đã được xác minh.
             </p>
           </div>
         </div>
@@ -41,9 +41,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Trust indicators */}
         <div className="space-y-3">
           {[
-            { icon: '🔒', text: 'Bảo mật JWT + 2FA TOTP' },
+            { icon: '🔒', text: 'Bảo mật tài khoản với xác thực 2 bước' },
             { icon: '✓', text: 'KYC xác minh danh tính' },
-            { icon: '⭐', text: '4.9/5 từ 12k+ reviews' },
+            { icon: '💬', text: 'Đánh giá 2 chiều sau mỗi chuyến thuê' },
           ].map((item) => (
             <div key={item.text} className="flex items-center gap-3">
               <span className="text-base">{item.icon}</span>

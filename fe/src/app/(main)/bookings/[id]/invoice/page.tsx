@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useInvoice } from '@/hooks/usePayments';
 import { CATEGORY_LABELS } from '@/types/listing';
+import { bookingCode } from '@/lib/booking-code';
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,7 @@ export default function InvoicePage() {
       </div>
 
       {/* Invoice document */}
-      <div className="mx-auto max-w-3xl px-6 py-10 print:p-0 print:max-w-none">
+      <div className="mx-auto max-w-3xl px-6 pb-10 pt-24 sm:pt-28 print:p-0 print:max-w-none">
         <div className="rounded-2xl bg-white p-10 shadow-sm print:rounded-none print:shadow-none" style={{ border: '1px solid #DCEFFB' }}>
 
           {/* Header */}
@@ -93,7 +94,7 @@ export default function InvoicePage() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
               <div className="flex justify-between">
                 <span style={{ color: '#5a6b85' }}>Mã đơn</span>
-                <span className="font-medium" style={{ color: '#0f1729' }}>#{invoice.booking.id.slice(-8).toUpperCase()}</span>
+                <span className="font-medium" style={{ color: '#0f1729' }}>{bookingCode(invoice.booking.id)}</span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: '#5a6b85' }}>Danh mục</span>
@@ -146,19 +147,18 @@ export default function InvoicePage() {
                     {invoice.booking.nights}
                   </td>
                   <td className="py-3 text-right font-semibold" style={{ color: '#0f1729' }}>
-                    {invoice.payment.rentalAmount.toLocaleString('vi-VN')}₫
+                    {invoice.payment.totalAmount.toLocaleString('vi-VN')}₫
                   </td>
                 </tr>
-                {invoice.payment.depositAmount > 0 && (
+                {invoice.payment.discountAmount > 0 && (
                   <tr className="border-b" style={{ borderColor: '#f6fbfe' }}>
                     <td className="py-3" style={{ color: '#0f1729' }}>
-                      <p className="font-medium">Tiền cọc</p>
-                      <p className="text-xs mt-0.5" style={{ color: '#8694ad' }}>Hoàn lại sau khi trả đồ nguyên vẹn</p>
+                      <p className="font-medium">Giảm giá (voucher)</p>
                     </td>
                     <td className="py-3 text-right" style={{ color: '#5a6b85' }}>—</td>
                     <td className="py-3 text-right" style={{ color: '#5a6b85' }}>—</td>
-                    <td className="py-3 text-right font-semibold" style={{ color: '#0f1729' }}>
-                      {invoice.payment.depositAmount.toLocaleString('vi-VN')}₫
+                    <td className="py-3 text-right font-semibold" style={{ color: '#15803d' }}>
+                      -{invoice.payment.discountAmount.toLocaleString('vi-VN')}₫
                     </td>
                   </tr>
                 )}
@@ -167,28 +167,38 @@ export default function InvoicePage() {
                 <tr>
                   <td colSpan={3} className="pt-4 text-right text-base font-bold" style={{ color: '#0f1729' }}>Tổng cộng</td>
                   <td className="pt-4 text-right text-xl font-extrabold" style={{ color: '#2a7bd9' }}>
-                    {invoice.payment.totalAmount.toLocaleString('vi-VN')}₫
+                    {(invoice.payment.totalAmount - invoice.payment.discountAmount).toLocaleString('vi-VN')}₫
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          {/* Payment status */}
-          <div className="mt-6 flex items-center justify-between rounded-xl p-4" style={{ background: isPaid ? '#f0fdf4' : '#fff7ed', border: `1px solid ${isPaid ? '#bbf7d0' : '#fed7aa'}` }}>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isPaid ? '#15803d' : '#c2410c' }}>
-                {isPaid ? '✓ Đã thanh toán' : 'Chưa thanh toán'}
-              </p>
-              {isPaid && (
-                <p className="mt-0.5 text-xs" style={{ color: '#5a6b85' }}>
-                  Qua {invoice.payment.gateway} · {paidDate}
-                </p>
-              )}
-            </div>
-            <p className="text-lg font-extrabold" style={{ color: isPaid ? '#15803d' : '#c2410c' }}>
-              {invoice.payment.totalAmount.toLocaleString('vi-VN')}₫
+          {/* Payment status: số tiền thực đã trả, không phải tổng đơn */}
+          <div className="mt-6 space-y-2 rounded-xl p-4 text-sm" style={{ background: isPaid ? '#f0fdf4' : '#fff7ed', border: `1px solid ${isPaid ? '#bbf7d0' : '#fed7aa'}` }}>
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isPaid ? '#15803d' : '#c2410c' }}>
+              {!isPaid ? 'Chưa thanh toán' : invoice.payment.remainingAmount > 0 ? '✓ Đã đặt cọc' : '✓ Đã thanh toán đủ'}
             </p>
+            {invoice.payment.depositPaid > 0 && (
+              <div className="flex justify-between" style={{ color: '#5a6b85' }}>
+                <span>Tiền cọc đã trả{invoice.payment.gateway ? ` (${invoice.payment.gateway})` : ''}</span>
+                <span>{invoice.payment.depositPaid.toLocaleString('vi-VN')}₫</span>
+              </div>
+            )}
+            {invoice.payment.balancePaid > 0 && (
+              <div className="flex justify-between" style={{ color: '#5a6b85' }}>
+                <span>Tiền thuê còn lại đã trả</span>
+                <span>{invoice.payment.balancePaid.toLocaleString('vi-VN')}₫</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold" style={{ color: '#15803d' }}>
+              <span>Đã thanh toán</span>
+              <span>{invoice.payment.paidAmount.toLocaleString('vi-VN')}₫</span>
+            </div>
+            <div className="flex justify-between text-base font-extrabold" style={{ color: invoice.payment.remainingAmount > 0 ? '#c2410c' : '#15803d' }}>
+              <span>Còn lại</span>
+              <span>{invoice.payment.remainingAmount.toLocaleString('vi-VN')}₫</span>
+            </div>
           </div>
 
           {/* Footer */}

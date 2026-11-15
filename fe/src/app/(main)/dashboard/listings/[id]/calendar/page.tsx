@@ -36,7 +36,6 @@ function monthRange(year: number, month: number): { from: string; to: string } {
 type ConfigForm = {
   minRentalDays: number;
   maxRentalDays: string;
-  depositRate: number;
 };
 
 // ─── Day cell colors ──────────────────────────────────────────────────────────
@@ -153,14 +152,13 @@ export default function ListingCalendarPage() {
       ? {
           minRentalDays: config.minRentalDays,
           maxRentalDays: config.maxRentalDays != null ? String(config.maxRentalDays) : '',
-          depositRate: parseFloat(config.depositRate),
         }
       : undefined,
   });
 
   async function onConfigSubmit(data: ConfigForm) {
     const maxRentalDays = data.maxRentalDays ? parseInt(data.maxRentalDays, 10) : null;
-    await configMut.mutateAsync({ minRentalDays: data.minRentalDays, maxRentalDays, depositRate: data.depositRate });
+    await configMut.mutateAsync({ minRentalDays: data.minRentalDays, maxRentalDays });
     setConfigSaved(true);
     setTimeout(() => setConfigSaved(false), 2000);
   }
@@ -174,7 +172,7 @@ export default function ListingCalendarPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
           <Link
@@ -371,28 +369,9 @@ export default function ListingCalendarPage() {
                   )}
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium" style={{ color: '#5a6b85' }}>
-                    Tỷ lệ đặt cọc (0–1)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={1}
-                      {...register('depositRate', { valueAsNumber: true, min: { value: 0, message: 'Tối thiểu 0' }, max: { value: 1, message: 'Tối đa 1 (100%)' } })}
-                      className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2a7bd9]/30"
-                      style={{ borderColor: errors.depositRate ? '#ef4444' : '#d0dce8' }}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: '#8694ad' }}>
-                      {config ? `${(parseFloat(config.depositRate) * 100).toFixed(0)}%` : ''}
-                    </span>
-                  </div>
-                  {errors.depositRate && (
-                    <p className="mt-1 text-xs text-red-500">{errors.depositRate.message}</p>
-                  )}
-                </div>
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs" style={{ color: '#5a6b85' }}>
+                  Đặt cọc cố định <strong>30%</strong> tổng tiền thuê cho mọi đơn.
+                </p>
 
                 <button
                   type="submit"

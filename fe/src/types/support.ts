@@ -14,6 +14,13 @@ export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
   OTHER: 'Khác',
 };
 
+export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = {
+  URGENT: 'Khẩn cấp',
+  HIGH: 'Cao',
+  MEDIUM: 'Trung bình',
+  LOW: 'Thấp',
+};
+
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   OPEN: 'Mới',
   IN_PROGRESS: 'Đang xử lý',

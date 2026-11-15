@@ -48,6 +48,8 @@ import { ReputationProgressCard } from "@/components/reputation/reputation-badge
 import { useMyReputation } from "@/hooks/useReputation";
 import { BOOKING_STATUS_LABEL } from "@/types/booking";
 import { cn } from "@/lib/utils";
+import { bookingCode } from '@/lib/booking-code';
+import { rentalDays } from '@/lib/rental-days';
 
 const LANG_CODE_TO_LABEL: Record<string, string> = {
   vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語', ko: '한국어', fr: 'Français',
@@ -227,11 +229,11 @@ export default function TravelProfilePage() {
         .slice(0, 5)
         .map((b) => {
           const start = new Date(b.startDate);
-          const days = Math.round((new Date(b.endDate).getTime() - start.getTime()) / 86_400_000) + 1;
+          const days = rentalDays(start, b.endDate);
           const shop = b.listing?.provider?.providerProfile?.shopName ?? b.listing?.provider?.name;
           return {
             date: `T${start.getMonth() + 1}/${start.getFullYear()}`,
-            title: b.listing?.title ?? `Đơn #${b.id.slice(-8)}`,
+            title: b.listing?.title ?? `Đơn ${bookingCode(b.id)}`,
             subtitle: `${shop ? `${shop} · ` : ""}${days} ngày`,
             badge: BOOKING_STATUS_LABEL[b.status],
           };

@@ -16,7 +16,7 @@ import {
 } from '@/hooks/admin/use-admin-support';
 import { formatDateTime } from '@/lib/format';
 import { adminReplySchema, type AdminReplyInput } from '@/lib/validators/support.schema';
-import { TICKET_CATEGORY_LABELS } from '@/types/support';
+import { TICKET_CATEGORY_LABELS, TICKET_PRIORITY_LABELS } from '@/types/support';
 import type { TicketCategory, TicketPriority, TicketStatus } from '@/types/support';
 
 const SELECT_CLASS =
@@ -139,7 +139,7 @@ export default function AdminTicketDetailPage() {
               <Label htmlFor="t-priority">Mức ưu tiên</Label>
               <select id="t-priority" className={SELECT_CLASS} value={data.priority} disabled={update.isPending}
                 onChange={(e) => change({ priority: e.target.value as TicketPriority }, 'Đã cập nhật ưu tiên')}>
-                {(['URGENT', 'HIGH', 'MEDIUM', 'LOW'] as const).map((p) => <option key={p} value={p}>{p}</option>)}
+                {(['URGENT', 'HIGH', 'MEDIUM', 'LOW'] as const).map((p) => <option key={p} value={p}>{TICKET_PRIORITY_LABELS[p]}</option>)}
               </select>
             </div>
             <div className="flex items-center justify-between gap-3 text-sm">

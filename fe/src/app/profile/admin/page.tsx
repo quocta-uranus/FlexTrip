@@ -143,7 +143,7 @@ export default function AdminProfilePage() {
             </MagneticAvatar>
             {/* ON-DUTY badge đập đỏ góc avatar */}
             <div className="absolute -bottom-2 -right-2">
-              <LiveDot label="ON-DUTY" tone="red" />
+              <LiveDot label="ĐANG TRỰC" tone="red" />
             </div>
           </div>
         }

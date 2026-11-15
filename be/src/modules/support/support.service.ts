@@ -43,6 +43,15 @@ export class SupportService {
       },
       select: { id: true },
     });
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        type: 'SYSTEM',
+        title: 'Đã nhận yêu cầu hỗ trợ',
+        body: `FlexTrip đã nhận yêu cầu "${dto.subject.trim()}" và sẽ phản hồi sớm.`,
+        data: { ticketId: ticket.id },
+      },
+    });
     await this.triageQueue.add(
       TRIAGE_TICKET_JOB,
       { ticketId: ticket.id },

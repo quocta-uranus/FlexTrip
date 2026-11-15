@@ -16,7 +16,7 @@ export default function OptimizationPage({
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl px-4 pb-8 pt-24 sm:pt-28">
 
         {/* Header */}
         <div className="mb-6">

@@ -6,6 +6,20 @@ export type Role = "TRAVELER" | "PROVIDER" | "ADMIN" | "STAFF";
 export type UserStatus = "ACTIVE" | "SUSPENDED" | "DISABLED";
 export type ListingStatus =
   "DRAFT" | "ACTIVE" | "INACTIVE" | "SUSPENDED" | "REMOVED";
+export const USER_STATUS_LABEL: Record<UserStatus, string> = {
+  ACTIVE: "Hoạt động",
+  SUSPENDED: "Đã khoá",
+  DISABLED: "Vô hiệu hoá",
+};
+
+export const LISTING_STATUS_LABEL: Record<ListingStatus, string> = {
+  DRAFT: "Bản nháp",
+  ACTIVE: "Đang hiển thị",
+  INACTIVE: "Tạm ẩn",
+  SUSPENDED: "Bị đình chỉ",
+  REMOVED: "Đã gỡ",
+};
+
 export type ListingTab = "FLAGGED" | "ACTIVE" | "SUSPENDED" | "REMOVED" | "ALL";
 export type ModerateAction = "HIDE" | "REMOVE" | "RESTORE" | "KEEP";
 export type DisputeType =
@@ -22,6 +36,13 @@ export type DisputeStatus =
   | "REJECTED";
 export type DisputePriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  PENDING: "Chờ thanh toán",
+  PAID: "Đã thanh toán",
+  FAILED: "Thất bại",
+  REFUNDED: "Đã hoàn tiền",
+};
 export type PayoutStatus = "PENDING" | "PAID" | "ON_HOLD";
 export type Reconciliation = "MATCHED" | "MISMATCH" | "PENDING";
 export type BookingStatus =
