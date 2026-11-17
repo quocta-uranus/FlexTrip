@@ -99,13 +99,20 @@ export async function createBooking(h: AuthHarness, o: BookingOptions) {
   });
   if (o.payment !== null) {
     const amount = o.payment?.amount ?? totalPrice;
+    const platformFee = o.payment?.platformFee ?? amount * 0.1;
+    const status = o.payment?.status ?? PaymentStatus.PAID;
     await h.prisma.payment.create({
       data: {
         bookingId: booking.id,
         totalAmount: new Prisma.Decimal(amount),
         rentalAmount: new Prisma.Decimal(amount),
-        platformFee: new Prisma.Decimal(o.payment?.platformFee ?? amount * 0.1),
-        status: o.payment?.status ?? PaymentStatus.PAID,
+        platformFee: new Prisma.Decimal(platformFee),
+        // A settled row carries the provider's share; a refunded one carries what went back.
+        providerNet: new Prisma.Decimal(amount - platformFee),
+        refundedAmount: new Prisma.Decimal(
+          status === PaymentStatus.REFUNDED ? amount : 0,
+        ),
+        status,
         ...(o.payment?.createdAt ? { createdAt: o.payment.createdAt } : {}),
       },
     });

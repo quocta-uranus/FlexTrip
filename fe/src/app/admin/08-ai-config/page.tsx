@@ -169,7 +169,7 @@ export default function AIConfigPage() {
       <ConfirmDialog
         open={resetOpen}
         onOpenChange={setResetOpen}
-        title="Khôi phục toàn bộ 12 ngưỡng về mặc định?"
+        title="Khôi phục toàn bộ ngưỡng về mặc định?"
         description="Mọi thay đổi hiện tại sẽ bị ghi đè."
         confirmLabel="Khôi phục mặc định"
         tone="danger"

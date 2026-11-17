@@ -116,6 +116,19 @@ enum ReviewSentiment {
   UNKNOWN
 }
 
+enum ReviewReportReason {
+  FAKE_REVIEW
+  OFFENSIVE
+  SPAM
+  OTHER
+}
+
+enum ReviewReportStatus {
+  OPEN
+  UPHELD
+  DISMISSED
+}
+
 enum ReviewModerationSource {
   RULE
   AI
@@ -327,6 +340,7 @@ model User {
   notifications       Notification[]
   reviewsGiven        Review[]               @relation("ReviewsGiven")
   reviewsReceived     Review[]               @relation("ReviewsReceived")
+  reviewReportsMade   ReviewReport[]         @relation("ReviewReportsMade")
   conversations       ConversationMember[]
   aiChatConversations AiChatConversation[]
   wishlistItems       Wishlist[]
@@ -874,20 +888,63 @@ model Review {
   analysisReasons  Json?
   response         String?                 @db.Text
   respondedAt      DateTime?
+  responseEdits    Int                     @default(0)
   moderatedAt      DateTime?
   moderatedById    String?
   moderationNote   String?                 @db.Text
+  editedAt         DateTime?
+  appealedAt       DateTime?
+  appealNote       String?                 @db.Text
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
-  author  User     @relation("ReviewsGiven", fields: [authorId], references: [id])
-  target  User     @relation("ReviewsReceived", fields: [targetId], references: [id])
-  listing Listing? @relation(fields: [listingId], references: [id])
-  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  author  User           @relation("ReviewsGiven", fields: [authorId], references: [id])
+  target  User           @relation("ReviewsReceived", fields: [targetId], references: [id])
+  listing Listing?       @relation(fields: [listingId], references: [id])
+  booking Booking?       @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  reports ReviewReport[]
 
   @@index([listingId, status, createdAt])
   @@index([targetId, status])
   @@index([authorId, createdAt])
+}
+
+model ReviewReport {
+  id           String             @id @default(cuid())
+  reviewId     String
+  reporterId   String
+  reason       ReviewReportReason
+  details      String?            @db.Text
+  status       ReviewReportStatus @default(OPEN)
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime           @default(now())
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter User   @relation("ReviewReportsMade", fields: [reporterId], references: [id])
+
+  @@unique([reviewId, reporterId])
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+}
+
+enum ModerationTermCategory {
+  PROFANITY
+  INSULT
+  THREAT
+}
+
+// Admin edits to the built-in review filter dictionary: `disabled = false` is a
+// term the admin added, `disabled = true` switches off a built-in term.
+model ModerationTerm {
+  id          String                 @id @default(cuid())
+  term        String                 @unique
+  category    ModerationTermCategory
+  disabled    Boolean                @default(false)
+  createdById String?
+  createdAt   DateTime               @default(now())
+
+  @@index([disabled])
 }
 
 // ─── Profile ─────────────────────────────────────────────────────────────────

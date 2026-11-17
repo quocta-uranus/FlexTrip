@@ -34,8 +34,8 @@ describe('ADMIN-10 rules & assignment', () => {
     const created = await api.post('/admin/staff-rules', { name: 'HCM chính', region: 'Hồ Chí Minh', staffId: hcm1.id, priority: 10 });
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({ region: 'Hồ Chí Minh', priority: 10, isActive: true, staff: { id: hcm1.id, employeeCode: 'S-1' } });
-    expect((await api.post('/admin/staff-rules', { name: 'x', region: 'x', staffId: off.id, priority: 1 })).body.code).toBe('STAFF_NOT_AVAILABLE');
-    expect((await api.post('/admin/staff-rules', { name: 'x', region: 'x', staffId: hcm1.id, priority: 101 })).status).toBe(400);
+    expect((await api.post('/admin/staff-rules', { name: 'x', region: 'Hồ Chí Minh', staffId: off.id, priority: 1 })).body.code).toBe('STAFF_NOT_AVAILABLE');
+    expect((await api.post('/admin/staff-rules', { name: 'x', region: 'Hồ Chí Minh', staffId: hcm1.id, priority: 101 })).status).toBe(400);
     const upd = await api.patch(`/admin/staff-rules/${created.body.id}`, { priority: 20 });
     expect(upd.body.priority).toBe(20);
     expect((await api.get('/admin/staff-rules')).body).toHaveLength(1);

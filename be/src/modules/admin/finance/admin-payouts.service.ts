@@ -56,7 +56,7 @@ export class AdminPayoutsService {
       { providerId: string; paymentCount: number; gross: Prisma.Decimal; commission: Prisma.Decimal }[]
     >`
       SELECT l."providerId" AS "providerId", COUNT(p.id)::int AS "paymentCount",
-             SUM(p.amount) AS gross, SUM(p."platformFee") AS commission
+             SUM(p."totalAmount") AS gross, SUM(p."platformFee") AS commission
       FROM "Payment" p
       JOIN "Booking" b ON b.id = p."bookingId"
       JOIN "Listing" l ON l.id = b."listingId"

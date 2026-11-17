@@ -2,12 +2,28 @@ import type { PublicReputationBadge } from './reputation';
 
 export type ReviewStatus = 'PENDING' | 'PUBLISHED' | 'FLAGGED' | 'REJECTED';
 
+export type ReviewReportReason = 'FAKE_REVIEW' | 'OFFENSIVE' | 'SPAM' | 'OTHER';
+export type ReviewReportStatus = 'OPEN' | 'UPHELD' | 'DISMISSED';
+
+export const REPORT_REASON_LABEL: Record<ReviewReportReason, string> = {
+  FAKE_REVIEW: 'Đánh giá sai sự thật / không thuê thật',
+  OFFENSIVE: 'Ngôn từ xúc phạm',
+  SPAM: 'Spam / quảng cáo',
+  OTHER: 'Lý do khác',
+};
+
 export interface Review {
   id: string;
   rating: number;
   comment: string | null;
   status: ReviewStatus;
   rejectionReason?: string | null;
+  canEdit?: boolean;
+  canAppeal?: boolean;
+  editedAt?: string | null;
+  appealedAt?: string | null;
+  responseEditsLeft?: number;
+  myReport?: { status: ReviewReportStatus; reason: ReviewReportReason; createdAt: string } | null;
   bookingId: string | null;
   listingId: string | null;
   response?: string | null;
@@ -25,6 +41,23 @@ export interface CreateReviewPayload {
   bookingId: string;
   rating: number;
   comment: string;
+}
+
+export interface EditReviewPayload {
+  reviewId: string;
+  rating: number;
+  comment: string;
+}
+
+export interface AppealReviewPayload {
+  reviewId: string;
+  reason: string;
+}
+
+export interface ReportReviewPayload {
+  reviewId: string;
+  reason: ReviewReportReason;
+  details?: string;
 }
 
 export interface RespondToReviewPayload {

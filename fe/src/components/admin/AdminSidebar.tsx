@@ -20,6 +20,7 @@ const ADMIN_NAV = [
       { id: "02", title: "Đăng ký Provider", href: "/admin/02-provider-registration", icon: "badge-check" },
       { id: "03", title: "Tin đăng vi phạm", href: "/admin/03-moderate-listings", icon: "shield" },
       { id: "RV", title: "Kiểm duyệt đánh giá", href: "/admin/reviews", icon: "shield" },
+      { id: "RT", title: "Từ điển kiểm duyệt", href: "/admin/reviews/terms", icon: "shield" },
     ],
   },
   {

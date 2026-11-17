@@ -32,6 +32,8 @@ import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
 import { AdminCommissionsController } from './finance/admin-commissions.controller';
 import { AdminCommissionsService } from './finance/admin-commissions.service';
+import { AdminModerationTermsController } from './moderation-terms/admin-moderation-terms.controller';
+import { AdminModerationTermsService } from './moderation-terms/admin-moderation-terms.service';
 import { BullModule } from '@nestjs/bullmq';
 import { SupportModule } from '../support/support.module';
 import { AdminTicketsController } from './support/admin-tickets.controller';
@@ -67,6 +69,7 @@ import { AdminReferralsService } from './referrals/admin-referrals.service';
     AdminReviewsController,
     AdminBookingsController,
     AdminCommissionsController,
+    AdminModerationTermsController,
     AdminTicketsController,
     AdminFaqsController,
     AdminReportsController,
@@ -92,6 +95,7 @@ import { AdminReferralsService } from './referrals/admin-referrals.service';
     AdminReviewsService,
     AdminBookingsService,
     AdminCommissionsService,
+    AdminModerationTermsService,
     AdminTicketsService,
     AdminFaqsService,
     ReportsService,
