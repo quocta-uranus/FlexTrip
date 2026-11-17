@@ -31,6 +31,34 @@ describe('REVIEW-03 Vietnamese moderation reasons', () => {
     ).toEqual(['AI phát hiện nội dung có dấu hiệu vi phạm.']);
   });
 
+  it('does not turn an English denial into an accusation', () => {
+    expect(
+      toVietnameseDisplayReasons([
+        '[AI] The review is positive and contains no violation.',
+        '[AI] The comment appears safe and genuine.',
+        '[AI] Content does not violate any policy.',
+      ]),
+    ).toEqual([]);
+  });
+
+  it('drops an unknown English reason instead of accusing a clean review', () => {
+    expect(
+      toVietnameseDisplayReasons(
+        ['[AI] The review mentions the tent and the delivery.'],
+        { clean: true },
+      ),
+    ).toEqual([]);
+  });
+
+  it('still translates a known reason when the scores are clean', () => {
+    expect(
+      toVietnameseDisplayReasons(
+        ['[RULE] Nội dung chứa nhiều đường dẫn.'],
+        { clean: true },
+      ),
+    ).toEqual(['Nội dung chứa nhiều đường dẫn.']);
+  });
+
   it('keeps existing Vietnamese reasons and rejects invalid values', () => {
     expect(
       toVietnameseDisplayReasons([

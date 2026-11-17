@@ -26,3 +26,8 @@ Thumbs.db
 # Local dependencies and credentials
 /node_modules/
 *.tok
+
+# Local Vietnamese classifier: virtualenv, downloaded model weights, bytecode
+/be/ml/review-classifier/.venv/
+/be/ml/review-classifier/models/
+__pycache__/

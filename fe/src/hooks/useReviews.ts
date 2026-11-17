@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewApi } from '@/lib/api/client';
-import type { CreateReviewPayload, RespondToReviewPayload, SentimentRange } from '@/types/review';
+import type {
+  AppealReviewPayload,
+  CreateReviewPayload,
+  EditReviewPayload,
+  ReportReviewPayload,
+  RespondToReviewPayload,
+  SentimentRange,
+} from '@/types/review';
 
 export function useListingReviews(listingId: string) {
   return useQuery({
@@ -58,5 +65,45 @@ export function useRespondToReview() {
         });
       }
     },
+  });
+}
+
+function refreshAfterReviewChange(queryClient: ReturnType<typeof useQueryClient>, listingId: string | null) {
+  queryClient.invalidateQueries({ queryKey: ['reviews', 'mine'] });
+  if (listingId) {
+    queryClient.invalidateQueries({ queryKey: ['reviews', 'listing', listingId] });
+    queryClient.invalidateQueries({ queryKey: ['listing', listingId] });
+  }
+}
+
+export function useEditReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: EditReviewPayload) => reviewApi.edit(payload),
+    onSuccess: (review) => refreshAfterReviewChange(queryClient, review.listingId),
+  });
+}
+
+export function useAppealReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AppealReviewPayload) => reviewApi.appeal(payload),
+    onSuccess: (review) => refreshAfterReviewChange(queryClient, review.listingId),
+  });
+}
+
+export function useReportReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ReportReviewPayload) => reviewApi.report(payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reviews', 'received'] }),
+  });
+}
+
+export function useReviewPolicy() {
+  return useQuery({
+    queryKey: ['reviews', 'policy'],
+    queryFn: reviewApi.policy,
+    staleTime: 5 * 60_000,
   });
 }

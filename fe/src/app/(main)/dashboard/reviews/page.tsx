@@ -6,6 +6,7 @@ import { useReceivedReviews, useRespondToReview, useSentimentDashboard } from '@
 import type { Review, SentimentRange } from '@/types/review';
 import { ReputationBadge } from '@/components/reputation/reputation-badge';
 import { SentimentDashboard } from '@/components/reviews/sentiment-dashboard';
+import { ReportReview } from '@/components/reviews/report-review';
 
 function ResponseEditor({ review }: { review: Review }) {
   const [response, setResponse] = useState(review.response ?? '');
@@ -35,13 +36,18 @@ function ResponseEditor({ review }: { review: Review }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Phản hồi của bạn</p>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{response}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => { setEditing(true); setMessage(null); }}
-            className="shrink-0 text-sm font-semibold text-blue-700 hover:underline"
-          >
-            Chỉnh sửa
-          </button>
+          {(review.responseEditsLeft ?? 1) > 0 ? (
+            <button
+              type="button"
+              onClick={() => { setEditing(true); setMessage(null); }}
+              className="shrink-0 text-sm font-semibold text-blue-700 hover:underline"
+            >
+              Chỉnh sửa
+              {review.responseEditsLeft !== undefined && ` (còn ${review.responseEditsLeft})`}
+            </button>
+          ) : (
+            <span className="shrink-0 text-xs text-slate-500">Đã hết lượt chỉnh sửa</span>
+          )}
         </div>
         {message && <p className="mt-2 text-xs font-medium text-emerald-700">{message}</p>}
       </div>
@@ -202,6 +208,7 @@ export default function ProviderReviewsPage() {
               </div>
               <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">{review.comment}</p>
               <ResponseEditor review={review} />
+              <ReportReview review={review} />
             </article>
           ))}
         </div>

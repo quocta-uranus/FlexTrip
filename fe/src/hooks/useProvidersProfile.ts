@@ -16,7 +16,7 @@ export function useUpdateProviderProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<ProviderProfile>) =>
-      (providersApi as any).updateMe?.(data),
+      providersApi.updateMe(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['provider-profile'] });
     },

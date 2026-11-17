@@ -27,7 +27,22 @@ export const adminApi = {
     list: (q: Q) => api.get(`/admin/reviews${toQuery(q)}`) as Promise<T.Paginated<T.AdminReview>>,
     moderate: (id: string, decision: 'APPROVE' | 'REJECT', note?: string) =>
       api.patch(`/admin/reviews/${id}/moderate`, note ? { decision, note } : { decision }) as Promise<T.AdminReview>,
+    summary: () => api.get('/admin/reviews/summary') as Promise<T.ReviewQueueSummary>,
+    bulkModerate: (ids: string[], decision: 'APPROVE' | 'REJECT', note?: string) =>
+      api.post('/admin/reviews/bulk-moderate', note ? { ids, decision, note } : { ids, decision }) as Promise<T.BulkModerateResult>,
+    dismissReports: (id: string, note?: string) =>
+      api.patch(`/admin/reviews/${id}/dismiss-reports`, note ? { note } : {}) as Promise<{ id: string; dismissed: number }>,
     reanalyze: (id: string) => api.post(`/admin/reviews/${id}/reanalyze`, {}) as Promise<{ id: string; status: 'PENDING'; queued: boolean }>,
+  },
+
+  moderationTerms: {
+    list: () => api.get('/admin/moderation-terms') as Promise<T.ModerationTermsView>,
+    add: (term: string, category: T.ModerationTermCategory) =>
+      api.post('/admin/moderation-terms', { term, category }) as Promise<{ id: string }>,
+    remove: (id: string) => api.delete(`/admin/moderation-terms/${id}`) as Promise<{ id: string }>,
+    toggleBuiltIn: (term: string, category: T.ModerationTermCategory, disabled: boolean) =>
+      api.put('/admin/moderation-terms/built-in', { term, category, disabled }) as Promise<{ disabled: boolean }>,
+    test: (text: string) => api.post('/admin/moderation-terms/test', { text }) as Promise<T.ModerationTextResult>,
   },
 
   disputes: {

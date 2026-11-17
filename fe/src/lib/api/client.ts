@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- the response shapes of the session, wallet, KYC and payment-method endpoints are not modelled yet */
 import type {
   AuthTokens,
   LoginResult,
@@ -7,7 +8,15 @@ import type {
   TwoFactorEnableResult,
 } from '@/types/auth';
 import type { NotificationListResult, NotificationType } from '@/types/notification';
-import type { CreateReviewPayload, Review, SentimentDashboardData, SentimentRange } from '@/types/review';
+import type {
+  AppealReviewPayload,
+  CreateReviewPayload,
+  EditReviewPayload,
+  ReportReviewPayload,
+  Review,
+  SentimentDashboardData,
+  SentimentRange,
+} from '@/types/review';
 import type { MyReputation, PublicReputationBadge } from '@/types/reputation';
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken } from '@/lib/api/token';
 
@@ -653,7 +662,7 @@ export const bookingApi = {
     if (params?.limit) q.set('limit', String(params.limit));
     const qs = q.toString();
     return api.get(`/bookings${qs ? `?${qs}` : ''}`)
-      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+      .then((res: Booking[] | { items?: Booking[] }) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 
   get: (id: string) => api.get(`/bookings/${id}`) as Promise<Booking>,
@@ -681,14 +690,21 @@ export const bookingApi = {
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     return api.get(`/bookings?${q.toString()}`)
-      .then((res: any) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
+      .then((res: Booking[] | { items?: Booking[] }) => (Array.isArray(res) ? res : res.items ?? [])) as Promise<Booking[]>;
   },
 };
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
 export const reviewApi = {
+  policy: () => api.get('/reviews/policy') as Promise<{ reviewWindowDays: number; reviewEditHours: number }>,
   create: (data: CreateReviewPayload) => api.post('/reviews', data) as Promise<Review>,
+  edit: ({ reviewId, rating, comment }: EditReviewPayload) =>
+    api.patch(`/reviews/${reviewId}`, { rating, comment }) as Promise<Review>,
+  appeal: ({ reviewId, reason }: AppealReviewPayload) =>
+    api.post(`/reviews/${reviewId}/appeal`, { reason }) as Promise<Review>,
+  report: ({ reviewId, reason, details }: ReportReviewPayload) =>
+    api.post(`/reviews/${reviewId}/report`, details ? { reason, details } : { reason }) as Promise<{ id: string }>,
   mine: () => api.get('/reviews/mine') as Promise<Review[]>,
   received: () => api.get('/reviews/received') as Promise<Review[]>,
   respond: (reviewId: string, response: string) =>

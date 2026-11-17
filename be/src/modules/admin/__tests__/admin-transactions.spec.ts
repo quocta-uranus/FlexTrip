@@ -57,7 +57,7 @@ describe('ADMIN-05 transactions', () => {
     expect(res.headers['content-type']).toContain('text/csv');
     expect(res.headers['content-disposition']).toContain('attachment');
     const lines = res.text.slice(1).trim().split('\r\n');
-    expect(lines[0]).toBe('Mã GD,Booking,Provider,Số tiền,Phí sàn,Provider nhận,Trạng thái,Phương thức,Ngày tạo');
+    expect(lines[0]).toBe('Mã GD,Booking,Provider,Số tiền,Phí sàn,Provider nhận,Trạng thái,Cổng thanh toán,Ngày tạo');
     expect(lines).toHaveLength(3);
     expect(res.text).toContain('"Shop, ""A"""');
   });
