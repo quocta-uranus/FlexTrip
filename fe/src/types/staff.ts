@@ -17,7 +17,7 @@ export interface StaffTask {
     title: string;
     location: string;
     imageUrls: string[];
-    provider: { id: string; name: string; phone: string | null };
+    provider: { id: string; name: string; phone: string | null; email: string };
   };
   traveler: { id: string; name: string; phone: string | null; email: string };
 }
@@ -61,7 +61,7 @@ export interface StaffBooking {
     title: string;
     location: string;
     imageUrls: string[];
-    provider: { id: string; name: string; phone: string | null };
+    provider: { id: string; name: string; phone: string | null; email: string };
   };
   traveler: { id: string; name: string; phone: string | null; email: string };
   contract: {
