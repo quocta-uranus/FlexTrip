@@ -20,7 +20,8 @@ export function useContract(bookingId: string, enabled = true) {
 
 export function useTravelerSignContract() {
   return useMutation({
-    mutationFn: (bookingId: string) => contractsApi.travelerSign(bookingId),
+    mutationFn: ({ bookingId, signatureImage }: { bookingId: string; signatureImage?: string }) =>
+      contractsApi.travelerSign(bookingId, signatureImage),
     throwOnError: false,
   });
 }
@@ -28,8 +29,9 @@ export function useTravelerSignContract() {
 export function useProviderSignContract() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (bookingId: string) => contractsApi.providerSign(bookingId),
-    onSuccess: (_data, bookingId) => {
+    mutationFn: ({ bookingId, signatureImage }: { bookingId: string; signatureImage?: string }) =>
+      contractsApi.providerSign(bookingId, signatureImage),
+    onSuccess: (_data, { bookingId }) => {
       qc.invalidateQueries({ queryKey: ['contract', bookingId] });
       qc.invalidateQueries({ queryKey: ['booking', bookingId] });
       qc.invalidateQueries({ queryKey: ['bookings'] });

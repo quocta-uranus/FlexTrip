@@ -750,7 +750,21 @@ model Contract {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
+  // CONTRACT-LEGAL: hợp đồng v2 theo mẫu pháp lý. templateVersion 1 = dạng text cũ, 2 = có content + chữ ký tay.
+  contractNo        String? @unique
+  templateVersion   Int     @default(1)
+  content           Json?
+  contentHash       String?
+  travelerSignature Json?
+  providerSignature Json?
+
   booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+// Cấp số hợp đồng tăng dần theo năm; cập nhật nguyên tử trong transaction để không trùng số.
+model ContractCounter {
+  year Int @id
+  last Int @default(0)
 }
 
 // ─── Messaging ───────────────────────────────────────────────────────────────

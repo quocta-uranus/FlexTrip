@@ -20,6 +20,7 @@ import {
 import { resolveDisputeSchema, type ResolveDisputeInput } from '@/lib/validators/admin.schema';
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format';
 import type { DisputePriority } from '@/types/admin';
+import { ContractDocument } from '@/components/contracts/ContractDocument';
 import { useDisputeAssist } from '@/hooks/usePaymentAi';
 import {
   BOOKING_STATUS_LABELS,
@@ -179,6 +180,21 @@ export default function DisputeDetailPage() {
             {data.contract ? (
               <div className="space-y-3">
                 <p className="text-sm">Trạng thái: <span className="font-medium">{CONTRACT_STATUS_LABELS[data.contract.status] ?? data.contract.status}</span></p>
+                {data.contract.content && (
+                  <details className="rounded-lg border border-slate-200">
+                    <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-blue-700">
+                      Xem toàn văn hợp đồng{data.contract.contractNo ? ` số ${data.contract.contractNo}` : ''}
+                    </summary>
+                    <div className="max-h-[70vh] overflow-auto border-t border-slate-200 p-3">
+                      <ContractDocument
+                        doc={data.contract.content}
+                        appendices={data.contract.appendices}
+                        travelerSignature={data.contract.travelerSignature}
+                        providerSignature={data.contract.providerSignature}
+                      />
+                    </div>
+                  </details>
+                )}
                 <p className="text-sm">
                   Traveler ký: <span className="font-medium">{data.contract.travelerSignedAt ? formatDateTime(data.contract.travelerSignedAt) : 'Chưa ký'}</span>
                 </p>

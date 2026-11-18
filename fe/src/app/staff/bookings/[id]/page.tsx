@@ -296,6 +296,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               terms={booking.contract.terms}
               penaltyRules={booking.contract.penaltyRules ?? undefined}
               conditionNote={booking.contract.productConditionNote}
+              content={booking.contract.content}
+              appendices={booking.contract.appendices}
+              travelerSignature={booking.contract.travelerSignature}
+              providerSignature={booking.contract.providerSignature}
               collapsible
             />
             {booking.checkedInAt && (

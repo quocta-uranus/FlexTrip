@@ -12,6 +12,7 @@ import { AuditService } from '../audit/audit.service';
 import { PaymentsService } from '../payments/payments.service';
 import { RENTAL_UNPAID_MESSAGE, isRentalSettled } from '../booking/booking.constants';
 import { paginate, skipTake } from '../../common/dto/pagination.dto';
+import { loadPresentedContract } from '../contracts/contracts.present';
 import {
   ConfirmConditionDto, CreateMediationDto, EscalateMediationDto,
   ListMediationsQueryDto, ListMyBookingsQueryDto, ListStaffTasksQueryDto, ResolveMediationDto,
@@ -107,8 +108,10 @@ export class StaffOperationsService {
     return { items, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  booking(staffId: string, bookingId: string) {
-    return this.assignedBooking(staffId, bookingId);
+  async booking(staffId: string, bookingId: string) {
+    const booking = await this.assignedBooking(staffId, bookingId);
+    const presented = booking.contract ? await loadPresentedContract(this.prisma, bookingId) : null;
+    return presented ? { ...booking, contract: { ...booking.contract, ...presented } } : booking;
   }
 
   async confirmHandover(staffId: string, bookingId: string, dto: ConfirmConditionDto, ctx: RequestContext) {

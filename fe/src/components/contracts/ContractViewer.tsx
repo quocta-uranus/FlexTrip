@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, ChevronDown, ChevronUp } from 'lucide-react';
-import type { PenaltyRule } from '@/types/contract';
+import type { ContractDocument as Doc, DocArticle, PenaltyRule, PublicSignature } from '@/types/contract';
+import { ContractDocument } from './ContractDocument';
 import { PenaltyTable } from './PenaltyTable';
 
 interface ContractViewerProps {
@@ -9,6 +10,11 @@ interface ContractViewerProps {
   conditionNote?: string | null;
   isHighValue?: boolean;
   collapsible?: boolean;
+  /** Hợp đồng v2: có cấu trúc thì hiển thị dạng văn bản chuẩn thay cho khối text. */
+  content?: Doc | null;
+  appendices?: DocArticle[];
+  travelerSignature?: PublicSignature | null;
+  providerSignature?: PublicSignature | null;
 }
 
 export function ContractViewer({
@@ -17,6 +23,10 @@ export function ContractViewer({
   conditionNote,
   isHighValue = false,
   collapsible = false,
+  content,
+  appendices,
+  travelerSignature,
+  providerSignature,
 }: ContractViewerProps) {
   const [expanded, setExpanded] = useState(!collapsible);
 
@@ -58,6 +68,17 @@ export function ContractViewer({
 
       {expanded && (
         <>
+          {content ? (
+            <div className="max-h-[70vh] overflow-y-auto">
+              <ContractDocument
+                doc={content}
+                appendices={appendices}
+                travelerSignature={travelerSignature}
+                providerSignature={providerSignature}
+              />
+            </div>
+          ) : (
+          <>
           {/* Penalty table */}
           {(penaltyRules.length > 0 || conditionNote) && (
             <div className="px-5 py-4 border-b" style={{ borderColor: '#DCEFFB', background: '#fffbf5' }}>
@@ -80,6 +101,8 @@ export function ContractViewer({
               {terms}
             </pre>
           </div>
+          </>
+          )}
         </>
       )}
     </div>
