@@ -313,7 +313,7 @@ export default function ManageListingsPage() {
 
       {/* ── Page header ── */}
       <div className="bg-white shadow-sm ring-1 ring-black/[0.04]">
-        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 pb-5 pt-24 sm:px-6 sm:pt-28">
           <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400">
             <Link href="/dashboard" className="hover:text-[#2a7bd9] transition-colors">Dashboard</Link>
             <ChevronRight className="h-3 w-3" />
@@ -355,7 +355,7 @@ export default function ManageListingsPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 pb-6 pt-24 sm:pt-28 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
 
         {/* ── Upload result ── */}
         {uploadResult && (

@@ -267,6 +267,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             {booking.listing.provider.phone && (
               <p className="flex items-center gap-1.5 text-sm text-[#5a6b85]"><Phone className="h-3.5 w-3.5" />{booking.listing.provider.phone}</p>
             )}
+            <p className="text-sm text-[#8694ad]">{booking.listing.provider.email}</p>
             <StartChatButton targetUserId={booking.listing.provider.id} label="Nhắn Provider" />
           </CardContent>
         </Card>
