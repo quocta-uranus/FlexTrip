@@ -11,6 +11,7 @@ import {
 import { StartChatButton } from '@/components/chat/start-chat-button';
 import { ConditionDialog } from '@/components/staff/condition-dialog';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
+import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -296,6 +297,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               terms={booking.contract.terms}
               penaltyRules={booking.contract.penaltyRules ?? undefined}
               conditionNote={booking.contract.productConditionNote}
+              actions={<ExportPdfButton contract={{ ...booking.contract, bookingId: booking.id }} travelerName={booking.traveler.name} providerName={booking.listing.provider.name} />}
               content={booking.contract.content}
               appendices={booking.contract.appendices}
               travelerSignature={booking.contract.travelerSignature}
