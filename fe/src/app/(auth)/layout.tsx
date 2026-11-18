@@ -29,11 +29,11 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               Nền tảng du lịch linh hoạt
             </div>
             <h2 className="text-4xl font-bold leading-tight text-white">
-              Khám phá mọi<br />
-              <span style={{ color: '#92eee8' }}>góc khuất</span> Việt Nam.
+              Thuê đồ du lịch<br />
+              <span style={{ color: '#92eee8' }}>dễ dàng</span>, an tâm.
             </h2>
             <p className="mt-4 text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              Thuê thiết bị camping, trekking, phương tiện và trải nghiệm từ các chủ đồ đã được xác minh.
+              Thuê thiết bị camping, trekking, phương tiện và trải nghiệm từ các chủ đồ trên FlexTrip, có nhân viên hỗ trợ bàn giao và nhận lại.
             </p>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="space-y-3">
           {[
             { icon: '🔒', text: 'Bảo mật tài khoản với xác thực 2 bước' },
-            { icon: '✓', text: 'KYC xác minh danh tính' },
+            { icon: '🤝', text: 'Nhân viên FlexTrip hỗ trợ bàn giao và nhận lại đồ' },
             { icon: '💬', text: 'Đánh giá 2 chiều sau mỗi chuyến thuê' },
           ].map((item) => (
             <div key={item.text} className="flex items-center gap-3">

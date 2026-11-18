@@ -76,7 +76,7 @@ function StaffProfileForm({ user }: { user: UserProfile }) {
     : null;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#dbeafe_0,_transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#dbeafe_0,_transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 lg:pb-12">
       <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-white/80 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)]">
         <header className="relative overflow-hidden bg-slate-950 px-6 py-8 text-white sm:px-10">
           <div className="absolute -right-20 -top-24 size-64 rounded-full bg-blue-500/20 blur-3xl" />

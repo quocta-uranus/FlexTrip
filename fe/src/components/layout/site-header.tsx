@@ -279,7 +279,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   }
 
   return (
-    <header className={`fixed top-3.5 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2.5rem)] ${overlay ? 'max-w-[1360px]' : 'max-w-5xl'} z-50 transition-all duration-300`}>
+    <header className={`fixed top-3.5 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2.5rem)] ${overlay ? 'max-w-[1360px]' : isAuthenticated ? 'max-w-6xl' : 'max-w-5xl'} z-50 transition-all duration-300`}>
       <div
         className={`rounded-full flex items-center justify-between gap-2.5 sm:gap-4 transition-all duration-300 ${
           overlay
@@ -300,11 +300,11 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
         </Link>
 
         {/* Center Nav / Search */}
-        <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
+        <div className="hidden md:flex min-w-0 items-center gap-1.5 lg:gap-2">
           {isAuthenticated && (
             <form
               onSubmit={handleSearchSubmit}
-              className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border focus-within:border-brand focus-within:bg-white focus-within:ring-2 focus-within:ring-brand/20 transition-all text-xs mr-1 ${overlay ? 'bg-white/15 border-white/25 [&_input]:text-white [&_input]:placeholder:text-white/70 [&_svg]:text-white/80 focus-within:[&_input]:text-slate-800 focus-within:[&_input]:placeholder:text-slate-400 focus-within:[&_svg]:text-slate-400' : 'bg-slate-100/90 border-slate-200/80'}`}
+              className={`hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full border focus-within:border-brand focus-within:bg-white focus-within:ring-2 focus-within:ring-brand/20 transition-all text-xs mr-1 ${overlay ? 'bg-white/15 border-white/25 [&_input]:text-white [&_input]:placeholder:text-white/70 [&_svg]:text-white/80 focus-within:[&_input]:text-slate-800 focus-within:[&_input]:placeholder:text-slate-400 focus-within:[&_svg]:text-slate-400' : 'bg-slate-100/90 border-slate-200/80'}`}
             >
               <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <input
@@ -423,7 +423,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                     {initials}
                   </div>
                 )}
-                <span className="max-w-[100px] truncate hidden lg:block">{user.name}</span>
+                <span className="max-w-[120px] xl:max-w-[160px] truncate hidden lg:block">{user.name}</span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${overlay ? 'text-white/80' : 'text-slate-500'} ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 

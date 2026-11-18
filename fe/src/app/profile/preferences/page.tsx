@@ -2,7 +2,7 @@ export default function ProfilePreferencesPage() {
   return (
     <div className="pb-24">
       <section className="bg-brand-gradient-soft">
-        <div className="mx-auto max-w-4xl px-6 py-14 sm:py-16">
+        <div className="mx-auto max-w-4xl px-6 pb-14 pt-28 sm:pb-16 sm:pt-32">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border bg-white/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider backdrop-blur"
             style={{ borderColor: "rgba(146,238,232,0.4)", color: "#2a7bd9" }}
           >

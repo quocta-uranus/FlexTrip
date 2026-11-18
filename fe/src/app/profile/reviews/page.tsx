@@ -100,7 +100,7 @@ export default function MyReviewsPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl p-6 sm:p-8">
+    <div className="mx-auto w-full max-w-4xl px-6 pb-6 pt-24 sm:px-8 sm:pb-8 sm:pt-28">
       <h1 className="text-2xl font-bold text-foreground">Đánh giá của tôi</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Đánh giá các chuyến thuê đã hoàn thành và theo dõi trạng thái những đánh giá đã gửi.
