@@ -11,35 +11,68 @@ describe('MSG-01 conversations and messages', () => {
 
   const setup = async () => ({
     traveler: await h.createUser('traveler@example.com', [Role.TRAVELER]),
-    provider: await h.createUser('provider@example.com', [Role.PROVIDER]),
+    provider: await h.createUser('staff@example.com', [Role.STAFF]),
   });
-  const open = async (from: U, to: U) =>
-    (await h.req('post', '/messages/conversations', from.accessToken).send({ targetUserId: to.userId })).body.id as string;
+  // `provider` ở đây là Staff được gán; Traveler/Provider không chat trực tiếp với nhau.
+  const open = (user: U, staff: U) => h.openChat(user, staff);
   const send = (u: U, c: string, body: object) =>
     h.req('post', `/messages/conversations/${c}`, u.accessToken).send(body);
   const text = (u: U, c: string, content: string, extra: object = {}) => send(u, c, { type: 'TEXT', content, ...extra });
 
   describe('starting a conversation', () => {
-    it('creates one conversation and reuses it from either side', async () => {
-      const { traveler, provider } = await setup();
-      const first = await h.req('post', '/messages/conversations', traveler.accessToken).send({ targetUserId: provider.userId });
-      expect(first.status).toBe(201);
-      expect(first.body.members).toHaveLength(2);
-      expect(first.body.lastMessage).toBeNull();
-      const second = await h.req('post', '/messages/conversations', provider.accessToken).send({ targetUserId: traveler.userId });
-      expect(second.body.id).toBe(first.body.id);
+    it('creates one conversation with the assigned staff and reuses it from either side', async () => {
+      const { traveler, provider: staff } = await setup();
+      const id = await open(traveler, staff);
+      const info = (await h.req('get', `/messages/conversations/${id}/info`, traveler.accessToken)).body;
+      expect(info.members).toHaveLength(2);
+      expect(info.lastMessage).toBeNull();
+      const again = await h.req('post', '/messages/conversations', staff.accessToken).send({ targetUserId: traveler.userId });
+      expect(again.status).toBe(201);
+      expect(again.body.id).toBe(id);
     });
 
-    it('rejects traveler↔traveler, provider↔provider, self and unknown users', async () => {
-      const { traveler, provider } = await setup();
+    it('lets the provider of an assigned booking chat with that staff', async () => {
+      const { provider: staff } = await setup();
+      const traveler = await h.createUser('t@example.com', [Role.TRAVELER]);
+      await open(traveler, staff);
+      const booking = await h.prisma.booking.findFirstOrThrow({ include: { listing: true } });
+      const token = await h.jwt.signAsync({ sub: booking.listing.providerId, roles: [Role.PROVIDER] }, { secret: process.env.JWT_ACCESS_SECRET });
+      expect((await h.req('post', '/messages/conversations', token).send({ targetUserId: staff.userId })).status).toBe(201);
+    });
+
+    it('forbids traveler↔provider, traveler↔traveler, staff↔staff and self chats', async () => {
+      const { traveler, provider: staff } = await setup();
+      const owner = await h.createUser('owner@example.com', [Role.PROVIDER]);
       const traveler2 = await h.createUser('t2@example.com', [Role.TRAVELER]);
-      const provider2 = await h.createUser('p2@example.com', [Role.PROVIDER]);
+      const staff2 = await h.createUser('s2@example.com', [Role.STAFF]);
       const start = (u: U, target: string) =>
         h.req('post', '/messages/conversations', u.accessToken).send({ targetUserId: target });
+      expect((await start(traveler, owner.userId)).status).toBe(400);
+      expect((await start(owner, traveler.userId)).status).toBe(400);
       expect((await start(traveler, traveler2.userId)).status).toBe(400);
-      expect((await start(provider, provider2.userId)).status).toBe(400);
+      expect((await start(staff, staff2.userId)).status).toBe(400);
       expect((await start(traveler, traveler.userId)).status).toBe(400);
       expect((await start(traveler, 'missing-user')).status).toBe(404);
+    });
+
+    it('forbids chatting with a staff who is not assigned to any of the user bookings', async () => {
+      const { traveler, provider: staff } = await setup();
+      const res = await h.req('post', '/messages/conversations', traveler.accessToken).send({ targetUserId: staff.userId });
+      expect(res.status).toBe(403);
+    });
+
+    it('hides and blocks legacy traveler↔provider conversations', async () => {
+      const { traveler } = await setup();
+      const owner = await h.createUser('owner@example.com', [Role.PROVIDER]);
+      const legacy = await h.prisma.conversation.create({
+        data: {
+          pairKey: [traveler.userId, owner.userId].sort().join(':'),
+          members: { create: [{ userId: traveler.userId }, { userId: owner.userId }] },
+          messages: { create: { content: 'cũ', senderId: owner.userId } },
+        },
+      });
+      expect((await h.req('get', '/messages/conversations', traveler.accessToken)).body).toEqual([]);
+      expect((await text(traveler, legacy.id, 'xin chào')).status).toBe(403);
     });
 
     it('requires authentication', async () => {
@@ -128,7 +161,7 @@ describe('MSG-01 conversations and messages', () => {
         id: original.body.id, senderId: traveler.userId, type: 'TEXT', content: 'xin chào', deleted: false,
       });
 
-      const provider2 = await h.createUser('p2@example.com', [Role.PROVIDER]);
+      const provider2 = await h.createUser('s2@example.com', [Role.STAFF]);
       const c2 = await open(traveler, provider2);
       const foreign = await text(traveler, c2, 'khác');
       expect((await text(provider, c, 'x', { replyToId: foreign.body.id })).status).toBe(400);

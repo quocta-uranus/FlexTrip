@@ -89,7 +89,7 @@ function MessagesContent() {
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <span className="text-6xl">💬</span>
           <p className="text-base font-semibold text-[#0f1729]">Chọn một cuộc trò chuyện</p>
-          <p className="text-sm text-[#8694ad]">Hoặc liên hệ Provider từ trang sản phẩm.</p>
+          <p className="text-sm text-[#8694ad]">Bạn có thể nhắn với nhân viên phụ trách từ trang chi tiết đơn thuê.</p>
         </div>
       )}
       </div>

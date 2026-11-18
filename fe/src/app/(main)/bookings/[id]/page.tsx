@@ -2,6 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { StartChatButton } from '@/components/chat/start-chat-button';
 import Link from 'next/link';
 import { useBooking, useCancelBooking, useDeclineBooking } from '@/hooks/useBookings';
 import { useModifyRequests, useCreateModifyRequest, useAcceptModifyRequest, useRejectModifyRequest } from '@/hooks/useModifyBooking';
@@ -486,15 +487,9 @@ function BookingDetailContent() {
               </p>
             )}
 
-            {/* Traveler: contact provider */}
-            {!isProvider && booking.listing && (
-              <Link
-                href={`/messages?to=${booking.listing.providerId}`}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-medium transition-all hover:shadow-sm"
-                style={{ borderColor: '#DCEFFB', color: '#2a7bd9' }}
-              >
-                💬 Liên hệ Provider
-              </Link>
+            {/* Chỉ chat với Staff được gán; Traveler và Provider không nhắn trực tiếp cho nhau */}
+            {booking.assignedStaff && !['PENDING_PAYMENT', 'CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (
+              <StartChatButton targetUserId={booking.assignedStaff.id} label="Nhắn nhân viên phụ trách" />
             )}
 
             {/* Traveler: modify request */}

@@ -6,8 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertTriangle, ArrowLeft, CalendarDays, Camera, CheckCircle2,
-  FileText, MapPin, Package, Phone, Scale, Truck, Upload, User2,
+  FileText, MapPin, Package, Phone, Scale, Truck, User2,
 } from 'lucide-react';
+import { StartChatButton } from '@/components/chat/start-chat-button';
+import { ConditionDialog } from '@/components/staff/condition-dialog';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,12 +22,12 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  useConfirmStaffTask, useCreateMediation, useEscalateMediation,
+  useCreateMediation, useEscalateMediation,
   useResolveMediation, useStaffBooking,
 } from '@/hooks/use-staff-operations';
 import {
-  staffConditionSchema, staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
-  type StaffConditionInput, type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
+  staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
+  type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
 } from '@/lib/validators/staff.schema';
 
 function formatDate(iso: string) {
@@ -46,95 +48,6 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   COMPLETED:   { label: 'Hoàn thành',  variant: 'secondary' },
   DISPUTED:    { label: 'Tranh chấp',  variant: 'destructive' },
 };
-
-const INSPECTION_ITEMS = {
-  HANDOVER: ['Đúng thiết bị trong đơn thuê', 'Đầy đủ phụ kiện đi kèm', 'Hoạt động bình thường'],
-  RETURN: ['Ngoại quan nguyên vẹn, không hư hỏng mới', 'Đầy đủ phụ kiện đi kèm', 'Hoạt động bình thường', 'Đã vệ sinh sạch sẽ'],
-} as const;
-
-// ── Condition dialog (handover/return) ──────────────────────────────────────
-function ConditionDialog({ open, type, bookingId, onClose, onDone, onReportIssue }: {
-  open: boolean; type: 'HANDOVER' | 'RETURN'; bookingId: string;
-  onClose: () => void; onDone: (msg: string) => void; onReportIssue: () => void;
-}) {
-  const mutation = useConfirmStaffTask();
-  const form = useForm<StaffConditionInput>({ resolver: zodResolver(staffConditionSchema) });
-  const items = INSPECTION_ITEMS[type];
-  const [checked, setChecked] = useState<boolean[]>([]);
-  const ticks = items.map((_, i) => checked[i] ?? false);
-  // Cả hai biên bản đều là bằng chứng khi tranh chấp: phải tick đủ mới xác nhận được (nhận lại còn quyết định hoàn tiền).
-  const failed = items.filter((_, i) => !ticks[i]);
-  const blocked = failed.length > 0;
-
-  const submit = form.handleSubmit((v) => {
-    mutation.mutate(
-      {
-        bookingId, type, conditionNote: v.conditionNote, file: v.file,
-        checklist: items.map((label, i) => ({ label, ok: ticks[i] })),
-      },
-      { onSuccess: () => { form.reset(); setChecked([]); onClose(); onDone(type === 'HANDOVER' ? 'Đã xác nhận bàn giao. Cuộc thuê đã bắt đầu.' : 'Đã kiểm tra và nhận lại. Cuộc thuê đã hoàn thành.'); } },
-    );
-  });
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{type === 'HANDOVER' ? 'Xác nhận giao thiết bị' : 'Xác nhận nhận lại thiết bị'}</DialogTitle>
-          <DialogDescription>Ảnh và mô tả sẽ được lưu vào biên bản để đối chiếu khi có tranh chấp.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>{type === 'RETURN' ? 'Kiểm tra thiết bị khi nhận lại' : 'Kiểm tra thiết bị khi bàn giao'}</Label>
-            <div className="space-y-1.5 rounded-xl border border-slate-200 p-3">
-              {items.map((label, i) => (
-                <label key={label} className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-emerald-600"
-                    checked={ticks[i]}
-                    onChange={(e) => setChecked(ticks.map((t, j) => (j === i ? e.target.checked : t)))}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-            {blocked && (
-              <div className="flex items-start justify-between gap-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-                <span>
-                  {type === 'RETURN'
-                    ? 'Chưa thể hoàn thành vì còn hạng mục chưa đạt. Nếu phát hiện vấn đề, hãy lập biên bản thương lượng.'
-                    : 'Cần tick đủ các hạng mục trước khi bàn giao. Nếu thiết bị có vấn đề, hãy lập biên bản thương lượng thay vì bàn giao.'}
-                </span>
-                <button type="button" onClick={() => { onClose(); onReportIssue(); }} className="shrink-0 font-semibold underline">
-                  Lập biên bản
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Ảnh tình trạng</Label>
-            <Input type="file" accept="image/*" capture="environment"
-              onChange={(e) => form.setValue('file', e.target.files?.[0] as File, { shouldValidate: true })} />
-            {form.formState.errors.file && <p className="text-xs text-red-600">{form.formState.errors.file.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Tình trạng thiết bị</Label>
-            <Textarea rows={4} placeholder="Mô tả ngoại quan, phụ kiện, vết xước..." {...form.register('conditionNote')} />
-            {form.formState.errors.conditionNote && <p className="text-xs text-red-600">{form.formState.errors.conditionNote.message}</p>}
-          </div>
-          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Huỷ</Button>
-            <Button type="submit" disabled={mutation.isPending || blocked}>
-              <Upload className="h-4 w-4" />
-              {mutation.isPending ? 'Đang lưu...' : type === 'HANDOVER' ? 'Xác nhận & bắt đầu thuê' : 'Xác nhận & hoàn thành'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ── Mediation dialog ──────────────────────────────────────────────────────
 function MediationDialog({ open, bookingId, onClose, onDone }: {
@@ -337,6 +250,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
               <p className="flex items-center gap-1.5 text-sm text-[#5a6b85]"><Phone className="h-3.5 w-3.5" />{booking.traveler.phone}</p>
             )}
             <p className="text-sm text-[#8694ad]">{booking.traveler.email}</p>
+            <StartChatButton targetUserId={booking.traveler.id} label="Nhắn Traveler" />
           </CardContent>
         </Card>
 
@@ -352,6 +266,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             {booking.listing.provider.phone && (
               <p className="flex items-center gap-1.5 text-sm text-[#5a6b85]"><Phone className="h-3.5 w-3.5" />{booking.listing.provider.phone}</p>
             )}
+            <StartChatButton targetUserId={booking.listing.provider.id} label="Nhắn Provider" />
           </CardContent>
         </Card>
       </div>
@@ -458,6 +373,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       <ConditionDialog
         open={!!conditionDialog}
         type={conditionDialog ?? 'HANDOVER'}
+        providerCondition={booking.contract.productConditionNote}
         bookingId={id}
         onClose={() => setConditionDialog(null)}
         onDone={(msg) => { setConditionDialog(null); setNotice(msg); refetch(); }}

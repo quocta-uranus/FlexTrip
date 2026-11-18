@@ -6,7 +6,7 @@ const imageFile = z.custom<File>(
 );
 
 export const staffConditionSchema = z.object({
-  conditionNote: z.string().trim().min(2, 'Mô tả tình trạng ít nhất 2 ký tự').max(2000),
+  conditionNote: z.string().trim().max(2000, 'Ghi chú tối đa 2000 ký tự'),
   file: imageFile,
 });
 
