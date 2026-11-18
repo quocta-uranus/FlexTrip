@@ -19,7 +19,7 @@ import {
 } from './dto/staff-operations.dto';
 
 const DETAIL_INCLUDE = {
-  listing: { select: { id: true, title: true, location: true, imageUrls: true, provider: { select: { id: true, name: true, phone: true } } } },
+  listing: { select: { id: true, title: true, location: true, imageUrls: true, provider: { select: { id: true, name: true, phone: true, email: true } } } },
   traveler: { select: { id: true, name: true, phone: true, email: true } },
   contract: { select: { status: true, terms: true, penaltyRules: true, productConditionNote: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
   payment: { select: { rentalAmount: true, rentalPaidAt: true } },
