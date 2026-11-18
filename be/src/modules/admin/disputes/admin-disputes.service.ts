@@ -100,9 +100,10 @@ export class AdminDisputesService {
     const booking = await this.prisma.booking.findUniqueOrThrow({
       where: { id: d.bookingId },
       include: {
-        listing: { select: { id: true, title: true, location: true } },
+        listing: { select: { id: true, title: true, location: true, provider: { select: { name: true } } } },
+        traveler: { select: { name: true } },
         payment: true,
-        contract: { select: { status: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
+        contract: { select: { status: true, terms: true, penaltyRules: true, productConditionNote: true, travelerSignedAt: true, providerSignedAt: true, checkInPhotos: true, checkOutPhotos: true } },
       },
     });
     // The penalty has no column of its own, so it is read back from the wallet debit it created
@@ -122,7 +123,8 @@ export class AdminDisputesService {
       openedBy: d.openedBy, handledBy: d.handledBy, resolvedAt: d.resolvedAt,
       booking: {
         id: booking.id, status: booking.status, startDate: booking.startDate, endDate: booking.endDate,
-        totalPrice: toNumber(booking.totalPrice), listing: booking.listing,
+        totalPrice: toNumber(booking.totalPrice), listing: { id: booking.listing.id, title: booking.listing.title, location: booking.listing.location },
+        travelerName: booking.traveler.name, providerName: booking.listing.provider.name,
       },
       payment: booking.payment
         ? {

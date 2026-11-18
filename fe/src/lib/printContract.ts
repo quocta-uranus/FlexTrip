@@ -1,5 +1,9 @@
 import type { Contract, DocArticle, DocBlock, PublicSignature } from '@/types/contract';
 
+/** Phần dữ liệu hợp đồng đủ để in; Staff/Admin chỉ có một phần của `Contract` nên không dùng cả kiểu đầy đủ. */
+export type PrintableContract = Pick<Contract, 'bookingId' | 'terms' | 'penaltyRules' | 'productConditionNote' | 'travelerSignedAt' | 'providerSignedAt'> &
+  Partial<Pick<Contract, 'isHighValue' | 'content' | 'appendices' | 'travelerSignature' | 'providerSignature'>>;
+
 import { bookingCode } from '@/lib/booking-code';
 
 function escapeHtml(v: string): string {
@@ -32,7 +36,7 @@ function signHtml(label: string, name: string, sig?: PublicSignature | null) {
 }
 
 // Hợp đồng v2: in khổ A4 theo bố cục văn bản hợp đồng.
-function printContractDocument(contract: Contract) {
+function printContractDocument(contract: PrintableContract) {
   const doc = contract.content!;
   const e = escapeHtml;
   const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8" /><title>${e(doc.title)}${doc.number ? ' ' + e(doc.number) : ''}</title>
@@ -66,7 +70,7 @@ ${(contract.appendices ?? []).map((a) => `<div class="appx">${articleHtml(a)}</d
   setTimeout(() => win.print(), 400);
 }
 
-export function printContract(contract: Contract, travelerName: string, providerName: string) {
+export function printContract(contract: PrintableContract, travelerName: string, providerName: string) {
   if (contract.content) return printContractDocument(contract);
   const fmt = (n: number) => n.toLocaleString('vi-VN');
 
@@ -86,8 +90,8 @@ export function printContract(contract: Contract, travelerName: string, provider
               .map(
                 (r) => `
               <tr>
-                <td>${r.item}</td>
-                <td>${r.description}</td>
+                <td>${escapeHtml(r.item)}</td>
+                <td>${escapeHtml(r.description)}</td>
                 <td style="text-align:right">${
                   r.minAmount === r.maxAmount
                     ? fmt(r.minAmount)
@@ -103,7 +107,7 @@ export function printContract(contract: Contract, travelerName: string, provider
   const conditionBox = contract.productConditionNote
     ? `<div class="condition-box">
         <strong>Tình trạng sản phẩm (Provider khai báo):</strong><br/>
-        ${contract.productConditionNote}
+        ${escapeHtml(contract.productConditionNote)}
        </div>`
     : '';
 
@@ -246,7 +250,7 @@ export function printContract(contract: Contract, travelerName: string, provider
   }
 
   <div class="contract-body">
-    <pre>${contract.terms}</pre>
+    <pre>${escapeHtml(contract.terms)}</pre>
   </div>
 
   <div class="signatures">

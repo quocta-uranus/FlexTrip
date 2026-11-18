@@ -8,6 +8,7 @@ import {
 import { useAdminBookingDetail, useAdminBookingList, useAdminBookingStats } from '@/hooks/admin/use-admin-bookings';
 import { PAYMENT_STATUS_LABEL, type AdminBookingRow, type PaymentStatus } from '@/types/admin';
 import { ContractDocument } from '@/components/contracts/ContractDocument';
+import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { CONTRACT_STATUS_LABEL, type ContractStatus } from '@/types/contract';
 import { bookingCode } from '@/lib/booking-code';
 import { rentalDays } from '@/lib/rental-days';
@@ -267,9 +268,16 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             {/* Contract */}
             {b.contract && (
               <div className="rounded-xl border border-[#e2e8f3] p-4">
-                <p className="mb-2 flex items-center gap-2 text-sm font-bold text-[#5a6b85] uppercase tracking-wide">
-                  <FileText className="h-4 w-4" />Hợp đồng
-                </p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 text-sm font-bold text-[#5a6b85] uppercase tracking-wide">
+                    <FileText className="h-4 w-4" />Hợp đồng
+                  </p>
+                  <ExportPdfButton
+                    contract={{ ...b.contract, bookingId: b.id }}
+                    travelerName={b.traveler.name}
+                    providerName={b.listing.provider.name}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
                     <p className="text-[#8694ad]">Trạng thái</p>

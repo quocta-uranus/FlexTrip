@@ -38,7 +38,7 @@ const DETAIL_SELECT = {
     },
   },
   payment: { select: { id: true, status: true, gateway: true, totalAmount: true, gatewayTransId: true } },
-  contract: { select: { id: true, status: true, travelerSignedAt: true, providerSignedAt: true } },
+  contract: { select: { id: true, status: true, terms: true, penaltyRules: true, productConditionNote: true, travelerSignedAt: true, providerSignedAt: true } },
   staffMediations: {
     select: { id: true, status: true, issue: true, resolution: true, createdAt: true },
     orderBy: { createdAt: 'desc' as const },

@@ -21,6 +21,7 @@ import { resolveDisputeSchema, type ResolveDisputeInput } from '@/lib/validators
 import { formatDate, formatDateTime, formatVnd } from '@/lib/format';
 import type { DisputePriority } from '@/types/admin';
 import { ContractDocument } from '@/components/contracts/ContractDocument';
+import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { useDisputeAssist } from '@/hooks/usePaymentAi';
 import {
   BOOKING_STATUS_LABELS,
@@ -176,7 +177,16 @@ export default function DisputeDetailPage() {
 
           {/* Contract */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-slate-500">Hợp đồng</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Hợp đồng</h2>
+              {data.contract && (
+                <ExportPdfButton
+                  contract={{ ...data.contract, bookingId: data.booking.id }}
+                  travelerName={data.booking.travelerName}
+                  providerName={data.booking.providerName}
+                />
+              )}
+            </div>
             {data.contract ? (
               <div className="space-y-3">
                 <p className="text-sm">Trạng thái: <span className="font-medium">{CONTRACT_STATUS_LABELS[data.contract.status] ?? data.contract.status}</span></p>
