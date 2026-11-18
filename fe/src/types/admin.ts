@@ -1,3 +1,4 @@
+import type { ContractDocument, DocArticle, PublicSignature } from './contract';
 import type {
   ReportFrequency, ReportType, TicketCategory, TicketMessage, TicketPriority, TicketStatus, TicketTriageSource,
 } from "./support";
@@ -235,6 +236,12 @@ export interface AdminDisputeDetail extends AdminDispute {
     checkInPhotos: string[];
     // Older staff returns stored a bare URL or `{ push }`, so entries are not always `{ url }`
     checkOutPhotos: unknown;
+    contractNo?: string | null;
+    templateVersion?: number;
+    content?: ContractDocument | null;
+    travelerSignature?: PublicSignature | null;
+    providerSignature?: PublicSignature | null;
+    appendices?: DocArticle[];
   } | null;
   history: AuditLogItem[];
 }
@@ -453,7 +460,15 @@ export interface AdminBookingDetail extends AdminBookingRow {
     staffProfile: { employeeCode: string; phone: string | null; regions: string[] } | null;
   }) | null;
   payment: { id: string; status: string; gateway: string; totalAmount: number; gatewayTransId: string | null } | null;
-  contract: { id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null } | null;
+  contract: {
+    id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null;
+      contractNo?: string | null;
+      templateVersion?: number;
+      content?: ContractDocument | null;
+      travelerSignature?: PublicSignature | null;
+      providerSignature?: PublicSignature | null;
+      appendices?: DocArticle[];
+  } | null;
   staffMediations: { id: string; status: string; issue: string; resolution: string | null; createdAt: string }[];
 }
 

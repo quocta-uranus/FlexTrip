@@ -8,6 +8,7 @@ import { useContract, useProviderSignContract } from '@/hooks/useContracts';
 import { useAuthStore } from '@/store/auth.store';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
+import { SignaturePad } from '@/components/contracts/SignaturePad';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
 import type { ContractStatus } from '@/types/contract';
 import { printContract } from '@/lib/printContract';
@@ -21,6 +22,7 @@ function ContractSignContent() {
   const { data: contract, isLoading: contractLoading } = useContract(bookingId, !!bookingId);
   const signContract = useProviderSignContract();
   const [agreed, setAgreed] = useState(false);
+  const [signature, setSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const isLoading = bookingLoading || contractLoading;
@@ -57,11 +59,15 @@ function ContractSignContent() {
 
   const statusCfg = CONTRACT_STATUS_COLOR[contract.status as ContractStatus];
 
+  // Hợp đồng v2 (có content) bắt buộc chữ ký tay; hợp đồng cũ chỉ cần tick đồng ý.
+  const isV2 = !!contract.content;
+  const readyToSign = agreed && (!isV2 || !!signature);
+
   async function handleSign() {
-    if (!agreed || !canSign) return;
+    if (!readyToSign || !canSign) return;
     setError(null);
     try {
-      await signContract.mutateAsync(bookingId);
+      await signContract.mutateAsync({ bookingId, signatureImage: isV2 ? (signature ?? undefined) : undefined });
       router.push(`/bookings/${bookingId}?signed=1`);
     } catch (err) {
       setError((err as Error).message ?? 'Đã xảy ra lỗi. Vui lòng thử lại.');
@@ -140,6 +146,10 @@ function ContractSignContent() {
         penaltyRules={contract.penaltyRules ?? undefined}
         conditionNote={contract.productConditionNote}
         isHighValue={contract.isHighValue}
+        content={contract.content}
+        appendices={contract.appendices}
+        travelerSignature={contract.travelerSignature}
+        providerSignature={contract.providerSignature}
         collapsible={false}
       />
 
@@ -154,6 +164,13 @@ function ContractSignContent() {
 
           <SignatureCheckbox checked={agreed} onChange={setAgreed} />
 
+          {isV2 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold" style={{ color: '#0f1729' }}>Ký tên (Bên A)</p>
+              <SignaturePad onChange={setSignature} disabled={signContract.isPending} />
+            </div>
+          )}
+
           {error && (
             <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: '#fca5a5', background: '#fef2f2', color: '#dc2626' }}>
               {error}
@@ -162,11 +179,11 @@ function ContractSignContent() {
 
           <button
             onClick={handleSign}
-            disabled={!agreed || signContract.isPending}
+            disabled={!readyToSign || signContract.isPending}
             className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: agreed ? '#2a7bd9' : '#94a3b8',
-              boxShadow: agreed ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none',
+              background: readyToSign ? '#2a7bd9' : '#94a3b8',
+              boxShadow: readyToSign ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none',
             }}
           >
             {signContract.isPending ? (

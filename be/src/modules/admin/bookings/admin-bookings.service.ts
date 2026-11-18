@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { BookingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
+import { loadPresentedContract } from '../../contracts/contracts.present';
 import { ListAdminBookingsQueryDto } from './dto/admin-bookings.dto';
 
 const LIST_SELECT = {
@@ -96,6 +97,7 @@ export class AdminBookingsService {
   async detail(id: string) {
     const b = await this.prisma.booking.findUnique({ where: { id }, select: DETAIL_SELECT });
     if (!b) throw new NotFoundException({ code: 'BOOKING_NOT_FOUND', message: 'Không tìm thấy booking.' });
-    return b;
+    const presented = b.contract ? await loadPresentedContract(this.prisma, id) : null;
+    return presented ? { ...b, contract: { ...b.contract, ...presented } } : b;
   }
 }

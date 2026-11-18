@@ -13,6 +13,34 @@ export interface PenaltyRule {
   maxAmount: number;
 }
 
+export type DocBlock =
+  | { type: 'p'; text: string }
+  | { type: 'sub'; text: string }
+  | { type: 'list'; items: string[] }
+  | { type: 'kv'; rows: Array<[string, string]> }
+  | { type: 'table'; head: string[]; rows: string[][] }
+  | { type: 'images'; urls: string[] };
+
+export interface DocArticle { title: string; blocks: DocBlock[] }
+
+/** Hợp đồng v2: cấu trúc văn bản theo mẫu pháp lý, dựng ở backend. */
+export interface ContractDocument {
+  version: 2;
+  title: string;
+  nation: [string, string];
+  number: string | null;
+  issuedAt: string;
+  basis: string[];
+  opening: string;
+  parties: Array<{ heading: string; rows: Array<[string, string]> }>;
+  intro: string;
+  articles: DocArticle[];
+  closing: string;
+  signers: Array<{ label: string; name: string }>;
+}
+
+export interface PublicSignature { image: string; signedAt: string | null; hash: string | null }
+
 export interface Contract {
   id: string;
   bookingId: string;
@@ -32,9 +60,17 @@ export interface Contract {
   insuranceRef: string | null;
   createdAt: string;
   updatedAt: string;
+  contractNo?: string | null;
+  templateVersion?: number;
+  content?: ContractDocument | null;
+  travelerSignature?: PublicSignature | null;
+  providerSignature?: PublicSignature | null;
+  appendices?: DocArticle[];
 }
 
 export interface ContractPreview {
+  templateVersion?: number;
+  content?: ContractDocument | null;
   terms: string;
   penaltyRules: PenaltyRule[];
   isHighValue: boolean;

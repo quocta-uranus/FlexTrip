@@ -1,4 +1,4 @@
-import type { PenaltyRule } from './contract';
+import type { ContractDocument, DocArticle, PenaltyRule, PublicSignature } from './contract';
 
 export type StaffTaskType = 'HANDOVER' | 'RETURN';
 export type StaffMediationStatus = 'OPEN' | 'RESOLVED' | 'ESCALATED';
@@ -73,6 +73,12 @@ export interface StaffBooking {
     providerSignedAt: string | null;
     checkInPhotos: string[];
     checkOutPhotos: Array<string | { url: string }> | null;
+    contractNo?: string | null;
+    templateVersion?: number;
+    content?: ContractDocument | null;
+    travelerSignature?: PublicSignature | null;
+    providerSignature?: PublicSignature | null;
+    appendices?: DocArticle[];
   } | null;
   staffMediations: StaffMediation[];
 }
