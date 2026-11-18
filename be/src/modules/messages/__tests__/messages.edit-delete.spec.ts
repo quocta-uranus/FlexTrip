@@ -11,8 +11,8 @@ describe('MSG-02 edit and delete', () => {
 
   async function setup() {
     const traveler = await h.createUser('traveler@example.com', [Role.TRAVELER]);
-    const provider = await h.createUser('provider@example.com', [Role.PROVIDER]);
-    const c = (await h.req('post', '/messages/conversations', traveler.accessToken).send({ targetUserId: provider.userId })).body.id as string;
+    const provider = await h.createUser('staff@example.com', [Role.STAFF]);
+    const c = await h.openChat(traveler, provider);
     return { traveler, provider, c };
   }
   const send = (u: U, c: string, body: object) => h.req('post', `/messages/conversations/${c}`, u.accessToken).send(body);
@@ -31,7 +31,7 @@ describe('MSG-02 edit and delete', () => {
   it('recomputes link previews when the text changes', async () => {
     const { traveler, c } = await setup();
     const listing = await h.prisma.listing.create({
-      data: { title: 'Xe máy', description: 'd', price: 1, location: 'HN', category: 'VEHICLE', imageUrls: [], status: 'ACTIVE', providerId: (await h.prisma.user.findFirstOrThrow({ where: { email: 'provider@example.com' } })).id },
+      data: { title: 'Xe máy', description: 'd', price: 1, location: 'HN', category: 'VEHICLE', imageUrls: [], status: 'ACTIVE', providerId: (await h.prisma.user.findFirstOrThrow({ where: { email: 'staff@example.com' } })).id },
     });
     const m = (await send(traveler, c, { type: 'TEXT', content: 'chưa có link' })).body;
     const res = await edit(traveler, m.id, `http://localhost:3000/listings/${listing.id}`);

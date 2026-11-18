@@ -42,6 +42,22 @@ export class ChatHarness extends AuthHarness {
     return { userId: registered.userId, accessToken };
   }
 
+  private seq = 0;
+
+  // Mở cuộc trò chuyện hợp lệ: Staff phải đang được gán cho một đơn của người còn lại.
+  async openChat(user: { userId: string; accessToken: string }, staff: { userId: string }): Promise<string> {
+    const n = ++this.seq;
+    const owner = await this.createUser(`owner${n}@example.com`, [Role.PROVIDER]);
+    const listing = await this.prisma.listing.create({
+      data: { title: 'Lều', description: 'd', price: 1, location: 'ĐL', category: 'CAMPING_TREKKING', imageUrls: [], status: 'ACTIVE', providerId: owner.userId },
+    });
+    await this.prisma.booking.create({
+      data: { startDate: new Date('2030-01-01'), endDate: new Date('2030-01-02'), totalPrice: 1, travelerId: user.userId, listingId: listing.id, assignedStaffId: staff.userId },
+    });
+    const res = await this.req('post', '/messages/conversations', user.accessToken).send({ targetUserId: staff.userId });
+    return res.body.id as string;
+  }
+
   req(method: Method, path: string, token?: string): request.Test {
     const r = request(this.app.getHttpServer())[method](`/api/v1${path}`);
     return token ? r.set('Authorization', `Bearer ${token}`) : r;
