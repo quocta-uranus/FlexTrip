@@ -18,7 +18,7 @@ import { useContract } from '@/hooks/useContracts';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { CONTRACT_STATUS_LABEL, CONTRACT_STATUS_COLOR } from '@/types/contract';
 import type { ContractStatus } from '@/types/contract';
-import { printContract } from '@/lib/printContract';
+import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { useInitiatePayment, usePayRental, useWallet } from '@/hooks/usePayments';
 import { bookingCode } from '@/lib/booking-code';
 import { PaymentMethodPicker } from '@/components/booking/payment-method-picker';
@@ -817,19 +817,11 @@ function BookingDetailContent() {
               })()}
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() =>
-                  printContract(
-                    contract,
-                    booking.traveler?.name ?? 'Khách thuê',
-                    booking.listing?.provider?.providerProfile?.shopName || booking.listing?.provider?.name || 'Người cho thuê',
-                  )
-                }
-                className="text-xs font-medium"
-                style={{ color: '#5a6b85' }}
-              >
-                🖨️ Xuất PDF
-              </button>
+              <ExportPdfButton
+                contract={contract}
+                travelerName={booking.traveler?.name}
+                providerName={booking.listing?.provider?.providerProfile?.shopName || booking.listing?.provider?.name}
+              />
               <Link
                 href={`/bookings/${booking.id}/contract`}
                 className="text-xs font-medium"
@@ -845,6 +837,10 @@ function BookingDetailContent() {
               penaltyRules={contract.penaltyRules ?? undefined}
               conditionNote={contract.productConditionNote}
               isHighValue={contract.isHighValue}
+              content={contract.content}
+              appendices={contract.appendices}
+              travelerSignature={contract.travelerSignature}
+              providerSignature={contract.providerSignature}
               collapsible
             />
             <div className="mt-3 grid grid-cols-2 gap-3 text-xs">

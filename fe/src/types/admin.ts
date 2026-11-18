@@ -1,4 +1,4 @@
-import type { ContractDocument, DocArticle, PublicSignature } from './contract';
+import type { ContractDocument, DocArticle, PenaltyRule, PublicSignature } from './contract';
 import type {
   ReportFrequency, ReportType, TicketCategory, TicketMessage, TicketPriority, TicketStatus, TicketTriageSource,
 } from "./support";
@@ -219,6 +219,8 @@ export interface AdminDisputeDetail extends AdminDispute {
     endDate: string;
     totalPrice: number;
     listing: { id: string; title: string; location: string };
+    travelerName: string;
+    providerName: string;
   };
   payment: {
     id: string;
@@ -231,6 +233,9 @@ export interface AdminDisputeDetail extends AdminDispute {
   } | null;
   contract: {
     status: string;
+    terms: string;
+    penaltyRules: PenaltyRule[] | null;
+    productConditionNote: string | null;
     travelerSignedAt: string | null;
     providerSignedAt: string | null;
     checkInPhotos: string[];
@@ -462,6 +467,9 @@ export interface AdminBookingDetail extends AdminBookingRow {
   payment: { id: string; status: string; gateway: string; totalAmount: number; gatewayTransId: string | null } | null;
   contract: {
     id: string; status: string; travelerSignedAt: string | null; providerSignedAt: string | null;
+      terms: string;
+      penaltyRules: PenaltyRule[] | null;
+      productConditionNote: string | null;
       contractNo?: string | null;
       templateVersion?: number;
       content?: ContractDocument | null;

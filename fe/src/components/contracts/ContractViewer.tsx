@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ContractDocument as Doc, DocArticle, PenaltyRule, PublicSignature } from '@/types/contract';
 import { ContractDocument } from './ContractDocument';
@@ -10,6 +10,8 @@ interface ContractViewerProps {
   conditionNote?: string | null;
   isHighValue?: boolean;
   collapsible?: boolean;
+  /** Nút thao tác đặt ở phần đầu (ví dụ Xuất PDF). */
+  actions?: ReactNode;
   /** Hợp đồng v2: có cấu trúc thì hiển thị dạng văn bản chuẩn thay cho khối text. */
   content?: Doc | null;
   appendices?: DocArticle[];
@@ -23,6 +25,7 @@ export function ContractViewer({
   conditionNote,
   isHighValue = false,
   collapsible = false,
+  actions,
   content,
   appendices,
   travelerSignature,
@@ -51,6 +54,8 @@ export function ContractViewer({
             </span>
           )}
         </div>
+        <div className="flex items-center gap-3">
+        {actions}
         {collapsible && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -64,6 +69,7 @@ export function ContractViewer({
             )}
           </button>
         )}
+        </div>
       </div>
 
       {expanded && (

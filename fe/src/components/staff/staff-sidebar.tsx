@@ -18,7 +18,7 @@ export function StaffSidebar() {
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) ?? '?';
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-[#e2e8f3] bg-white">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-[#e2e8f3] bg-white pt-20">
       {/* Brand */}
       <div className="border-b border-[#e2e8f3] px-5 py-4">
         <div className="flex items-center gap-3">

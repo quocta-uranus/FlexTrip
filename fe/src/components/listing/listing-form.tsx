@@ -160,7 +160,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
       <div className="bg-white shadow-sm ring-1 ring-black/[0.04]">
-        <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6">
+        <div className="mx-auto max-w-3xl px-4 pb-5 pt-24 sm:px-6 sm:pt-28">
           <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400">
             <Link href="/dashboard" className="transition-colors hover:text-[#2a7bd9]">Dashboard</Link>
             <ChevronRight className="h-3 w-3" />
