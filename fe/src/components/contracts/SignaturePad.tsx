@@ -21,6 +21,7 @@ export function SignaturePad({ onChange, disabled }: SignaturePadProps) {
   const last = useRef<{ x: number; y: number } | null>(null);
   const stats = useRef({ points: 0, length: 0 });
   const [hasInk, setHasInk] = useState(false);
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
@@ -44,6 +45,7 @@ export function SignaturePad({ onChange, disabled }: SignaturePadProps) {
     if (disabled) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
+    setTouched(true);
     const p = position(e);
     last.current = p;
     const ctx = canvasRef.current!.getContext('2d')!;
@@ -80,6 +82,7 @@ export function SignaturePad({ onChange, disabled }: SignaturePadProps) {
     canvas?.getContext('2d')?.clearRect(0, 0, WIDTH, HEIGHT);
     stats.current = { points: 0, length: 0 };
     setHasInk(false);
+    setTouched(false);
     onChange(null);
   }
 
@@ -99,7 +102,7 @@ export function SignaturePad({ onChange, disabled }: SignaturePadProps) {
           onPointerCancel={end}
           onPointerLeave={end}
         />
-        {!hasInk && !drawing.current && (
+        {!hasInk && !touched && (
           <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-[#94a3b8]">
             Giữ chuột và vẽ chữ ký của bạn vào đây
           </p>
