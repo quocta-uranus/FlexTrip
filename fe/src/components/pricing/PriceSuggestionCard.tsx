@@ -6,22 +6,6 @@ import type { PriceSuggestion } from '@/types/pricing';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('vi-VN');
 
-function DemandBadge({ score, trend }: { score: number; trend: string }) {
-  const color =
-    score >= 70 ? '#16a34a' : score >= 40 ? '#ca8a04' : '#dc2626';
-  const label =
-    score >= 70 ? 'Cao' : score >= 40 ? 'Trung bình' : 'Thấp';
-  const arrow = trend === 'UP' ? '↑' : trend === 'DOWN' ? '↓' : '→';
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-      style={{ background: `${color}14`, color }}
-    >
-      {arrow} {label} ({score}/100)
-    </span>
-  );
-}
-
 function PercentileBar({ myPercentile }: { myPercentile: number | null }) {
   if (myPercentile == null) return null;
   const clamp = Math.min(99, Math.max(1, myPercentile));
@@ -146,7 +130,6 @@ export function PriceSuggestionCard({ category, location, title, currentPrice, l
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <DemandBadge score={data.demand.score} trend={data.demand.trend} />
           <button
             type="button"
             onClick={request}
