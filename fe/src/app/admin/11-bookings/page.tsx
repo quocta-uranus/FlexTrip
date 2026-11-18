@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAdminBookingDetail, useAdminBookingList, useAdminBookingStats } from '@/hooks/admin/use-admin-bookings';
 import { PAYMENT_STATUS_LABEL, type AdminBookingRow, type PaymentStatus } from '@/types/admin';
+import { ContractDocument } from '@/components/contracts/ContractDocument';
 import { CONTRACT_STATUS_LABEL, type ContractStatus } from '@/types/contract';
 import { bookingCode } from '@/lib/booking-code';
 import { rentalDays } from '@/lib/rental-days';
@@ -281,6 +282,21 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                     </p>
                   </div>
                 </div>
+                {b.contract.content && (
+                  <details className="mt-3 rounded-lg border border-[#e2e8f3]">
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-[#1d4ed8]">
+                      Xem toàn văn hợp đồng{b.contract.contractNo ? ` số ${b.contract.contractNo}` : ''}
+                    </summary>
+                    <div className="max-h-[60vh] overflow-auto border-t border-[#e2e8f3] p-3">
+                      <ContractDocument
+                        doc={b.contract.content}
+                        appendices={b.contract.appendices}
+                        travelerSignature={b.contract.travelerSignature}
+                        providerSignature={b.contract.providerSignature}
+                      />
+                    </div>
+                  </details>
+                )}
               </div>
             )}
 

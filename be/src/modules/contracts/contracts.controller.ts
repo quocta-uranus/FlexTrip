@@ -5,7 +5,12 @@ import { AccessTokenGuard, AuthenticatedRequest } from '../auth/guards/access-to
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ContractsService } from './contracts.service';
-import { CheckinDto, CheckoutDto } from './dto/contract.dto';
+import { CheckinDto, CheckoutDto, SignContractDto } from './dto/contract.dto';
+
+const signMeta = (req: AuthenticatedRequest) => ({
+  ip: req.ip ?? null,
+  userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) || null,
+});
 
 @ApiTags('contracts')
 @ApiBearerAuth()
@@ -31,16 +36,16 @@ export class ContractsController {
   @HttpCode(204)
   @Roles(Role.PROVIDER)
   @ApiOperation({ summary: 'CONTR-01: Provider ký hợp đồng → Booking CONFIRMED' })
-  providerSign(@Param('bookingId') bookingId: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.providerSign(bookingId, req.authUserId);
+  providerSign(@Param('bookingId') bookingId: string, @Body() dto: SignContractDto, @Req() req: AuthenticatedRequest) {
+    return this.svc.providerSign(bookingId, req.authUserId, dto, signMeta(req));
   }
 
   @Post(':bookingId/traveler-sign')
   @HttpCode(204)
   @Roles(Role.TRAVELER)
   @ApiOperation({ summary: 'CONTR-01: Traveler ký hợp đồng (trước khi thanh toán)' })
-  travelerSign(@Param('bookingId') bookingId: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.travelerSign(bookingId, req.authUserId);
+  travelerSign(@Param('bookingId') bookingId: string, @Body() dto: SignContractDto, @Req() req: AuthenticatedRequest) {
+    return this.svc.travelerSign(bookingId, req.authUserId, dto, signMeta(req));
   }
 
   @Get(':bookingId/can-sign')

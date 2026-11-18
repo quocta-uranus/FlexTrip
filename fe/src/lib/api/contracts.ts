@@ -20,11 +20,11 @@ export const contractsApi = {
   getByBooking: (bookingId: string): Promise<Contract> =>
     api.get(`/contracts/booking/${bookingId}`),
 
-  travelerSign: (bookingId: string): Promise<void> =>
-    api.post(`/contracts/booking/${bookingId}/traveler-sign`, {}),
+  travelerSign: (bookingId: string, signatureImage?: string): Promise<void> =>
+    api.post(`/contracts/booking/${bookingId}/traveler-sign`, signatureImage ? { signatureImage } : {}),
 
-  providerSign: (bookingId: string): Promise<void> =>
-    api.patch(`/contracts/booking/${bookingId}/provider-sign`, {}),
+  providerSign: (bookingId: string, signatureImage?: string): Promise<void> =>
+    api.patch(`/contracts/booking/${bookingId}/provider-sign`, signatureImage ? { signatureImage } : {}),
 
   checkin: (bookingId: string, payload: CheckinPayload): Promise<void> =>
     api.patch(`/contracts/booking/${bookingId}/checkin`, payload),

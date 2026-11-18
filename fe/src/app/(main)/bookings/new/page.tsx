@@ -9,6 +9,7 @@ import { useContractPreview, useTravelerSignContract } from '@/hooks/useContract
 import { CATEGORY_LABELS } from '@/types/listing';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
 import { SignatureCheckbox } from '@/components/contracts/SignatureCheckbox';
+import { SignaturePad } from '@/components/contracts/SignaturePad';
 import { CartItemVoucher, type AppliedVoucher } from '@/components/voucher/cart-item-voucher';
 import { DEPOSIT_RATE } from '@/lib/deposit';
 import { rentalDays as calcRentalDays } from '@/lib/rental-days';
@@ -31,6 +32,7 @@ function BookingCheckoutForm() {
   const [voucher, setVoucher] = useState<AppliedVoucher | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1); // 1=info, 2=contract
   const [contractAgreed, setContractAgreed] = useState(false);
+  const [signature, setSignature] = useState<string | null>(null);
   const [step, setStep] = useState<'form' | 'processing' | 'done'>('form');
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [holdExpiry, setHoldExpiry] = useState<Date | null>(null);
@@ -81,12 +83,16 @@ function BookingCheckoutForm() {
     }
   }
 
+  // Hợp đồng v2 (có content) bắt buộc chữ ký tay; hợp đồng cũ chỉ cần tick đồng ý.
+  const isV2 = !!contractPreview?.content;
+  const canSign = contractAgreed && (!isV2 || !!signature);
+
   async function handleSignAndProceed() {
-    if (!bookingId || !contractAgreed) return;
+    if (!bookingId || !canSign) return;
     setStep('processing');
     setFatalError(null);
     try {
-      await travelerSign.mutateAsync(bookingId);
+      await travelerSign.mutateAsync({ bookingId, signatureImage: isV2 ? (signature ?? undefined) : undefined });
       // Redirect to booking detail — payment is done there via VNPay
       router.push(`/bookings/${bookingId}?pay=1`);
     } catch (err) {
@@ -203,7 +209,8 @@ function BookingCheckoutForm() {
                     penaltyRules={contractPreview.penaltyRules}
                     conditionNote={contractPreview.productConditionNote}
                     isHighValue={contractPreview.isHighValue}
-                    collapsible
+                    content={contractPreview.content}
+                    collapsible={!contractPreview.content}
                   />
                 ) : (
                   <div className="h-40 animate-pulse rounded-2xl bg-[#e2e8f3]" />
@@ -212,6 +219,12 @@ function BookingCheckoutForm() {
                   checked={contractAgreed}
                   onChange={setContractAgreed}
                 />
+                {isV2 && (
+                  <div className="space-y-2 rounded-2xl border bg-white p-4" style={{ borderColor: '#DCEFFB' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#0f1729' }}>Ký tên (Bên B)</p>
+                    <SignaturePad onChange={setSignature} disabled={step === 'processing'} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -313,9 +326,9 @@ function BookingCheckoutForm() {
                 ) : (
                   <button
                     onClick={handleSignAndProceed}
-                    disabled={step === 'processing' || !contractAgreed}
+                    disabled={step === 'processing' || !canSign}
                     className="mt-5 w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: contractAgreed ? '#2a7bd9' : '#94a3b8', boxShadow: contractAgreed ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none' }}
+                    style={{ background: canSign ? '#2a7bd9' : '#94a3b8', boxShadow: canSign ? '0 8px 24px -6px rgba(42,123,217,0.4)' : 'none' }}
                   >
                     {step === 'processing' ? (
                       <span className="flex items-center justify-center gap-2">

@@ -1,10 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class ProviderSignDto {
   @ApiPropertyOptional({ description: 'Ghi chú tình trạng sản phẩm khi giao' })
   @IsOptional() @IsString()
   conditionNoteOverride?: string;
+}
+
+export class SignContractDto {
+  @ApiPropertyOptional({ description: 'Ảnh chữ ký tay dạng data URL PNG; bắt buộc với hợp đồng v2' })
+  @IsOptional() @IsString() @MaxLength(200_000)
+  signatureImage?: string;
 }
 
 export class InsuranceOptInDto {

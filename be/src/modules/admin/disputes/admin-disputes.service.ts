@@ -6,6 +6,7 @@ import { PaymentsService } from '../../payments/payments.service';
 import { RefundService } from '../../payments/refund.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { toNumber } from '../../../common/money.util';
+import { loadPresentedContract } from '../../contracts/contracts.present';
 import { RequestContext } from '../../../common/request-context';
 import {
   ListDisputesQueryDto, ResolveDisputeDto, UpdateDisputePriorityDto, UpdateDisputeStatusDto,
@@ -114,6 +115,7 @@ export class AdminDisputesService {
       orderBy: { createdAt: 'asc' },
       include: { actor: { select: { id: true, name: true } } },
     });
+    const presentedContract = booking.contract ? await loadPresentedContract(this.prisma, d.bookingId) : null;
     return {
       ...toItem(d),
       description: d.description, resolution: d.resolution, penaltyAmount: toNumber(penaltyTx?.amount ?? null),
@@ -129,7 +131,7 @@ export class AdminDisputesService {
             status: booking.payment.status, method: booking.payment.gateway, transactionId: booking.payment.gatewayTransId,
           }
         : null,
-      contract: booking.contract,
+      contract: presentedContract ? { ...booking.contract, ...presentedContract } : booking.contract,
       history,
     };
   }
