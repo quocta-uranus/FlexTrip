@@ -202,7 +202,7 @@ export default function ShopProfilePage() {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-28 pt-24 sm:pt-28">
       <ProfileHeader
         showCover
         eyebrow="PROVIDER"

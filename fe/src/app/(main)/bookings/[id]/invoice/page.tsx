@@ -37,9 +37,9 @@ export default function InvoicePage() {
   const categoryLabel = CATEGORY_LABELS[invoice.listing.category as keyof typeof CATEGORY_LABELS] ?? invoice.listing.category;
 
   return (
-    <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
+    <div className="min-h-screen pt-20 print:pt-0" style={{ background: '#f6fbfe' }}>
       {/* Action bar — hidden on print */}
-      <div className="print:hidden sticky top-0 z-10 border-b bg-white px-6 py-3" style={{ borderColor: '#DCEFFB' }}>
+      <div className="print:hidden sticky top-20 z-10 border-b bg-white px-6 py-3" style={{ borderColor: '#DCEFFB' }}>
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link href={`/bookings/${id}`} className="flex items-center gap-1.5 text-sm font-medium" style={{ color: '#2a7bd9' }}>
             ← Quay lại đơn thuê
