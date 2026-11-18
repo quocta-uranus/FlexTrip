@@ -14,8 +14,8 @@ describe('MSG-03 attachments and shared history', () => {
 
   async function setup() {
     const traveler = await h.createUser('traveler@example.com', [Role.TRAVELER]);
-    const provider = await h.createUser('provider@example.com', [Role.PROVIDER]);
-    const c = (await h.req('post', '/messages/conversations', traveler.accessToken).send({ targetUserId: provider.userId })).body.id as string;
+    const provider = await h.createUser('staff@example.com', [Role.STAFF]);
+    const c = await h.openChat(traveler, provider);
     return { traveler, provider, c };
   }
   const upload = (u: U, c: string, files: { buf: Buffer; name: string; type: string }[]) => {

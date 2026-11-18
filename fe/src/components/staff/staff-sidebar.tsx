@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, ClipboardList, Scale, UserCircle } from 'lucide-react';
+import { CalendarDays, ClipboardList, MessageCircle, Scale, UserCircle } from 'lucide-react';
 import { useMe } from '@/hooks/useSession';
 
 const NAV = [
   { href: '/staff', label: 'Dashboard', icon: CalendarDays, exact: true },
   { href: '/staff/bookings', label: 'Booking của tôi', icon: ClipboardList, exact: false },
+  { href: '/messages', label: 'Tin nhắn', icon: MessageCircle, exact: false },
   { href: '/staff/complete-profile', label: 'Hồ sơ', icon: UserCircle, exact: false },
 ];
 

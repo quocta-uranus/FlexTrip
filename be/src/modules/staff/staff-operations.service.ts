@@ -35,9 +35,10 @@ export class StaffOperationsService {
 
   // The checklist is stored inside the condition text so the record stays readable in contracts and disputes
   private conditionText(dto: ConfirmConditionDto): string {
-    if (!dto.checklist?.length) return dto.conditionNote;
+    const note = dto.conditionNote?.trim();
+    if (!dto.checklist?.length) return note || '';
     const lines = dto.checklist.map((i) => `${i.ok ? '✓' : '✗'} ${i.label}`).join('\n');
-    return `Kiểm tra:\n${lines}\n\nGhi chú: ${dto.conditionNote}`;
+    return note ? `Kiểm tra:\n${lines}\n\nGhi chú: ${note}` : `Kiểm tra:\n${lines}`;
   }
 
   private async assignedBooking(staffId: string, bookingId: string) {

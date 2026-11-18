@@ -7,10 +7,10 @@ import {
   Check,
   FileText,
   MapPin,
-  MessageCircle,
   ShieldCheck,
   Truck,
 } from 'lucide-react';
+import { StartChatButton } from '@/components/chat/start-chat-button';
 import { useMyBookings } from '@/hooks/useBookings';
 import { formatShortDate as shortDate } from '@/lib/format-date';
 import { BOOKING_STATUS_LABEL } from '@/types/booking';
@@ -202,11 +202,12 @@ export function UpcomingTripCard() {
           >
             {booking.status === 'PENDING_PAYMENT' ? 'Thanh toán ngay' : 'Xem chi tiết đơn'}
           </Link>
-          {listing?.providerId && (
-            <Link href={`/messages?to=${listing.providerId}`} className={secondary}>
-              <MessageCircle className="h-4 w-4" />
-              Nhắn chủ đồ
-            </Link>
+          {booking.assignedStaff?.id && (
+            <StartChatButton
+              targetUserId={booking.assignedStaff.id}
+              label="Nhắn nhân viên"
+              className={secondary}
+            />
           )}
           {booking.contract && (
             <Link href={`/bookings/${booking.id}/contract`} className={secondary}>

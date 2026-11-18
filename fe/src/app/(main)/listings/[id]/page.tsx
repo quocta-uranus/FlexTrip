@@ -4,7 +4,6 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ContactProviderButton } from '@/components/listing/contact-provider-button';
 import {
   MapPin, Star, ChevronLeft, ChevronDown, ChevronUp,
   Clock, Tag, Package, Check, BadgeCheck, Zap, Trophy, SearchX,
@@ -305,7 +304,6 @@ export default function ListingDetailPage() {
                           {providerBadges.map((badge) => <ReputationBadge key={badge.code} badge={badge} />)}
                         </div>
                       )}
-                      <ContactProviderButton providerId={listing.provider.id} listingId={listing.id} />
                     </div>
                   </div>
 

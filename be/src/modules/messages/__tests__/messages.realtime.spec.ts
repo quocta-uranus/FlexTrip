@@ -25,9 +25,9 @@ describe('MSG realtime delivery', () => {
 
   it('pushes new/updated/deleted/read to both members and nothing to outsiders', async () => {
     const traveler = await h.createUser('traveler@example.com', [Role.TRAVELER]);
-    const provider = await h.createUser('provider@example.com', [Role.PROVIDER]);
+    const provider = await h.createUser('staff@example.com', [Role.STAFF]);
     const outsider = await h.createUser('outsider@example.com', [Role.PROVIDER]);
-    const c = (await h.req('post', '/messages/conversations', traveler.accessToken).send({ targetUserId: provider.userId })).body.id as string;
+    const c = await h.openChat(traveler, provider);
     const [st, sp, so] = await Promise.all([
       track(connect(url, traveler.accessToken)),
       track(connect(url, provider.accessToken)),

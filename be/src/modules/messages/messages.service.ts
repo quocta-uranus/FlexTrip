@@ -13,6 +13,11 @@ import type {
   ConversationDto, MessageDto, MessagePage, SharedAttachmentDto, SharedLinkDto, SharedPage, UploadedAttachmentDto,
 } from './messages.types';
 
+// Cuộc trò chuyện cũ giữa Traveler và Provider (trước khi chỉ cho chat với Staff) bị ẩn và không gửi thêm được.
+const STAFF_CONVERSATION: Prisma.ConversationWhereInput = {
+  members: { some: { user: { roles: { some: { role: Role.STAFF } } } } },
+};
+
 const MEMBER_USER = { select: { id: true, name: true, avatarUrl: true } } as const;
 
 @Injectable()
@@ -79,8 +84,20 @@ export class MessagesService {
     });
     if (users.length !== 2) throw new NotFoundException('Người dùng không tồn tại');
     if (users.some((u) => u.status !== UserStatus.ACTIVE)) throw new BadRequestException('Tài khoản không khả dụng');
-    const providers = users.filter((u) => u.roles.some((r) => r.role === Role.PROVIDER));
-    if (providers.length !== 1) throw new BadRequestException('Chỉ có thể chat giữa traveler và provider');
+    // Traveler và Provider không chat trực tiếp với nhau: mọi cuộc trò chuyện phải có Staff đang phụ trách đơn của người còn lại.
+    const staff = users.find((u) => u.roles.some((r) => r.role === Role.STAFF));
+    const other = users.find((u) => u.id !== staff?.id);
+    if (!staff || !other || other.roles.some((r) => r.role === Role.STAFF)) {
+      throw new BadRequestException('Chỉ có thể chat với nhân viên FlexTrip phụ trách đơn thuê của bạn');
+    }
+    const assigned = await this.prisma.booking.findFirst({
+      where: {
+        assignedStaffId: staff.id,
+        OR: [{ travelerId: other.id }, { listing: { providerId: other.id } }],
+      },
+      select: { id: true },
+    });
+    if (!assigned) throw new ForbiddenException('Chỉ chat được với nhân viên đã được gán cho đơn thuê của bạn');
 
     const pairKey = [userId, targetUserId].sort().join(':');
     const { id } = await this.prisma.conversation.upsert({
@@ -93,7 +110,7 @@ export class MessagesService {
   }
 
   listConversations(userId: string): Promise<ConversationDto[]> {
-    return this.loadConversations(userId, { messages: { some: {} } });
+    return this.loadConversations(userId, { messages: { some: {} }, AND: [STAFF_CONVERSATION] });
   }
 
   async conversationInfo(userId: string, conversationId: string): Promise<ConversationDto> {
@@ -122,6 +139,8 @@ export class MessagesService {
 
   async send(userId: string, conversationId: string, dto: SendMessageDto): Promise<MessageDto> {
     const memberIds = await this.requireMember(userId, conversationId);
+    const staffChat = await this.prisma.conversation.count({ where: { id: conversationId, ...STAFF_CONVERSATION } });
+    if (!staffChat) throw new ForbiddenException('Chỉ có thể nhắn tin với nhân viên FlexTrip phụ trách đơn thuê');
     validateSendShape(dto);
     const attachments = dto.attachments ?? [];
     if (attachments.some((a) => !this.storage.isOwnUrl(a.url))) {

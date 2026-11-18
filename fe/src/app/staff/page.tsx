@@ -3,11 +3,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertTriangle, ArrowRight, CalendarDays, Camera, CheckCircle2,
-  ClipboardList, Clock3, Lock, MapPin, Package, RotateCcw, Scale, TrendingUp, Upload, Wallet,
+  ClipboardList, Clock3, Lock, MapPin, Package, RotateCcw, Scale, TrendingUp, Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { ConditionDialog } from '@/components/staff/condition-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,12 +21,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useRequestPayout, useWallet, useWalletTransactions } from '@/hooks/usePayments';
 import {
-  useConfirmStaffTask, useCreateMediation, useEscalateMediation,
+  useCreateMediation, useEscalateMediation,
   useMyBookings, useResolveMediation, useStaffMediations, useStaffTasks,
 } from '@/hooks/use-staff-operations';
 import {
-  staffConditionSchema, staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
-  type StaffConditionInput, type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
+  staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
+  type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
 } from '@/lib/validators/staff.schema';
 import type { StaffBooking, StaffMediation, StaffTask } from '@/types/staff';
 
@@ -90,48 +91,6 @@ function TaskCard({ task, onConfirm, onMediate }: {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// ── Condition dialog ─────────────────────────────────────────────────────
-function ConditionDialog({ task, onClose, onDone }: {
-  task: StaffTask | null; onClose: () => void; onDone: (msg: string) => void;
-}) {
-  const mutation = useConfirmStaffTask();
-  const form = useForm<StaffConditionInput>({ resolver: zodResolver(staffConditionSchema) });
-  const submit = form.handleSubmit((v) => {
-    if (!task) return;
-    mutation.mutate(
-      { bookingId: task.bookingId, type: task.type, conditionNote: v.conditionNote, file: v.file },
-      { onSuccess: () => { form.reset(); onClose(); onDone(task.type === 'HANDOVER' ? 'Đã xác nhận bàn giao.' : 'Đã xác nhận nhận lại.'); } },
-    );
-  });
-  return (
-    <Dialog open={Boolean(task)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{task?.type === 'HANDOVER' ? 'Xác nhận giao thiết bị' : 'Xác nhận nhận lại thiết bị'}</DialogTitle>
-          <DialogDescription>Ảnh và mô tả sẽ được lưu vào biên bản đối chiếu khi có tranh chấp.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Ảnh tình trạng</Label>
-            <Input type="file" accept="image/*" capture="environment" onChange={(e) => form.setValue('file', e.target.files?.[0] as File, { shouldValidate: true })} />
-            {form.formState.errors.file && <p className="text-xs text-red-600">{form.formState.errors.file.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Tình trạng thiết bị</Label>
-            <Textarea rows={5} placeholder="Mô tả ngoại quan, phụ kiện, vết xước..." {...form.register('conditionNote')} />
-            {form.formState.errors.conditionNote && <p className="text-xs text-red-600">{form.formState.errors.conditionNote.message}</p>}
-          </div>
-          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Huỷ</Button>
-            <Button type="submit" disabled={mutation.isPending}><Upload className="h-4 w-4" />{mutation.isPending ? 'Đang lưu...' : 'Xác nhận'}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -595,7 +554,14 @@ export default function StaffDashboard() {
       </div>
 
       {/* Dialogs */}
-      <ConditionDialog task={conditionTask} onClose={() => setConditionTask(null)} onDone={setNotice} />
+      <ConditionDialog
+        open={Boolean(conditionTask)}
+        type={conditionTask?.type ?? 'HANDOVER'}
+        bookingId={conditionTask?.bookingId ?? ''}
+        onClose={() => setConditionTask(null)}
+        onDone={setNotice}
+        onReportIssue={() => setMediationTask(conditionTask)}
+      />
       <MediationDialog task={mediationTask} onClose={() => setMediationTask(null)} onDone={setNotice} />
       <MediationActionDialog
         mediation={actionState?.mediation ?? null}

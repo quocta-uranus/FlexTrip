@@ -38,7 +38,7 @@ export function useConfirmStaffTask() {
     mutationFn: async ({ bookingId, type, conditionNote, file, checklist }: {
       bookingId: string;
       type: StaffTaskType;
-      conditionNote: string;
+      conditionNote?: string;
       file: File;
       checklist?: InspectionItem[];
     }) => {
