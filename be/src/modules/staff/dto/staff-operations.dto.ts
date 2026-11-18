@@ -20,7 +20,7 @@ export class InspectionItemDto {
 
 export class ConfirmConditionDto {
   @ApiProperty() @IsUrl({ require_protocol: true }) photoUrl!: string;
-  @ApiProperty() @IsString() @Length(2, 2000) conditionNote!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000) conditionNote?: string;
 
   @ApiPropertyOptional({ type: [InspectionItemDto], description: 'Danh mục kiểm tra thiết bị; khi nhận lại, mọi hạng mục phải đạt' })
   @IsOptional() @IsArray() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => InspectionItemDto)

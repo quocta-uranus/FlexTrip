@@ -11,9 +11,9 @@ export const staffApi = {
   myBookings: (params: { status?: string; page?: number; limit?: number }) =>
     api.get(`/staff/bookings${toQuery(params)}`) as Promise<StaffBookingPage>,
   booking: (id: string) => api.get(`/staff/bookings/${id}`),
-  confirmHandover: (id: string, body: { photoUrl: string; conditionNote: string; checklist?: InspectionItem[] }) =>
+  confirmHandover: (id: string, body: { photoUrl: string; conditionNote?: string; checklist?: InspectionItem[] }) =>
     api.post(`/staff/bookings/${id}/handover`, body),
-  confirmReturn: (id: string, body: { photoUrl: string; conditionNote: string; checklist?: InspectionItem[] }) =>
+  confirmReturn: (id: string, body: { photoUrl: string; conditionNote?: string; checklist?: InspectionItem[] }) =>
     api.post(`/staff/bookings/${id}/return`, body),
   mediations: (status?: StaffMediationStatus) =>
     api.get(`/staff/mediations${toQuery({ status })}`) as Promise<StaffMediation[]>,
