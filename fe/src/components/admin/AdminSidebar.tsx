@@ -18,7 +18,6 @@ const ADMIN_NAV = [
     group: "Duyệt & Kiểm duyệt",
     items: [
       { id: "02", title: "Đăng ký Provider", href: "/admin/02-provider-registration", icon: "badge-check" },
-      { id: "03", title: "Tin đăng vi phạm", href: "/admin/03-moderate-listings", icon: "shield" },
       { id: "RV", title: "Kiểm duyệt đánh giá", href: "/admin/reviews", icon: "shield" },
       { id: "RT", title: "Từ điển kiểm duyệt", href: "/admin/reviews/terms", icon: "shield" },
     ],
@@ -46,21 +45,6 @@ const ADMIN_NAV = [
       { id: "16", title: "Ngân sách khuyến mãi", href: "/admin/16-promo-budgets", icon: "dollar" },
       { id: "17", title: "Điểm thưởng", href: "/admin/17-loyalty", icon: "dollar" },
       { id: "18", title: "Giới thiệu bạn bè", href: "/admin/18-referrals", icon: "dollar" },
-    ],
-  },
-  {
-    group: "Thống kê & Dự báo",
-    items: [
-      { id: "06", title: "Thống kê & Báo cáo", href: "/admin/06-analytics", icon: "chart" },
-      { id: "07", title: "Dự báo doanh thu AI", href: "/admin/07-ai-forecast", icon: "sparkles" },
-      { id: "14", title: "Xuất báo cáo", href: "/admin/14-reports", icon: "report" },
-    ],
-  },
-  {
-    group: "Cấu hình",
-    items: [
-      { id: "08", title: "Cấu hình AI", href: "/admin/08-ai-config", icon: "sliders" },
-      { id: "09", title: "Nhật ký hoạt động", href: "/admin/09-audit-log", icon: "history" },
     ],
   },
 ];
