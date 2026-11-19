@@ -8,13 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const QUICK_ACTIONS = [
   { title: "Người dùng", desc: "Khoá / mở tài khoản", icon: "👥", href: "/admin/01-user-accounts", color: "#2a7bd9" },
-  { title: "Tin đăng vi phạm", desc: "Xét duyệt nội dung bị báo cáo", icon: "🛡️", href: "/admin/03-moderate-listings", color: "#dc2626" },
   { title: "Tranh chấp", desc: "Xử lý khiếu nại & hoàn tiền", icon: "⚖️", href: "/admin/04-disputes-refunds", color: "#ca8a04" },
   { title: "Giao dịch", desc: "Đối soát thanh toán", icon: "💰", href: "/admin/05-transactions", color: "#7c3aed" },
-  { title: "Thống kê", desc: "Chỉ số nền tảng", icon: "📊", href: "/admin/06-analytics", color: "#2a7bd9" },
   { title: "Đăng ký Provider", desc: "Duyệt hồ sơ Provider mới", icon: "🏪", href: "/admin/02-provider-registration", color: "#16a34a" },
   { title: "Kiểm duyệt đánh giá", desc: "Xử lý đánh giá do AI hoặc hệ thống gắn cờ", icon: "⭐", href: "/admin/reviews", color: "#7c3aed" },
-  { title: "Nhật ký", desc: "Lịch sử hoạt động hệ thống", icon: "📜", href: "/admin/09-audit-log", color: "#f59e0b" },
   { title: "Nhân sự", desc: "Phân công & quản lý staff", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
   { title: "Booking", desc: "Xem tất cả đơn thuê & staff", icon: "📦", href: "/admin/11-bookings", color: "#2a7bd9" },
 ];
