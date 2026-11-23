@@ -203,8 +203,12 @@ export function FinalCtaFooter() {
 
           <div className="w-full h-px bg-white/[0.12] mb-6" />
 
-          <div className="flex items-center justify-between text-xs text-[#8295A5] pb-6 sm:pb-8">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-[#8295A5] pb-6 sm:pb-8">
             <p>© 2026 FlexTrip. Mọi quyền được bảo lưu.</p>
+            <nav aria-label="Chính sách" className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link href="/terms" className="transition-colors duration-200 hover:text-[#F5F9FC]">Điều khoản dịch vụ</Link>
+              <Link href="/privacy" className="transition-colors duration-200 hover:text-[#F5F9FC]">Chính sách bảo mật</Link>
+            </nav>
           </div>
 
           {/* Large wordmark */}

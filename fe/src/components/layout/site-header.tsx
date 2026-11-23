@@ -256,7 +256,11 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   const onHome = pathname === '/';
   // Trên trang chủ, header Guest nằm trong suốt đè lên ảnh hero và chỉ thành thanh nền trắng khi cuộn.
   // Same on-hero look for guests and signed-in users; the content of the header does not change.
-  const overlay = onHome && !scrolled;
+  // The policy pages open on a light hero, so their header starts transparent like the landing page but keeps dark text.
+  const lightHero = pathname === '/terms' || pathname === '/privacy';
+  const overlayPage = onHome || lightHero;
+  const overlay = overlayPage && !scrolled;
+  const onDark = overlay && !lightHero;
   const guestNavLinks = GUEST_SECTIONS.map(({ id, label }) => ({
     id,
     label,
@@ -283,7 +287,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
       <div
         className={`rounded-full flex items-center justify-between gap-2.5 sm:gap-4 transition-all duration-300 ${
           overlay
-            ? 'h-14 sm:h-16 px-2 sm:px-6 bg-transparent border border-transparent text-white'
+            ? `h-14 sm:h-16 px-2 sm:px-6 bg-transparent border border-transparent ${onDark ? 'text-white' : 'text-ink'}`
             : scrolled
               ? 'h-11 sm:h-12 px-3 sm:px-4 bg-white/95 backdrop-blur-xl border border-black/10 shadow-[0_12px_32px_rgba(10,37,51,0.12)]'
               : 'h-12 sm:h-13 px-4 sm:px-5 bg-white/90 backdrop-blur-md border border-black/6 shadow-[0_8px_24px_rgba(10,37,51,0.06)]'
@@ -294,7 +298,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-brand-blue via-brand to-brand-mint text-white flex items-center justify-center shadow-xs shadow-brand/30 transition-transform duration-200 group-hover:scale-105">
             <Compass className="h-4 w-4" strokeWidth={2.4} />
           </div>
-          <span className={`text-lg sm:text-xl font-extrabold tracking-tight ${overlay ? 'text-white' : 'text-ink'}`}>
+          <span className={`text-lg sm:text-xl font-extrabold tracking-tight ${onDark ? 'text-white' : 'text-ink'}`}>
             Flex<span className="text-brand">Trip</span>
           </span>
         </Link>
@@ -304,7 +308,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           {isAuthenticated && (
             <form
               onSubmit={handleSearchSubmit}
-              className={`hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full border focus-within:border-brand focus-within:bg-white focus-within:ring-2 focus-within:ring-brand/20 transition-all text-xs mr-1 ${overlay ? 'bg-white/15 border-white/25 [&_input]:text-white [&_input]:placeholder:text-white/70 [&_svg]:text-white/80 focus-within:[&_input]:text-slate-800 focus-within:[&_input]:placeholder:text-slate-400 focus-within:[&_svg]:text-slate-400' : 'bg-slate-100/90 border-slate-200/80'}`}
+              className={`hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-full border focus-within:border-brand focus-within:bg-white focus-within:ring-2 focus-within:ring-brand/20 transition-all text-xs mr-1 ${onDark ? 'bg-white/15 border-white/25 [&_input]:text-white [&_input]:placeholder:text-white/70 [&_svg]:text-white/80 focus-within:[&_input]:text-slate-800 focus-within:[&_input]:placeholder:text-slate-400 focus-within:[&_svg]:text-slate-400' : 'bg-slate-100/90 border-slate-200/80'}`}
             >
               <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <input
@@ -325,7 +329,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                     key={link.href}
                     href={link.href}
                     className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold transition-all ${
-                      overlay
+                      onDark
                         ? active
                           ? 'bg-white/20 text-white'
                           : 'text-white/90 hover:text-white hover:bg-white/10'
@@ -346,7 +350,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                     href={link.href}
                     onClick={(e) => handleGuestLinkClick(e, link.id)}
                     className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                      overlay
+                      onDark
                         ? active
                           ? 'bg-white/20 text-white font-semibold'
                           : 'text-white/90 hover:text-white hover:bg-white/10'
@@ -368,10 +372,10 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
             <button
               type="button"
               onClick={() => setLang((prev) => (prev === 'vi' ? 'en' : 'vi'))}
-              className={`hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${overlay ? 'text-white/90 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5'}`}
+              className={`hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${onDark ? 'text-white/90 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5'}`}
               title="Đổi ngôn ngữ"
             >
-              <Globe className={`h-3.5 w-3.5 ${overlay ? 'text-white/80' : 'text-slate-500'}`} />
+              <Globe className={`h-3.5 w-3.5 ${onDark ? 'text-white/80' : 'text-slate-500'}`} />
               <span className="uppercase">{lang}</span>
             </button>
           )}
@@ -379,14 +383,14 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           {/* Logged in action icons */}
           {isAuthenticated && user && (
             <>
-              <NotificationBell isProvider={providerNav} onDark={overlay} />
+              <NotificationBell isProvider={providerNav} onDark={onDark} />
               {!isAdmin && !isStaff && (
                 <Link
                   href="/messages"
                   title="Tin nhắn"
                   aria-label="Tin nhắn"
                   className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                    overlay ? 'text-white hover:bg-white/10' : 'text-[#68655E] hover:bg-black/5'
+                    onDark ? 'text-white hover:bg-white/10' : 'text-[#68655E] hover:bg-black/5'
                   } ${pathname.startsWith('/messages') ? 'bg-black/5' : ''}`}
                 >
                   <span className="relative">
@@ -395,8 +399,8 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                   </span>
                 </Link>
               )}
-              {!isAdmin && !isStaff && !providerModeOnly && <CartIcon onDark={overlay} />}
-              {!providerModeOnly && <WishlistHeaderLink variant={overlay ? 'overlay' : 'default'} />}
+              {!isAdmin && !isStaff && !providerModeOnly && <CartIcon onDark={onDark} />}
+              {!providerModeOnly && <WishlistHeaderLink variant={onDark ? 'overlay' : 'default'} />}
             </>
           )}
 
@@ -407,7 +411,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                 id="site-header-user-btn"
                 type="button"
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className={`flex items-center gap-2 rounded-full border pl-1.5 pr-2.5 py-1 text-sm font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap ${overlay ? 'border-white/25 bg-white/10 text-white hover:bg-white/20' : 'border-black/8 bg-white/80 text-ink hover:bg-white hover:border-black/15'}`}
+                className={`flex items-center gap-2 rounded-full border pl-1.5 pr-2.5 py-1 text-sm font-semibold transition-all shadow-xs cursor-pointer whitespace-nowrap ${onDark ? 'border-white/25 bg-white/10 text-white hover:bg-white/20' : 'border-black/8 bg-white/80 text-ink hover:bg-white hover:border-black/15'}`}
               >
                 {user.avatarUrl ? (
                   <Image
@@ -419,12 +423,12 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
                     className="h-7 w-7 rounded-full object-cover"
                   />
                 ) : (
-                  <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${overlay ? 'bg-white/20 text-white' : 'bg-slate-100 text-ink'}`}>
+                  <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${onDark ? 'bg-white/20 text-white' : 'bg-slate-100 text-ink'}`}>
                     {initials}
                   </div>
                 )}
                 <span className="max-w-[120px] xl:max-w-[160px] truncate hidden lg:block">{user.name}</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${overlay ? 'text-white/80' : 'text-slate-500'} ${userMenuOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${onDark ? 'text-white/80' : 'text-slate-500'} ${userMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {userMenuOpen && (
@@ -482,15 +486,15 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/login"
-                className={`whitespace-nowrap text-sm font-semibold px-3 sm:px-3.5 py-1.5 rounded-full transition-colors ${overlay ? 'text-white hover:bg-white/10' : 'text-slate-800 hover:text-brand hover:bg-black/5'}`}
+                className={`whitespace-nowrap text-sm font-semibold px-3 sm:px-3.5 py-1.5 rounded-full transition-colors ${onDark ? 'text-white hover:bg-white/10' : 'text-slate-800 hover:text-brand hover:bg-black/5'}`}
               >
                 Đăng nhập
               </Link>
               <PillButton
                 href="/register"
                 size="sm"
-                variant={overlay ? 'on-dark' : 'primary'}
-                className={`whitespace-nowrap border-none font-semibold px-4 ${overlay ? 'bg-sky-200 hover:bg-sky-100' : 'hover:bg-brand-blue shadow-xs shadow-brand/30'}`}
+                variant={onDark ? 'on-dark' : 'primary'}
+                className={`whitespace-nowrap border-none font-semibold px-4 ${onDark ? 'bg-sky-200 hover:bg-sky-100' : 'hover:bg-brand-blue shadow-xs shadow-brand/30'}`}
               >
                 Đăng ký
               </PillButton>
@@ -501,7 +505,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           <button
             type="button"
             id="site-header-mobile-toggle"
-            className={`flex h-9 w-9 items-center justify-center rounded-full md:hidden cursor-pointer ${overlay ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-black/5'}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-full md:hidden cursor-pointer ${onDark ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-black/5'}`}
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Menu"
           >

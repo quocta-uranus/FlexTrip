@@ -82,8 +82,13 @@ export function TravelerFooter() {
 
         <div className="h-px w-full bg-white/[0.12]" />
 
-        <div className="py-6 text-xs text-[#8295A5]">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-6 text-xs text-[#8295A5]">
           <p>© {new Date().getFullYear()} FlexTrip. Mọi quyền được bảo lưu.</p>
+          <nav aria-label="Chính sách" className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href="/terms" className="transition-colors duration-200 hover:text-[#F5F9FC]">Điều khoản dịch vụ</Link>
+            <Link href="/privacy" className="transition-colors duration-200 hover:text-[#F5F9FC]">Chính sách bảo mật</Link>
+            <Link href="/support" className="transition-colors duration-200 hover:text-[#F5F9FC]">Hỗ trợ</Link>
+          </nav>
         </div>
       </div>
     </footer>
