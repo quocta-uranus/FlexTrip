@@ -1,7 +1,8 @@
 'use client';
 
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import Link from 'next/link';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@/lib/validators/auth.schema';
@@ -20,23 +21,14 @@ function LoginForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <>
       <div className="mb-7">
-        <div
-          className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ color: '#2a7bd9' }}
-        >
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#92eee8]" />
-          Đăng nhập
-        </div>
         <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Đăng nhập</h1>
         <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
-          Chưa có tài khoản?{' '}
-          <Link href="/register" className="font-semibold" style={{ color: '#2a7bd9' }}>
-            Đăng ký miễn phí
-          </Link>
+          Đăng nhập vào tài khoản FlexTrip của bạn.
         </p>
       </div>
 
@@ -69,21 +61,38 @@ function LoginForm() {
 
       <form onSubmit={handleSubmit((d) => mutate(d))} className="space-y-4">
         <AuthField label="Email" error={errors.email?.message}>
-          <AuthInput
-            {...register('email')}
-            type="email"
-            placeholder="you@example.com"
-            autoComplete="email"
-          />
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: '#8694ad' }} aria-hidden="true" />
+            <AuthInput
+              {...register('email')}
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="pl-10"
+            />
+          </div>
         </AuthField>
 
         <AuthField label="Mật khẩu" error={errors.password?.message}>
-          <AuthInput
-            {...register('password')}
-            type="password"
-            placeholder="Mật khẩu của bạn"
-            autoComplete="current-password"
-          />
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: '#8694ad' }} aria-hidden="true" />
+            <AuthInput
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Nhập mật khẩu"
+              autoComplete="current-password"
+              className="pl-10 pr-11"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md transition-colors hover:bg-slate-100"
+              style={{ color: '#5a6b85' }}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </AuthField>
 
         <div className="flex justify-end">
@@ -99,12 +108,19 @@ function LoginForm() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
+          className="h-11 w-full rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-60"
           style={{ background: '#2a7bd9', boxShadow: '0 8px 20px -8px rgba(42,123,217,0.5)' }}
         >
           {isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </button>
       </form>
+
+      <p className="mt-5 text-center text-sm" style={{ color: '#5a6b85' }}>
+        Chưa có tài khoản?{' '}
+        <Link href="/register" className="font-semibold" style={{ color: '#2a7bd9' }}>
+          Đăng ký miễn phí
+        </Link>
+      </p>
     </>
   );
 }

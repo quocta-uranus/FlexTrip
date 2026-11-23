@@ -25,6 +25,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
   const { register, handleSubmit, formState: { errors } } = useForm<TwoFactorCodeInput>({
     resolver: zodResolver(twoFactorCodeSchema),
   });
+  const codeField = register('code');
 
   useEffect(() => {
     authApi
@@ -175,8 +176,13 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
               <form onSubmit={handleSubmit(onVerify)} className="space-y-4">
                 <div>
                   <input
-                    {...register('code')}
+                    {...codeField}
+                    onChange={(e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      codeField.onChange(e);
+                    }}
                     inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     placeholder="000000"
                     className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30"

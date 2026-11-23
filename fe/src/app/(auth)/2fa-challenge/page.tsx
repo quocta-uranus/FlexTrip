@@ -98,11 +98,17 @@ export default function TwoFactorChallengePage() {
 }
 
 const TotpInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ ...props }, ref) => (
+  ({ onChange, ...props }, ref) => (
     <input
       ref={ref}
       inputMode="numeric"
+      autoComplete="one-time-code"
       maxLength={6}
+      // Autofill, paste and some mobile keyboards ignore maxLength, so the value is cleaned here too.
+      onChange={(e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+        onChange?.(e);
+      }}
       placeholder="000000"
       className="w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] outline-none transition-all focus:ring-2 focus:ring-[#2a7bd9]/30"
       style={{ borderColor: '#e2e8f3', color: '#0f1729', letterSpacing: '0.4em' }}
