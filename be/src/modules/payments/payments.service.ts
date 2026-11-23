@@ -145,7 +145,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         });
 
         const wallet = await tx.wallet.findUnique({ where: { userId: travelerId } });
-        if (!wallet) throw new BadRequestException('Wallet not found');
+        if (!wallet) throw new BadRequestException('Không tìm thấy ví');
 
         await tx.wallet.update({
           where: { userId: travelerId },
@@ -400,7 +400,7 @@ export class PaymentsService implements OnApplicationBootstrap {
 
       await this.prisma.$transaction(async (tx) => {
         const wallet = await tx.wallet.findUnique({ where: { userId: travelerId } });
-        if (!wallet) throw new BadRequestException('Wallet not found');
+        if (!wallet) throw new BadRequestException('Không tìm thấy ví');
         await tx.wallet.update({
           where: { userId: travelerId },
           data: { availableBalance: { decrement: rentalAmount } },

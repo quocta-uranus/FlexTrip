@@ -130,16 +130,43 @@ export function toQuery(params: Record<string, string | number | boolean | null 
   return s ? `?${s}` : '';
 }
 
+const VIETNAMESE_CHARS = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+
+const STATUS_MESSAGES: Record<number, string> = {
+  400: 'Dữ liệu không hợp lệ, vui lòng kiểm tra lại.',
+  401: 'Phiên đăng nhập đã hết hạn hoặc thông tin đăng nhập không đúng.',
+  403: 'Bạn không có quyền thực hiện thao tác này.',
+  404: 'Không tìm thấy dữ liệu yêu cầu.',
+  409: 'Dữ liệu đã thay đổi hoặc bị trùng, vui lòng tải lại trang.',
+  413: 'Tệp tải lên quá lớn.',
+  422: 'Dữ liệu không hợp lệ, vui lòng kiểm tra lại.',
+  429: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút.',
+};
+
+// Backend messages are Vietnamese. Anything left in English (framework defaults, validator text)
+// is replaced here so users never see it.
+function toVietnameseMessage(status: number, message: string | undefined): string {
+  if (message && VIETNAMESE_CHARS.test(message)) return message;
+  if (message && !/[A-Za-z]/.test(message)) return message;
+  if (status >= 500) return 'Hệ thống đang gặp sự cố, vui lòng thử lại sau.';
+  return STATUS_MESSAGES[status] ?? 'Đã có lỗi xảy ra, vui lòng thử lại.';
+}
+
 async function apiFetch<T = any>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const doFetch = (headers: HeadersInit) =>
-    fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
+  const doFetch = async (headers: HeadersInit) => {
+    try {
+      return await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers,
+        credentials: 'include',
+      });
+    } catch {
+      throw new Error('Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.');
+    }
+  };
 
   let res = await doFetch(buildHeaders(options.headers, options.body));
 
@@ -151,9 +178,9 @@ async function apiFetch<T = any>(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ message: 'Network error' }));
-    const message = Array.isArray(body.message) ? body.message.join('\n') : body.message;
-    const err = new Error(message || `HTTP ${res.status}`) as ApiError;
+    const body = await res.json().catch(() => ({ message: undefined }));
+    const raw = Array.isArray(body.message) ? body.message.join('\n') : body.message;
+    const err = new Error(toVietnameseMessage(res.status, raw)) as ApiError;
     err.status = res.status;
     err.code = typeof body.code === 'string' ? body.code : undefined;
     throw err;
