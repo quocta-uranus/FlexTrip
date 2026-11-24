@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { useReceivedReviews, useRespondToReview, useSentimentDashboard } from '@/hooks/useReviews';
 import type { Review, SentimentRange } from '@/types/review';
 import { ReputationBadge } from '@/components/reputation/reputation-badge';
@@ -122,19 +122,18 @@ export default function ProviderReviewsPage() {
 
   return (
     <div className="min-h-screen bg-[#f6fbfe]">
-      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
-        <div className="mb-6">
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-blue-700">← Dashboard</Link>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-950">Đánh giá khách hàng</h1>
-              <p className="mt-1 text-sm text-slate-600">Theo dõi và phản hồi các đánh giá công khai về dịch vụ của bạn.</p>
-            </div>
-            <div className="rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
-              {unanswered} đánh giá chưa phản hồi
-            </div>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Đánh giá' }]}
+        title="Đánh giá khách hàng"
+        subtitle="Theo dõi và phản hồi các đánh giá công khai về dịch vụ của bạn."
+        actions={
+          <div className="rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
+            {unanswered} đánh giá chưa phản hồi
           </div>
-        </div>
+        }
+      />
+
+      <div className={`${PAGE_WIDTH} pb-10`}>
 
         <div className="mb-3 flex justify-end">
           <label className="flex items-center gap-2 text-sm font-medium text-slate-600">

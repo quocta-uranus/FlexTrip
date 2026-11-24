@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { useMyListings } from '@/hooks/useListings';
 import { useProviderBookings } from '@/hooks/useBookings';
 import { useAuthStore } from '@/store/auth.store';
@@ -102,26 +103,30 @@ export default function DashboardPage() {
     ?.filter((b) => ['CONFIRMED', 'COMPLETED'].includes(b.status))
     .reduce((s, b) => s + (typeof b.totalPrice === 'number' ? b.totalPrice : Number(b.totalPrice)), 0) ?? 0;
 
-  const firstName = user?.name?.split(' ').pop() ?? 'Provider';
+  const hour = new Date().getHours();
+  const greeting =
+    hour >= 5 && hour < 11 ? 'Chào buổi sáng'
+    : hour >= 11 && hour < 13 ? 'Chào buổi trưa'
+    : hour >= 13 && hour < 18 ? 'Chào buổi chiều'
+    : 'Chào buổi tối';
+  const displayName = user?.name ?? 'Provider';
+  const summary = pendingBookings > 0
+    ? `Hôm nay bạn có ${pendingBookings} đơn cần xác nhận.`
+    : 'Hiện chưa có đơn nào cần xác nhận.';
   const today = new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6 lg:px-8">
-
-        {/* ── Header ── */}
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-400">{today}</p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
-              Chào, {firstName} 👋
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {user?.providerProfile?.shopName
-                ? `Shop: ${user.providerProfile.shopName}`
-                : 'Provider Dashboard'}
-            </p>
-          </div>
+      <PageHeader
+        eyebrow={today}
+        title={`${greeting}, ${displayName}`}
+        subtitle={
+          <>
+            {user?.providerProfile?.shopName && `Shop: ${user.providerProfile.shopName} · `}
+            {loadBookings ? '\u00a0' : summary}
+          </>
+        }
+        actions={
           <Link
             href="/dashboard/listings/new"
             className="flex shrink-0 items-center gap-2 rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 transition-all hover:brightness-110 hover:shadow-lg active:scale-95"
@@ -129,7 +134,10 @@ export default function DashboardPage() {
             <Plus className="h-4 w-4" />
             Thêm sản phẩm
           </Link>
-        </div>
+        }
+      />
+
+      <div className={`${PAGE_WIDTH} pb-10`}>
 
         {/* ── KPI Cards ── */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

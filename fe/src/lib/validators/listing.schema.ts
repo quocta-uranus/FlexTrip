@@ -14,7 +14,7 @@ export const listingSchema = z.object({
   price: z.coerce.number().positive('Giá phải lớn hơn 0'),
   currency: z.string().default('VND'),
   location: z.string().min(3, 'Nhập địa điểm'),
-  category: z.enum(CATEGORY_VALUES),
+  category: z.enum(CATEGORY_VALUES, { error: 'Vui lòng chọn danh mục' }),
   amenities: z.array(z.string()).default([]),
   imageUrls: z.array(z.string().url('URL ảnh không hợp lệ')).min(1, 'Cần ít nhất 1 ảnh'),
   latitude: z.coerce.number().optional(),

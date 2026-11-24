@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  AlertCircle, AlignLeft, ArrowLeft, Calendar, Check, ChevronRight, DollarSign, Image as ImageIcon,
-  Loader2, MapPin, Package, Plus, Scale, Tag, Trash2,
+  AlertCircle, AlignLeft, Calendar, Check, DollarSign, Image as ImageIcon,
+  ArrowRight, ChevronDown, Loader2, MapPin, Package, Pencil, Plus, Scale, Tag, Trash2,
 } from 'lucide-react';
 import { listingSchema, type ListingInput } from '@/lib/validators/listing.schema';
 import { ImageUploader } from '@/components/listing/image-uploader';
@@ -24,11 +25,16 @@ const inputCls = [
   'hover:border-slate-300',
 ].join(' ');
 
-function SectionCard({ icon, title, subtitle, children }: {
+const fmtMoney = (n: unknown) => (Number(n) || 0).toLocaleString('vi-VN');
+
+function SectionCard({ id, icon, title, subtitle, children, fill = false }: {
+  id?: string;
   icon: React.ReactNode; title: string; subtitle?: string; children: React.ReactNode;
+  /** Stretch to the height of the grid cell, so two cards side by side end on the same line. */
+  fill?: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.05]">
+    <div id={id} className={`scroll-mt-28 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.05] ${fill ? 'flex h-full flex-col' : ''}`}>
       <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] text-[#2a7bd9]">
           {icon}
@@ -38,7 +44,7 @@ function SectionCard({ icon, title, subtitle, children }: {
           {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
         </div>
       </div>
-      <div className="p-6">{children}</div>
+      <div className={`p-6 ${fill ? 'flex flex-1 flex-col' : ''}`}>{children}</div>
     </div>
   );
 }
@@ -94,6 +100,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [aiImprovements, setAiImprovements] = useState<string[]>([]);
   const [invalidSubmit, setInvalidSubmit] = useState(false);
+  const [openPenalty, setOpenPenalty] = useState<number | null>(null);
 
   const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<ListingInput>({
     resolver: zodResolver(listingSchema) as never,
@@ -130,6 +137,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
   const watchTitle = watch('title') ?? '';
   const watchDescription = watch('description') ?? '';
   const watchPrice = Number(watch('price')) || 0;
+  const watchPenalties = watch('penaltyRules') ?? [];
 
   const provinceOptions: string[] = [...VN_PROVINCES];
   // Older listings may hold a free-text location that is not in the province list
@@ -155,49 +163,52 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
     };
   }
 
+  const INVALID_FIELDS = [
+    { key: 'title', label: 'Tiêu đề sản phẩm', section: 'sec-basic' },
+    { key: 'location', label: 'Khu vực nhận/trả hàng', section: 'sec-basic' },
+    { key: 'category', label: 'Danh mục', section: 'sec-basic' },
+    { key: 'description', label: 'Mô tả sản phẩm', section: 'sec-description' },
+    { key: 'price', label: 'Giá thuê', section: 'sec-price' },
+    { key: 'imageUrls', label: 'Hình ảnh', section: 'sec-images' },
+    { key: 'conditionNote', label: 'Tình trạng sản phẩm', section: 'sec-terms' },
+    { key: 'marketValue', label: 'Giá trị thị trường', section: 'sec-terms' },
+    { key: 'penaltyRules', label: 'Bảng mức phạt', section: 'sec-terms' },
+  ];
+  const invalidFields = INVALID_FIELDS.filter((f) => (errors as Record<string, unknown>)[f.key]);
+
+  function jumpToField(key: string, section: string) {
+    const input = document.querySelector<HTMLElement>(`[name="${key}"]`);
+    const target = input ?? document.getElementById(section);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    input?.focus({ preventScroll: true });
+  }
+
   const titleText = isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới';
 
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
-      <div className="bg-white shadow-sm ring-1 ring-black/[0.04]">
-        <div className="mx-auto max-w-3xl px-4 pb-5 pt-24 sm:px-6 sm:pt-28">
-          <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400">
-            <Link href="/dashboard" className="transition-colors hover:text-[#2a7bd9]">Dashboard</Link>
-            <ChevronRight className="h-3 w-3" />
-            <Link href="/dashboard/listings" className="transition-colors hover:text-[#2a7bd9]">Sản phẩm</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-slate-600">{isEdit ? 'Chỉnh sửa' : 'Tạo mới'}</span>
-          </nav>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">{titleText}</h1>
-              <p className="mt-0.5 text-sm text-slate-400">
-                {isEdit ? 'Cập nhật thông tin sản phẩm của bạn' : 'Điền đầy đủ thông tin để sản phẩm dễ tìm kiếm hơn'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {isEdit && listing && (
-                <Link
-                  href={`/dashboard/listings/${listing.id}/calendar`}
-                  className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-[#2a7bd9] shadow-sm transition-all hover:bg-blue-50"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Quản lý lịch
-                </Link>
-              )}
-              <Link
-                href="/dashboard/listings"
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Quay lại
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Sản phẩm', href: '/dashboard/listings' },
+          { label: isEdit ? 'Chỉnh sửa' : 'Tạo mới' },
+        ]}
+        title={titleText}
+        subtitle={isEdit ? 'Cập nhật thông tin sản phẩm của bạn' : 'Điền đầy đủ thông tin để sản phẩm dễ tìm kiếm hơn'}
+        actions={
+          isEdit && listing ? (
+            <Link
+              href={`/dashboard/listings/${listing.id}/calendar`}
+              className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-[#2a7bd9] shadow-sm transition-all hover:bg-blue-50"
+            >
+              <Calendar className="h-4 w-4" />
+              Quản lý lịch
+            </Link>
+          ) : undefined
+        }
+      />
 
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className={`${PAGE_WIDTH} pb-8`}>
         <form
           onSubmit={handleSubmit(
             (data) => { setInvalidSubmit(false); onSubmit(toPayload(data, mode)); },
@@ -208,10 +219,12 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
               );
             },
           )}
-          className="space-y-5"
+          className="grid gap-5 lg:grid-cols-2"
         >
-          <SectionCard icon={<Tag className="h-4 w-4" />} title="Thông tin cơ bản" subtitle="Tên sản phẩm, khu vực và danh mục">
+          <div className="lg:col-span-2">
+          <SectionCard id="sec-basic" icon={<Tag className="h-4 w-4" />} title="Thông tin cơ bản" subtitle="Tên sản phẩm, khu vực và danh mục">
             <div className="space-y-5">
+              <div className="grid gap-5 md:grid-cols-[3fr_2fr]">
               <Field label="Tiêu đề sản phẩm" error={errors.title?.message} required
                 hint="Tên rõ ràng, nổi bật để khách hàng dễ tìm kiếm">
                 <input
@@ -242,9 +255,10 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
                   </svg>
                 </div>
               </Field>
+              </div>
 
               <Field label="Danh mục" error={errors.category?.message} required>
-                <div className="mt-1 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-1 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
                   {LISTING_CATEGORIES.map(({ value, label, description: sub, Icon, color, bg }) => {
                     const active = selectedCategory === value;
                     return (
@@ -252,7 +266,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
                         key={value}
                         type="button"
                         onClick={() => setValue('category', value, { shouldValidate: true })}
-                        className="relative flex items-start gap-3 rounded-xl border-2 p-3.5 text-left transition-all"
+                        className="relative flex flex-col items-center gap-2.5 rounded-xl border-2 px-3 py-4 text-center transition-all"
                         style={{
                           borderColor: active ? color : '#e2e8f0',
                           background: active ? bg : '#fff',
@@ -284,18 +298,21 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
               </Field>
             </div>
           </SectionCard>
+          </div>
 
           <SectionCard
+            id="sec-description"
             icon={<AlignLeft className="h-4 w-4" />}
             title="Mô tả sản phẩm"
+            fill
             subtitle="Tình trạng, cách dùng, lưu ý — càng chi tiết càng tốt"
           >
-            <div className="space-y-4">
+            <div className="flex flex-1 flex-col gap-4">
               <textarea
                 {...register('description')}
                 rows={6}
                 placeholder="VD: Lều còn mới 95%, chống nước cấp 3000mm, dễ dựng, phù hợp cho 4 người. Kèm theo túi đựng và cọc lều."
-                className={`${inputCls} resize-none`}
+                className={`${inputCls} min-h-36 flex-1 resize-none`}
               />
               <FieldError message={errors.description?.message} />
               {aiImprovements.length > 0 && (
@@ -317,7 +334,8 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
             </div>
           </SectionCard>
 
-          <SectionCard icon={<DollarSign className="h-4 w-4" />} title="Giá thuê" subtitle="Giá mỗi ngày bằng VND">
+          <div className="space-y-5">
+          <SectionCard id="sec-price" icon={<DollarSign className="h-4 w-4" />} title="Giá thuê" subtitle="Giá mỗi ngày bằng VND">
             <div className="space-y-4">
               <Field label="Giá / ngày (₫)" error={errors.price?.message} required>
                 <input {...moneyInput('price')} placeholder="150000" className={inputCls} />
@@ -346,9 +364,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
             </div>
           </SectionCard>
 
-          {isEdit && listing && <AutoAdjustSettings listingId={listing.id} />}
-
-          <SectionCard icon={<ImageIcon className="h-4 w-4" />} title="Hình ảnh sản phẩm" subtitle="Ảnh rõ nét giúp khách tin tưởng và dễ quyết định thuê hơn">
+          <SectionCard id="sec-images" icon={<ImageIcon className="h-4 w-4" />} title="Hình ảnh sản phẩm" subtitle="Ảnh rõ nét giúp khách tin tưởng và dễ quyết định thuê hơn">
             <div className="mb-4 grid grid-cols-3 gap-2">
               {[
                 { emoji: '☀️', tip: 'Chụp đủ ánh sáng' },
@@ -367,7 +383,11 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
             />
             <div className="mt-3"><FieldError message={errors.imageUrls?.message} /></div>
           </SectionCard>
+          </div>
 
+          {isEdit && listing && <div className="lg:col-span-2"><AutoAdjustSettings listingId={listing.id} /></div>}
+
+          <div className="lg:col-span-2">
           <SectionCard icon={<Package className="h-4 w-4" />} title="Tiện ích & Thiết bị kèm theo" subtitle="Chọn những gì đi kèm khi thuê sản phẩm">
             <div className="flex flex-wrap gap-2">
               {COMMON_AMENITIES.map((a) => {
@@ -395,13 +415,17 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
               </p>
             )}
           </SectionCard>
+          </div>
 
+          <div className="lg:col-span-2">
           <SectionCard
+            id="sec-terms"
             icon={<Scale className="h-4 w-4" />}
             title="Điều khoản & Mức phạt"
             subtitle="Không bắt buộc — thông tin này được in vào hợp đồng thuê"
           >
-            <div className="space-y-5">
+            <div className="grid items-start gap-5 lg:grid-cols-2">
+              <div className="space-y-5">
               <Field label="Tình trạng sản phẩm hiện tại" error={errors.conditionNote?.message}>
                 <textarea
                   {...register('conditionNote')}
@@ -418,6 +442,7 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
               >
                 <input {...moneyInput('marketValue')} placeholder="VD: 3500000" className={inputCls} />
               </Field>
+              </div>
 
               <div>
                 <p className="mb-3 text-sm font-medium text-slate-700">Bảng mức phạt</p>
@@ -426,40 +451,92 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
                     Chưa có mức phạt nào. Nếu để trống, hai bên tự thỏa thuận khi phát sinh thiệt hại.
                   </p>
                 )}
-                <div className="space-y-3">
+                <div className="max-h-[19rem] space-y-2 overflow-y-auto pr-1">
                   {penaltyFields.map((field, i) => {
                     const rowErrors = errors.penaltyRules?.[i];
+                    const isOpen = openPenalty === i || !!rowErrors;
+                    const row = watchPenalties[i];
+                    const min = Number(row?.minAmount) || 0;
+                    const max = Number(row?.maxAmount) || 0;
                     return (
-                      <div key={field.id} className="rounded-xl border border-slate-200 p-4">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <Field label="Loại thiệt hại" error={rowErrors?.item?.message}>
-                            <input {...register(`penaltyRules.${i}.item`)} placeholder="VD: Mất cọc lều" className={inputCls} />
-                          </Field>
-                          <Field label="Mô tả" error={rowErrors?.description?.message}>
-                            <input {...register(`penaltyRules.${i}.description`)} placeholder="VD: Mất 1 cọc lều" className={inputCls} />
-                          </Field>
-                          <Field label="Tối thiểu (₫)" error={rowErrors?.minAmount?.message}>
-                            <input {...moneyInput(`penaltyRules.${i}.minAmount`)} placeholder="50000" className={inputCls} />
-                          </Field>
-                          <Field label="Tối đa (₫)" error={rowErrors?.maxAmount?.message}>
-                            <input {...moneyInput(`penaltyRules.${i}.maxAmount`)} placeholder="200000" className={inputCls} />
-                          </Field>
+                      <div
+                        key={field.id}
+                        className={`rounded-xl border bg-white transition-colors ${isOpen ? 'border-[#2a7bd9] p-3.5' : 'border-slate-200 px-3.5 py-2.5'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2a7bd9]/10 text-xs font-semibold text-[#2a7bd9]">
+                            {i + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-800">{row?.item || 'Mức phạt chưa đặt tên'}</p>
+                            {!isOpen && row?.description && <p className="truncate text-xs text-slate-400">{row.description}</p>}
+                          </div>
+                          {!isOpen && (
+                            <span className="shrink-0 rounded-full bg-[#2a7bd9]/[0.08] px-2.5 py-0.5 text-xs font-medium text-[#1e5aa8]">
+                              {min === max ? fmtMoney(min) : `${fmtMoney(min)} – ${fmtMoney(max)}`}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            aria-label={isOpen ? 'Thu gọn' : 'Sửa mức phạt'}
+                            onClick={() => setOpenPenalty(openPenalty === i ? null : i)}
+                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                          >
+                            {isOpen ? <ChevronDown className="h-4 w-4 rotate-180" /> : <Pencil className="h-4 w-4" />}
+                          </button>
+                          {!isOpen && (
+                            <button
+                              type="button"
+                              aria-label="Xoá mức phạt"
+                              onClick={() => { removePenalty(i); setOpenPenalty(null); }}
+                              className="rounded-lg p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removePenalty(i)}
-                          className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Xoá mức phạt này
-                        </button>
+                        {isOpen && (
+                          <div className="mt-3">
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <Field label="Loại thiệt hại" error={rowErrors?.item?.message}>
+                                <input {...register(`penaltyRules.${i}.item`)} placeholder="VD: Mất cọc lều" className={inputCls} />
+                              </Field>
+                              <Field label="Mô tả" error={rowErrors?.description?.message}>
+                                <input {...register(`penaltyRules.${i}.description`)} placeholder="VD: Mất 1 cọc lều" className={inputCls} />
+                              </Field>
+                              <Field label="Tối thiểu (₫)" error={rowErrors?.minAmount?.message}>
+                                <input {...moneyInput(`penaltyRules.${i}.minAmount`)} placeholder="50000" className={inputCls} />
+                              </Field>
+                              <Field label="Tối đa (₫)" error={rowErrors?.maxAmount?.message}>
+                                <input {...moneyInput(`penaltyRules.${i}.maxAmount`)} placeholder="200000" className={inputCls} />
+                              </Field>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => { removePenalty(i); setOpenPenalty(null); }}
+                                className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Xoá mức phạt này
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOpenPenalty(null)}
+                                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-[#2a7bd9] transition hover:bg-[#2a7bd9]/10"
+                              >
+                                Xong
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
                 <button
                   type="button"
-                  onClick={() => appendPenalty({ item: '', description: '', minAmount: 0, maxAmount: 0 })}
+                  onClick={() => { appendPenalty({ item: '', description: '', minAmount: 0, maxAmount: 0 }); setOpenPenalty(penaltyFields.length); }}
                   className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-[#2a7bd9] transition hover:bg-slate-50"
                 >
                   <Plus className="h-4 w-4" />
@@ -468,26 +545,45 @@ export function ListingForm({ mode, listing, isPending, errorMessage, onSubmit }
               </div>
             </div>
           </SectionCard>
+          </div>
 
-          {invalidSubmit && (
-            <div data-invalid-banner className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-              <p className="text-sm text-amber-700">Vui lòng kiểm tra lại các trường báo đỏ ở trên rồi lưu lại.</p>
+          {invalidSubmit && invalidFields.length > 0 && (
+            <div data-invalid-banner className="rounded-2xl border border-red-200 bg-white px-5 py-4 lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-500">
+                  <AlertCircle className="h-4 w-4" />
+                </span>
+                <p className="text-sm font-semibold text-slate-800">
+                  Cần bổ sung {invalidFields.length} mục trước khi {isEdit ? 'lưu' : 'tạo'}
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {invalidFields.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => jumpToField(f.key, f.section)}
+                    className="flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-100"
+                  >
+                    {f.label}
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {errorMessage && (
-            <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <div className="flex items-start gap-3 lg:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
               <p className="whitespace-pre-line text-sm text-red-600">{errorMessage}</p>
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-4 rounded-2xl bg-white px-6 py-4 shadow-sm ring-1 ring-black/[0.04]">
+          <div className="flex items-center justify-end gap-3 lg:col-span-2">
             <Link
               href="/dashboard/listings"
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-50"
+              className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
             >
-              <ArrowLeft className="h-4 w-4" />
               Huỷ
             </Link>
             <button

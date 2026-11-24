@@ -1,6 +1,7 @@
 'use client';
 
 import { Award } from 'lucide-react';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProviderIncentive } from '@/hooks/useProviderIncentive';
@@ -9,13 +10,14 @@ export default function IncentivesPage() {
   const { data, isLoading } = useProviderIncentive();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-24">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Ưu đãi Provider top-rated</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Provider có huy hiệu uy tín và điểm chất lượng đủ cao được giảm phí nền tảng cho các đơn hoàn thành. Điểm được tính lại mỗi đêm.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Ưu đãi top-rated' }]}
+        title="Ưu đãi Provider top-rated"
+        subtitle="Provider có huy hiệu uy tín và điểm chất lượng đủ cao được giảm phí nền tảng cho các đơn hoàn thành. Điểm được tính lại mỗi đêm."
+      />
+
+      <div className={`${PAGE_WIDTH} space-y-6 pb-10`}>
 
       {isLoading ? <Skeleton className="h-40 w-full" /> : !data?.computed ? (
         <EmptyState icon={Award} title="Chưa có kết quả" description="Hệ thống sẽ tính điểm cho bạn trong lần chạy đêm tới." />
@@ -61,6 +63,7 @@ export default function IncentivesPage() {
           </section>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }

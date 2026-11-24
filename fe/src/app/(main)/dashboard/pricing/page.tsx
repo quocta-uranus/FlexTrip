@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import Link from 'next/link';
 import { useMyListings } from '@/hooks/useListings';
 import { DemandForecastChart } from '@/components/pricing/DemandForecastChart';
@@ -43,23 +44,13 @@ export default function PricingDashboardPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
-      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28">
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'AI Định giá' }]}
+        title="Định giá động & Dự báo nhu cầu"
+        subtitle="Tối ưu hoá doanh thu với gợi ý AI theo thị trường thực tế"
+      />
 
-        {/* Header */}
-        <div className="mb-6">
-          <div className="mb-1 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2a7bd9]/10">
-              <svg className="h-4 w-4 text-[#2a7bd9]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
-            </div>
-            <span className="text-xs font-bold uppercase tracking-wide text-[#2a7bd9]">AI Định giá</span>
-          </div>
-          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>Định giá động & Dự báo nhu cầu</h1>
-          <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>
-            Tối ưu hoá doanh thu với gợi ý AI theo thị trường thực tế
-          </p>
-        </div>
+      <div className={`${PAGE_WIDTH} pb-10`}>
 
         {/* Tab nav */}
         <div className="mb-6 flex flex-wrap gap-2">
