@@ -19,6 +19,7 @@ import { useSimilarListings } from '@/hooks/useRecommendations';
 import { cn } from '@/lib/utils';
 import { Avatar, StarRating } from '@/components/listing/rating-parts';
 import { ReviewsSection } from '@/components/listing/review-section';
+import { ImageLightbox } from '@/components/listing/image-lightbox';
 
 const EYEBROW = 'text-xs font-semibold uppercase tracking-[0.16em] text-slate-500';
 const SECTION_TITLE = 'font-display text-2xl font-medium tracking-[-0.02em] text-ink';
@@ -28,6 +29,7 @@ export default function ListingDetailPage() {
   const { data: listing, isLoading, error } = useListing(id);
   const { data: publicReviews } = useListingReviews(id);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const similar = useSimilarListings(id);
 
@@ -149,18 +151,14 @@ export default function ListingDetailPage() {
                 )}
               >
                 <div className="relative min-h-0 overflow-hidden rounded-3xl bg-slate-100">
-                  {images.length > 1 ? (
-                    <button
-                      type="button"
-                      aria-label="Xem ảnh tiếp theo"
-                      onClick={() => setSelectedImage((i) => (i + 1) % images.length)}
-                      className="absolute inset-0 cursor-pointer"
-                    >
-                      <img src={images[selectedImage]} alt={listing.title} className="h-full w-full object-contain" />
-                    </button>
-                  ) : (
-                    <img src={images[selectedImage]} alt={listing.title} className="absolute inset-0 h-full w-full object-contain" />
-                  )}
+                  <button
+                    type="button"
+                    aria-label="Phóng to ảnh"
+                    onClick={() => setLightboxOpen(true)}
+                    className="absolute inset-0 cursor-zoom-in"
+                  >
+                    <img src={images[selectedImage]} alt={listing.title} className="h-full w-full object-contain" />
+                  </button>
                 </div>
 
                 {sideImages.length > 0 && (
@@ -170,7 +168,10 @@ export default function ListingDetailPage() {
                         type="button"
                         key={url}
                         aria-label={`Xem ảnh ${index + 1}`}
-                        onClick={() => setSelectedImage(i === sideImages.length - 1 && hiddenCount > 0 ? 3 : index)}
+                        onClick={() => {
+                          setSelectedImage(i === sideImages.length - 1 && hiddenCount > 0 ? 3 : index);
+                          setLightboxOpen(true);
+                        }}
                         className={cn(
                           'relative min-h-0 overflow-hidden rounded-3xl bg-slate-100 transition',
                           selectedImage === index ? 'ring-2 ring-brand ring-offset-2' : 'opacity-90 hover:opacity-100',
@@ -206,6 +207,16 @@ export default function ListingDetailPage() {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {lightboxOpen && (
+                <ImageLightbox
+                  images={images}
+                  index={selectedImage}
+                  title={listing.title}
+                  onIndexChange={setSelectedImage}
+                  onClose={() => setLightboxOpen(false)}
+                />
               )}
             </>
           ) : (
