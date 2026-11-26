@@ -6,7 +6,7 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { requestContext } from '../../../common/request-context';
 import { AdminStaffBookingsService } from './admin-staff-bookings.service';
-import { AssignStaffDto, ListAssignableBookingsQueryDto } from './dto/admin-staff-rules.dto';
+import { AssignStaffDto, ListAssignableBookingsQueryDto, UnassignStaffQueryDto } from './dto/admin-staff-rules.dto';
 
 @ApiTags('admin-staff')
 @ApiBearerAuth()
@@ -37,7 +37,7 @@ export class AdminStaffBookingsController {
 
   @Delete(':id/assign')
   @ApiOperation({ summary: 'ADMIN-10: Bỏ gán nhân viên' })
-  unassign(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return this.svc.unassign(id, requestContext(req));
+  unassign(@Param('id') id: string, @Query() q: UnassignStaffQueryDto, @Req() req: AuthenticatedRequest) {
+    return this.svc.unassign(id, q.reason, requestContext(req));
   }
 }

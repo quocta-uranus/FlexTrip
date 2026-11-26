@@ -55,6 +55,19 @@ describe('ADMIN-10 rules & assignment', () => {
     expect((await api.post(`/admin/bookings/${dlBooking.id}/auto-assign`)).body.code).toBe('NO_MATCHING_RULE');
   });
 
+  it('auto-assign still matches when the listing location has a double space', async () => {
+    const { api, hcm1 } = await setup();
+    const provider = await createUser(h, { roles: [Role.PROVIDER] });
+    const t = await createUser(h, { name: 'Khách 2' });
+    const listing = await createListing(h, provider.id, { location: 'Đà  Nẵng' });
+    const booking = await createBooking(h, { travelerId: t.id, listingId: listing.id, status: BookingStatus.CONFIRMED });
+    await api.post('/admin/staff-rules', { name: 'Đà Nẵng', region: 'Đà Nẵng', staffId: hcm1.id, priority: 5 });
+
+    const res = await api.post(`/admin/bookings/${booking.id}/auto-assign`);
+    expect(res.status).toBe(201);
+    expect(res.body.booking.assignedStaff.id).toBe(hcm1.id);
+  });
+
   it('manual assign/unassign and listing filters', async () => {
     const { api, hcm1, off, hcmBooking, done } = await setup();
     expect((await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: off.id })).body.code).toBe('STAFF_NOT_AVAILABLE');
@@ -66,7 +79,51 @@ describe('ADMIN-10 rules & assignment', () => {
     expect((await api.get('/admin/bookings?assigned=false&status=PENDING_APPROVAL')).body.total).toBe(1);
     expect((await api.get(`/admin/bookings?search=${encodeURIComponent('Lâm')}`)).body.total).toBe(1);
 
-    expect((await api.delete(`/admin/bookings/${hcmBooking.id}/assign`)).body.assignedStaff).toBeNull();
+    const noReason = await api.delete(`/admin/bookings/${hcmBooking.id}/assign`);
+    expect(noReason.body.code).toBe('REASON_REQUIRED');
+    const gone = await api.delete(`/admin/bookings/${hcmBooking.id}/assign?reason=${encodeURIComponent('Staff nghỉ đột xuất')}`);
+    expect(gone.body.assignedStaff).toBeNull();
     expect(await h.prisma.auditLog.count({ where: { action: { in: ['BOOKING_STAFF_ASSIGNED', 'BOOKING_STAFF_UNASSIGNED'] } } })).toBe(2);
+  });
+
+  it('changing staff needs a reason and tells the previous staff', async () => {
+    const { api, hcm1, hcm2, hcmBooking } = await setup();
+    await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm1.id });
+
+    expect((await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm2.id })).body.code).toBe('REASON_REQUIRED');
+    const changed = await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm2.id, reason: 'Sai khu vực' });
+    expect(changed.body.assignedStaff).toMatchObject({ id: hcm2.id });
+
+    const told = await h.prisma.notification.findMany({ where: { userId: hcm1.id, title: 'Bạn không còn phụ trách đơn thuê' } });
+    expect(told).toHaveLength(1);
+    expect(told[0].body).toContain('Sai khu vực');
+
+    // Same staff again is a no-op: no duplicate notification, no new audit entry
+    const audits = await h.prisma.auditLog.count({ where: { action: 'BOOKING_STAFF_ASSIGNED' } });
+    await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm2.id });
+    expect(await h.prisma.auditLog.count({ where: { action: 'BOOKING_STAFF_ASSIGNED' } })).toBe(audits);
+  });
+
+  it('unassigning tells the previous staff', async () => {
+    const { api, hcm1, hcmBooking } = await setup();
+    await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm1.id });
+    await api.delete(`/admin/bookings/${hcmBooking.id}/assign?reason=${encodeURIComponent('Đơn gộp')}`);
+    const told = await h.prisma.notification.findMany({ where: { userId: hcm1.id, title: 'Bạn không còn phụ trách đơn thuê' } });
+    expect(told).toHaveLength(1);
+    expect(told[0].body).toContain('Đơn gộp');
+  });
+
+  it('a handed-over booking can be reassigned but never left without staff', async () => {
+    const { api, hcm1, hcm2, hcmBooking } = await setup();
+    await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm1.id });
+    await h.prisma.booking.update({ where: { id: hcmBooking.id }, data: { status: BookingStatus.IN_PROGRESS, checkedInAt: new Date() } });
+
+    const blocked = await api.delete(`/admin/bookings/${hcmBooking.id}/assign?reason=${encodeURIComponent('thử')}`);
+    expect(blocked.status).toBe(409);
+    expect(blocked.body.code).toBe('CANNOT_UNASSIGN_HANDED_OVER');
+    expect((await h.prisma.booking.findUnique({ where: { id: hcmBooking.id } }))?.assignedStaffId).toBe(hcm1.id);
+
+    const moved = await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm2.id, reason: 'Staff nghỉ ốm' });
+    expect(moved.body.assignedStaff).toMatchObject({ id: hcm2.id });
   });
 });
