@@ -102,10 +102,12 @@ export const adminApi = {
       api.patch(`/admin/staff-rules/${id}`, body) as Promise<T.StaffRule>,
     deleteRule: (id: string) => api.delete(`/admin/staff-rules/${id}`),
     bookings: (q: Q) => api.get(`/admin/bookings${toQuery(q)}`) as Promise<T.Paginated<T.AssignableBooking>>,
-    assign: (bookingId: string, staffId: string) => api.patch(`/admin/bookings/${bookingId}/assign`, { staffId }) as Promise<T.AssignableBooking>,
+    assign: (bookingId: string, staffId: string, reason?: string) =>
+      api.patch(`/admin/bookings/${bookingId}/assign`, { staffId, ...(reason ? { reason } : {}) }) as Promise<T.AssignableBooking>,
     autoAssign: (bookingId: string) =>
       api.post(`/admin/bookings/${bookingId}/auto-assign`, {}) as Promise<{ booking: T.AssignableBooking; rule: { id: string; name: string } }>,
-    unassign: (bookingId: string) => api.delete(`/admin/bookings/${bookingId}/assign`) as Promise<T.AssignableBooking>,
+    unassign: (bookingId: string, reason: string) =>
+      api.delete(`/admin/bookings/${bookingId}/assign?reason=${encodeURIComponent(reason)}`) as Promise<T.AssignableBooking>,
   },
 
   bookings: {

@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { CalendarDays, Search, Sparkles, UserCheck } from 'lucide-react';
+import { ConfirmDialog } from '@/components/admin/confirm-dialog';
+import { FilterSelect, type FilterOption } from '@/components/admin/filter-select';
 import { Pagination } from '@/components/admin/pagination';
+import { StaffPicker } from './staff-picker';
 import { useAdminToast } from '@/components/admin/use-admin-toast';
 import { EmptyState } from '@/components/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +15,7 @@ import {
 } from '@/hooks/admin/use-admin-staff';
 import { formatDate } from '@/lib/format';
 import type { ApiError } from '@/lib/api/client';
-import type { BookingStatus } from '@/types/admin';
+import type { AssignableBooking, BookingStatus } from '@/types/admin';
 import { BOOKING_STATUS_LABEL } from '@/types/booking';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
@@ -34,7 +37,20 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const FILTER_SELECT = 'h-9 rounded-xl border border-[#e2e8f3] bg-white px-3 text-sm text-[#0f1729] outline-none focus:border-[#2a7bd9] focus:ring-2 focus:ring-[#2a7bd9]/10';
+const ASSIGNED_OPTIONS: FilterOption<'ALL' | 'true' | 'false'>[] = [
+  { value: 'ALL', label: 'Tất cả phân công' },
+  { value: 'false', label: 'Chưa gán staff', dotClass: 'bg-amber-400' },
+  { value: 'true', label: 'Đã gán staff', dotClass: 'bg-emerald-500' },
+];
+
+const STATUS_OPTIONS: FilterOption<BookingStatus | 'ALL'>[] = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'PENDING_APPROVAL' as BookingStatus, label: BOOKING_STATUS_LABEL.PENDING_APPROVAL, dotClass: STATUS_STYLES.PENDING_APPROVAL.dot },
+  { value: 'CONFIRMED', label: BOOKING_STATUS_LABEL.CONFIRMED, dotClass: STATUS_STYLES.CONFIRMED.dot },
+  { value: 'IN_PROGRESS' as BookingStatus, label: BOOKING_STATUS_LABEL.IN_PROGRESS, dotClass: STATUS_STYLES.IN_PROGRESS.dot },
+];
+
+const CHANGE_REASONS = ['Staff nghỉ đột xuất', 'Sai khu vực', 'Quá tải việc', 'Khác'];
 
 export function BookingsTab() {
   const [assigned, setAssigned] = useState<'ALL' | 'true' | 'false'>('ALL');
@@ -51,8 +67,37 @@ export function BookingsTab() {
   const assign = useAssignBooking();
   const autoAssign = useAutoAssign();
   const toast = useAdminToast();
+  // A change that needs a reason waits here until the admin confirms it in the dialog.
+  const [pendingChange, setPendingChange] = useState<{ booking: AssignableBooking; staffId: string | null } | null>(null);
   const bookings = data?.items ?? [];
   const staffList = staffOpts?.items ?? [];
+
+  function requestAssign(b: AssignableBooking, staffId: string | null) {
+    if (staffId === (b.assignedStaff?.id ?? null)) return;
+    if (!b.assignedStaff) {
+      // Nobody to replace, so nothing to explain.
+      if (staffId) assign.mutate({ bookingId: b.id, staffId }, { onSuccess: () => toast.success('Đã gán nhân viên'), onError: toast.error });
+      return;
+    }
+    // The admin BookingStatus type predates IN_PROGRESS, but the API does return it.
+    if (!staffId && (b.status as string) === 'IN_PROGRESS') {
+      toast.error(new Error('Đơn đã bàn giao nên không thể bỏ trống nhân viên phụ trách. Hãy đổi sang nhân viên khác.'));
+      return;
+    }
+    setPendingChange({ booking: b, staffId });
+  }
+
+  function confirmChange(reason: string) {
+    if (!pendingChange) return;
+    const { booking, staffId } = pendingChange;
+    assign.mutate(
+      { bookingId: booking.id, staffId, reason },
+      {
+        onSuccess: () => { toast.success(staffId ? 'Đã đổi nhân viên phụ trách' : 'Đã bỏ gán'); setPendingChange(null); },
+        onError: (err) => { toast.error(err); setPendingChange(null); },
+      },
+    );
+  }
 
   return (
     <div>
@@ -68,17 +113,20 @@ export function BookingsTab() {
             className="h-9 w-full rounded-xl border border-[#e2e8f3] bg-[#f8fafc] pl-9 pr-4 text-sm outline-none transition focus:border-[#2a7bd9] focus:ring-2 focus:ring-[#2a7bd9]/10"
           />
         </div>
-        <select value={assigned} onChange={(e) => setAssigned(e.target.value as 'ALL' | 'true' | 'false')} className={FILTER_SELECT}>
-          <option value="ALL">Tất cả phân công</option>
-          <option value="false">Chưa gán staff</option>
-          <option value="true">Đã gán staff</option>
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value as BookingStatus | 'ALL')} className={FILTER_SELECT}>
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="PENDING_APPROVAL">{BOOKING_STATUS_LABEL.PENDING_APPROVAL}</option>
-          <option value="CONFIRMED">{BOOKING_STATUS_LABEL.CONFIRMED}</option>
-          <option value="IN_PROGRESS">{BOOKING_STATUS_LABEL.IN_PROGRESS}</option>
-        </select>
+        <FilterSelect
+          ariaLabel="Lọc theo phân công"
+          value={assigned}
+          defaultValue="ALL"
+          onChange={setAssigned}
+          options={ASSIGNED_OPTIONS}
+        />
+        <FilterSelect
+          ariaLabel="Lọc theo trạng thái"
+          value={status}
+          defaultValue="ALL"
+          onChange={setStatus}
+          options={STATUS_OPTIONS}
+        />
       </div>
 
       {/* Table */}
@@ -144,32 +192,12 @@ export function BookingsTab() {
 
                 {/* Staff assignment */}
                 <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-2">
-                    {b.assignedStaff && (
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-[9px] font-bold text-emerald-700">
-                        {b.assignedStaff.name.split(' ').pop()?.[0] ?? '?'}
-                      </span>
-                    )}
-                    <select
-                      value={b.assignedStaff?.id ?? ''}
-                      disabled={assign.isPending}
-                      onChange={(e) => {
-                        assign.mutate(
-                          { bookingId: b.id, staffId: e.target.value || null },
-                          {
-                            onSuccess: () => toast.success(e.target.value ? 'Đã gán nhân viên' : 'Đã bỏ gán'),
-                            onError: toast.error,
-                          },
-                        );
-                      }}
-                      className="h-8 max-w-[160px] rounded-lg border border-[#e2e8f3] bg-white px-2 text-xs text-[#0f1729] outline-none focus:border-[#2a7bd9] disabled:opacity-50"
-                    >
-                      <option value="">— Chưa gán —</option>
-                      {staffList.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <StaffPicker
+                    current={b.assignedStaff}
+                    staff={staffList}
+                    disabled={assign.isPending}
+                    onChange={(staffId) => requestAssign(b, staffId)}
+                  />
                 </td>
 
                 {/* Auto-assign */}
@@ -189,7 +217,7 @@ export function BookingsTab() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[#2a7bd9]/30 bg-[#2a7bd9]/5 px-3 py-1.5 text-xs font-semibold text-[#2a7bd9] transition-colors hover:bg-[#2a7bd9]/10 disabled:opacity-50"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Tự gán
+                    Tự động gán
                   </button>
                 </td>
               </tr>
@@ -206,6 +234,24 @@ export function BookingsTab() {
         </span>
         <Pagination page={page} totalPages={data?.totalPages ?? 1} onChange={setPage} />
       </div>
+      <ConfirmDialog
+        open={pendingChange !== null}
+        onOpenChange={(open) => { if (!open) setPendingChange(null); }}
+        title={pendingChange?.staffId ? 'Đổi nhân viên phụ trách' : 'Bỏ gán nhân viên'}
+        description={
+          pendingChange
+            ? pendingChange.staffId
+              ? `Đổi từ ${pendingChange.booking.assignedStaff?.name} sang ${staffList.find((x) => x.id === pendingChange.staffId)?.name ?? 'nhân viên mới'}. Nhân viên cũ sẽ được báo.`
+              : `${pendingChange.booking.assignedStaff?.name} sẽ không còn phụ trách đơn này và được báo ngay.`
+            : undefined
+        }
+        confirmLabel={pendingChange?.staffId ? 'Đổi nhân viên' : 'Bỏ gán'}
+        tone={pendingChange?.staffId ? 'default' : 'danger'}
+        requireReason
+        reasonPresets={CHANGE_REASONS}
+        pending={assign.isPending}
+        onConfirm={confirmChange}
+      />
       {toast.node}
     </div>
   );

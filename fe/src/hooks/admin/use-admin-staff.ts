@@ -49,8 +49,8 @@ export function useAssignableBookings(f: { assigned: 'ALL' | 'true' | 'false'; s
 export function useAssignBooking() {
   const invalidate = useInvalidateStaff();
   return useMutation({
-    mutationFn: ({ bookingId, staffId }: { bookingId: string; staffId: string | null }) =>
-      staffId ? adminApi.staff.assign(bookingId, staffId) : adminApi.staff.unassign(bookingId),
+    mutationFn: ({ bookingId, staffId, reason }: { bookingId: string; staffId: string | null; reason?: string }) =>
+      staffId ? adminApi.staff.assign(bookingId, staffId, reason) : adminApi.staff.unassign(bookingId, reason ?? ''),
     onSuccess: invalidate,
   });
 }

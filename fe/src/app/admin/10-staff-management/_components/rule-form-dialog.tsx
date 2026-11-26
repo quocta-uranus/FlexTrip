@@ -10,6 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldSelect } from '@/components/admin/field-select';
+import { staffInitial } from './staff-picker';
 import { useActiveStaffOptions, useSaveRule } from '@/hooks/admin/use-admin-staff';
 import { STAFF_REGIONS, staffRuleSchema, type StaffRuleInput } from '@/lib/validators/admin.schema';
 import type { ApiError } from '@/lib/api/client';
@@ -22,9 +24,6 @@ interface Props {
   onSuccess: (msg: string) => void;
   onError: (err: unknown) => void;
 }
-
-const SELECT_CLASS =
-  'h-11 w-full appearance-none rounded-xl border border-slate-200 bg-[#f8fafc] px-4 py-2 text-sm text-slate-900 outline-none transition focus:border-[#2a7bd9] focus:ring-2 focus:ring-[#2a7bd9]/15 disabled:bg-slate-100';
 
 export function RuleFormDialog({ open, onOpenChange, rule, onSuccess, onError }: Props) {
   const save = useSaveRule();
@@ -121,10 +120,18 @@ export function RuleFormDialog({ open, onOpenChange, rule, onSuccess, onError }:
                   <MapPin className="h-3.5 w-3.5" />
                   Khu vực <span className="text-red-500">*</span>
                 </Label>
-                <select id="rule-region" className={SELECT_CLASS} aria-invalid={!!form.formState.errors.region} {...form.register('region')}>
-                  <option value="">— Chọn khu vực —</option>
-                  {STAFF_REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <FieldSelect
+                  id="rule-region"
+                  value={form.watch('region')}
+                  placeholder="Chọn khu vực"
+                  invalid={!!form.formState.errors.region}
+                  options={STAFF_REGIONS.map((r) => ({
+                    value: r,
+                    label: r,
+                    leading: <MapPin className="h-4 w-4 shrink-0 text-[#2a7bd9]" />,
+                  }))}
+                  onChange={(v) => form.setValue('region', v, { shouldValidate: true, shouldDirty: true })}
+                />
                 {form.formState.errors.region && (
                   <p className="text-xs font-medium text-red-600">{form.formState.errors.region.message}</p>
                 )}
@@ -135,12 +142,23 @@ export function RuleFormDialog({ open, onOpenChange, rule, onSuccess, onError }:
                   <User2 className="h-3.5 w-3.5" />
                   Nhân viên phụ trách <span className="text-red-500">*</span>
                 </Label>
-                <select id="rule-staff" className={SELECT_CLASS} aria-invalid={!!form.formState.errors.staffId} {...form.register('staffId')}>
-                  <option value="">— Chọn nhân viên —</option>
-                  {(staffOpts?.items ?? []).map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} · {s.employeeCode}</option>
-                  ))}
-                </select>
+                <FieldSelect
+                  id="rule-staff"
+                  value={form.watch('staffId')}
+                  placeholder="Chọn nhân viên"
+                  invalid={!!form.formState.errors.staffId}
+                  options={(staffOpts?.items ?? []).map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    description: [s.employeeCode, s.regions.join(', ')].filter(Boolean).join(' · '),
+                    leading: (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">
+                        {staffInitial(s.name)}
+                      </span>
+                    ),
+                  }))}
+                  onChange={(v) => form.setValue('staffId', v, { shouldValidate: true, shouldDirty: true })}
+                />
                 {form.formState.errors.staffId && (
                   <p className="text-xs font-medium text-red-600">{form.formState.errors.staffId.message}</p>
                 )}
