@@ -294,7 +294,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
         }`}
       >
         {/* Brand Logo */}
-        <Link href="/" className={`flex items-center gap-2 shrink-0 group whitespace-nowrap ${overlay ? 'md:flex-1 md:basis-0' : ''}`}>
+        <Link href={isStaff && !isAdmin ? '/staff' : '/'} className={`flex items-center gap-2 shrink-0 group whitespace-nowrap ${overlay ? 'md:flex-1 md:basis-0' : ''}`}>
           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-brand-blue via-brand to-brand-mint text-white flex items-center justify-center shadow-xs shadow-brand/30 transition-transform duration-200 group-hover:scale-105">
             <Compass className="h-4 w-4" strokeWidth={2.4} />
           </div>

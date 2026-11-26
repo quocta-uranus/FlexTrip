@@ -21,13 +21,15 @@ const TYPE_META: Record<NotificationType, { icon: string; background: string }> 
   REVIEW: { icon: '⭐', background: '#fefce8' },
 };
 
-export function getNotificationHref(notification: AppNotification, isProvider: boolean) {
+export function getNotificationHref(notification: AppNotification, isProvider: boolean, isStaff = false) {
   const data = notification.data ?? {};
   const bookingId = typeof data.bookingId === 'string' ? data.bookingId : null;
   const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
   const ticketId = typeof data.ticketId === 'string' ? data.ticketId : null;
 
   if (notification.type === 'BOOKING') {
+    // Staff are not a party to the order, so the traveler/provider pages would only say "not found" or "no permission".
+    if (isStaff) return bookingId ? `/staff/bookings/${bookingId}` : '/staff/bookings';
     // A single booking page serves both sides; without a booking id fall back to the matching list.
     if (bookingId) return `/bookings/${bookingId}`;
     const forProvider = notification.audience ? notification.audience === 'PROVIDER' : isProvider;
@@ -49,9 +51,10 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
 export function useOpenNotification(isProvider: boolean) {
   const router = useRouter();
   const { isDual, setMode } = useAppMode();
+  const isStaff = useAuthStore((s) => s.user?.roles?.includes('STAFF') ?? false);
   return (notification: AppNotification) => {
     if (isDual && notification.audience) setMode(notification.audience === 'PROVIDER' ? 'provider' : 'traveler');
-    router.push(getNotificationHref(notification, isProvider));
+    router.push(getNotificationHref(notification, isProvider, isStaff));
   };
 }
 
