@@ -249,14 +249,26 @@ export function BookingWidget({ listing }: Props) {
             </button>
           ))}
         </div>
+        {deliveryMethod === 'PICKUP' && listing.location && (
+          <p className="mt-2 rounded-xl bg-sky-50 px-3 py-2 text-xs text-slate-600">
+            Nhận tại: <span className="font-semibold text-ink">{listing.location}</span>
+          </p>
+        )}
         {deliveryMethod === 'DELIVERY' && (
-          <input
-            type="text"
-            placeholder="Địa chỉ giao hàng"
-            value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
-            className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-ink outline-none transition-colors placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
-          />
+          <div className="mt-2">
+            <label htmlFor="delivery-address" className="mb-1 block text-xs font-medium text-slate-500">
+              Địa chỉ giao hàng <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="delivery-address"
+              type="text"
+              placeholder="Số nhà, đường, quận/huyện, tỉnh/thành"
+              value={deliveryAddress}
+              onChange={(e) => setDeliveryAddress(e.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-ink outline-none transition-colors placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+            />
+            <p className="mt-1.5 text-xs text-slate-500">Chủ thiết bị sẽ liên hệ xác nhận phí giao (nếu có).</p>
+          </div>
         )}
       </div>
 
@@ -268,18 +280,24 @@ export function BookingWidget({ listing }: Props) {
             </span>
             <span className="font-medium text-ink">{formatMoney(subtotal)}</span>
           </div>
-          {depositRate > 0 && (
-            <div className="flex justify-between gap-3 text-xs text-slate-500">
-              <span>Đặt cọc ({Math.round(depositRate * 100)}%)</span>
-              <span>{formatMoney(deposit)}</span>
-            </div>
-          )}
           <div className="flex justify-between gap-3 border-t border-sky-100 pt-2 text-base font-bold">
-            <span className="text-ink">Tổng cộng</span>
-            <span className="text-brand-blue">
+            <span className="text-ink">Tổng tiền thuê</span>
+            <span className="text-ink">
               {formatMoney(subtotal)} {listing.currency ?? 'VND'}
             </span>
           </div>
+          {depositRate > 0 && (
+            <div className="rounded-xl bg-brand/10 px-3 py-2.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs text-brand-blue">Thanh toán ngay (cọc {Math.round(depositRate * 100)}%)</span>
+                <span className="text-base font-bold text-brand-blue">{formatMoney(deposit)}</span>
+              </div>
+              <div className="mt-1 flex justify-between gap-3 text-xs text-slate-500">
+                <span>Còn lại, trả sau khi chủ duyệt đơn</span>
+                <span>{formatMoney(subtotal - deposit)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
