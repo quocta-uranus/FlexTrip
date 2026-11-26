@@ -6,7 +6,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
       <main className="flex-1 pb-10 pt-24 sm:pt-28">
         {/* Same container as every other provider page: the header stays on the left edge, while everything under it
             keeps a readable width and sits in the middle. */}
-        <div className={`${PAGE_WIDTH} flex flex-col gap-7 [&>*:not(header)]:mx-auto [&>*:not(header)]:w-full [&>*:not(header)]:max-w-4xl`}>
+        <div className={`${PAGE_WIDTH} flex flex-col gap-7 [&>*:not(header):not(.fixed)]:mx-auto [&>*:not(header):not(.fixed)]:w-full [&>*:not(header):not(.fixed)]:max-w-4xl`}>
           {children}
         </div>
       </main>
