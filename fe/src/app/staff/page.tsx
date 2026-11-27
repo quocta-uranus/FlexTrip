@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ActionButton } from '@/components/staff/action-button';
 import { ConditionDialog } from '@/components/staff/condition-dialog';
+import { isBeforeRentalStart } from '@/lib/handover-date';
 import { MediationFormDialog } from '@/components/staff/mediation-form-dialog';
 import { MediationActionDialog } from '@/components/staff/mediation-action-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ function TaskCard({ task, onConfirm, onMediate }: {
 }) {
   const isHandover = task.type === 'HANDOVER';
   const completed = Boolean(task.completedAt);
+  const tooEarly = isHandover && !completed && isBeforeRentalStart(task.scheduledAt);
   return (
     <Card className="border-0 bg-white shadow-sm ring-1 ring-[#e2e8f3]">
       <CardHeader className="border-b border-[#f1f5fa]">
@@ -68,9 +70,10 @@ function TaskCard({ task, onConfirm, onMediate }: {
           <div><p className="text-[#8694ad]">Provider</p><p className="font-medium text-[#0f1729]">{task.listing.provider.name}</p><p className="text-xs text-[#8694ad]">{task.listing.provider.phone ?? '—'}</p></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ActionButton variant={isHandover ? 'primary-blue' : 'primary-emerald'} disabled={completed} onClick={() => onConfirm(task)}>
+          <ActionButton variant={isHandover ? 'primary-blue' : 'primary-emerald'} disabled={completed || tooEarly} onClick={() => onConfirm(task)}>
             <Camera className="h-[18px] w-[18px]" />{completed ? (isHandover ? 'Đã giao thiết bị' : 'Đã nhận lại thiết bị') : 'Chụp ảnh & xác nhận'}
           </ActionButton>
+          {tooEarly && <p className="basis-full text-xs text-amber-700">Chưa tới ngày thuê nên chưa thể bàn giao.</p>}
           {!completed && (
             <ActionButton variant="warn" onClick={() => onMediate(task)}>
               <Scale className="h-[18px] w-[18px]" />Có bất đồng
