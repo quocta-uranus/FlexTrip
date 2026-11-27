@@ -17,6 +17,7 @@ export interface ContractParams {
   unitPrice: number;
   totalPrice: number;
   depositAmount: number;
+  discountAmount?: number;
   depositRate: number;
   deliveryMethod: string;
   deliveryAddress?: string;
@@ -56,6 +57,15 @@ export function renderContract(p: ContractParams): string {
           .join('\n')
       : '  (Hai bên thỏa thuận cụ thể khi phát sinh)';
 
+  const discount = p.discountAmount ?? 0;
+  const discountSection =
+    discount > 0
+      ? `  Giảm giá (voucher) : -${fmt(discount)}đ\n  Tiền thuê sau giảm : ${fmt(Math.max(0, p.totalPrice - discount))}đ\n`
+      : '';
+  // Cọc tính trên giá gốc nên phần còn lại phải trừ cả giảm giá, khớp với trang chi tiết đơn.
+  const balanceSection =
+    discount > 0 ? `  Còn lại sau cọc    : ${fmt(Math.max(0, p.totalPrice - p.depositAmount - discount))}đ\n` : '';
+
   const conditionSection = p.productConditionNote
     ? `Tình trạng sản phẩm trước khi giao:\n${p.productConditionNote}`
     : 'Tình trạng sản phẩm: được xác nhận đầy đủ khi giao nhận thực tế.';
@@ -88,7 +98,7 @@ II. THÔNG TIN THIẾT BỊ THUÊ
   Danh mục     : ${categoryLabel}
   Địa điểm     : ${p.listingLocation}
   Số lượng     : ${p.quantity} thiết bị
-  Mã booking   : ${p.bookingId.slice(-12).toUpperCase()}
+  Mã đơn thuê  : ${p.bookingId.slice(-12).toUpperCase()}
 
 ${conditionSection}
 
@@ -101,8 +111,8 @@ III. THỜI GIAN THUÊ & GIÁ
   Số ngày thuê  : ${p.rentalDays} ngày
   Đơn giá/ngày  : ${fmt(p.unitPrice)}đ/ngày
   Tổng giá trị  : ${fmt(p.totalPrice)}đ
-  Đặt cọc       : ${fmt(p.depositAmount)}đ (${Math.round(p.depositRate * 100)}% tổng giá trị)
-  Nhận/trả hàng : ${deliveryLabel}
+${discountSection}  Đặt cọc       : ${fmt(p.depositAmount)}đ (${Math.round(p.depositRate * 100)}% tổng giá trị)
+${balanceSection}  Nhận/trả hàng : ${deliveryLabel}
 ${highValueSection}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

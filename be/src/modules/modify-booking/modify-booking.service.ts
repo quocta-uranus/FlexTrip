@@ -25,7 +25,7 @@ export class ModifyBookingService {
       where: { id: bookingId },
       select: { id: true, travelerId: true, status: true, quantity: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== travelerId) throw new ForbiddenException();
     if (booking.status !== BookingStatus.CONFIRMED)
       throw new BadRequestException('Chỉ có thể yêu cầu thay đổi booking đang ở trạng thái CONFIRMED');
@@ -98,7 +98,7 @@ export class ModifyBookingService {
       where: { id: bookingId },
       select: { travelerId: true, listing: { select: { providerId: true } } },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const isParticipant =
       booking.travelerId === userId || booking.listing.providerId === userId;

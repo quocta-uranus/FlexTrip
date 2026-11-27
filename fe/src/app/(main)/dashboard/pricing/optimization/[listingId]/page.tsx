@@ -38,7 +38,7 @@ export default function OptimizationPage({
             </div>
             <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#7c3aed' }}>PRICE-05 · PRICE-07</span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
             Tối ưu hoá doanh thu
           </h1>
           {listing && (

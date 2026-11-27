@@ -17,8 +17,8 @@ type StatusFilter = 'ALL' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'DISPUTE
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string; icon: React.ReactNode }> = {
   CONFIRMED:   { label: 'Đã xác nhận', bg: 'bg-blue-50',    text: 'text-blue-700',   dot: 'bg-blue-400',   icon: <Clock3 className="h-3.5 w-3.5" /> },
   IN_PROGRESS: { label: 'Đang thuê',   bg: 'bg-emerald-50', text: 'text-emerald-700',dot: 'bg-emerald-500',icon: <Package className="h-3.5 w-3.5" /> },
-  COMPLETED:   { label: 'Hoàn thành',  bg: 'bg-slate-100',  text: 'text-slate-600',  dot: 'bg-slate-400',  icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  DISPUTED:    { label: 'Tranh chấp',  bg: 'bg-red-50',     text: 'text-red-700',    dot: 'bg-red-500',    icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+  COMPLETED:   { label: 'Hoàn thành',  bg: 'bg-teal-50',    text: 'text-teal-700',   dot: 'bg-teal-500',   icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+  DISPUTED:    { label: 'Tranh chấp',  bg: 'bg-purple-50',  text: 'text-purple-700', dot: 'bg-purple-500', icon: <AlertTriangle className="h-3.5 w-3.5" /> },
 };
 
 function formatDate(iso: string) {
@@ -47,8 +47,8 @@ function BookingCard({ booking }: { booking: StaffBooking }) {
         {/* Status bar */}
         <div className={`h-1 rounded-t-xl ${
           booking.status === 'IN_PROGRESS' ? 'bg-gradient-to-r from-emerald-400 to-teal-400' :
-          booking.status === 'DISPUTED'    ? 'bg-red-400' :
-          booking.status === 'COMPLETED'   ? 'bg-slate-300' :
+          booking.status === 'DISPUTED'    ? 'bg-purple-400' :
+          booking.status === 'COMPLETED'   ? 'bg-teal-400' :
           'bg-blue-400'
         }`} />
 

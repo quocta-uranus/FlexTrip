@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MapPin, Pencil, Power, Users } from 'lucide-react';
 import { Reveal } from '@/components/profile/wow';
+import { FilterSelect, type FilterOption } from '@/components/admin/filter-select';
 import { Pagination } from '@/components/admin/pagination';
 import { useAdminToast } from '@/components/admin/use-admin-toast';
 import { EmptyState } from '@/components/empty-state';
@@ -13,6 +14,12 @@ import { formatDateTime } from '@/lib/format';
 import type { AdminStaff } from '@/types/admin';
 import { StaffFormDialog } from './staff-form-dialog';
 import { StaffStatusDialog } from './staff-status-dialog';
+
+const ACTIVE_OPTIONS: FilterOption<'ALL' | 'true' | 'false'>[] = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'true', label: 'Đang hoạt động', dotClass: 'bg-emerald-500' },
+  { value: 'false', label: 'Tạm ngừng', dotClass: 'bg-slate-400' },
+];
 
 const REGION_COLORS: Record<string, { bg: string; text: string }> = {
   'Hà Nội':      { bg: 'bg-violet-50', text: 'text-violet-600' },
@@ -161,15 +168,13 @@ export function StaffTab() {
             className="h-9 w-full rounded-xl border border-[#e2e8f3] bg-[#f8fafc] pl-9 pr-4 text-sm outline-none transition focus:border-[#2a7bd9] focus:ring-2 focus:ring-[#2a7bd9]/10"
           />
         </div>
-        <select
+        <FilterSelect
+          ariaLabel="Lọc theo trạng thái nhân viên"
           value={isActive}
-          onChange={(e) => setIsActive(e.target.value as 'ALL' | 'true' | 'false')}
-          className="h-9 rounded-xl border border-[#e2e8f3] bg-white px-3 text-sm text-[#0f1729] outline-none focus:border-[#2a7bd9]"
-        >
-          <option value="ALL">Tất cả</option>
-          <option value="true">Đang hoạt động</option>
-          <option value="false">Tạm ngừng</option>
-        </select>
+          defaultValue="ALL"
+          onChange={setIsActive}
+          options={ACTIVE_OPTIONS}
+        />
         <button
           type="button"
           onClick={() => { setEditStaff(null); setFormOpen(true); }}

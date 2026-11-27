@@ -44,6 +44,8 @@ function BookingCheckoutForm() {
   const { data: contractPreview } = useContractPreview(bookingId ?? '', !!bookingId);
 
   const price = listing ? (typeof listing.price === 'number' ? listing.price : Number(listing.price)) : 0;
+  const cur = !listing?.currency || listing.currency === 'VND' ? '₫' : ` ${listing.currency}`;
+  const providerName = listing?.provider?.providerProfile?.shopName ?? listing?.provider?.name;
   const depositRate = DEPOSIT_RATE;
   const rentalDays = from && to
     ? calcRentalDays(from, to)
@@ -142,7 +144,7 @@ function BookingCheckoutForm() {
                   className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                   style={{ background: checkoutStep >= 1 ? '#2a7bd9' : '#e2e8f3', color: checkoutStep >= 1 ? '#fff' : '#8694ad' }}
                 >1</div>
-                <span style={{ color: checkoutStep === 1 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 1 ? 600 : 400 }}>Thông tin & thanh toán</span>
+                <span style={{ color: checkoutStep === 1 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 1 ? 600 : 400 }}>Thông tin</span>
               </div>
               <div className="h-px flex-1" style={{ background: '#DCEFFB' }} />
               <div className="flex items-center gap-2">
@@ -151,6 +153,11 @@ function BookingCheckoutForm() {
                   style={{ background: checkoutStep >= 2 ? '#2a7bd9' : '#e2e8f3', color: checkoutStep >= 2 ? '#fff' : '#8694ad' }}
                 >2</div>
                 <span style={{ color: checkoutStep === 2 ? '#0f1729' : '#8694ad', fontWeight: checkoutStep === 2 ? 600 : 400 }}>Ký hợp đồng</span>
+              </div>
+              <div className="h-px flex-1" style={{ background: '#DCEFFB' }} />
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold" style={{ background: '#e2e8f3', color: '#8694ad' }}>3</div>
+                <span style={{ color: '#8694ad' }}>Thanh toán</span>
               </div>
             </div>
           </div>
@@ -183,6 +190,18 @@ function BookingCheckoutForm() {
                       {delivery === 'PICKUP' ? '🏪 Lấy tại nơi' : '🚚 Giao hàng'}
                     </p>
                   </div>
+                  {delivery === 'PICKUP' && listing?.location && (
+                    <div>
+                      <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Khu vực nhận</p>
+                      <p className="font-semibold" style={{ color: '#0f1729' }}>{listing.location}</p>
+                    </div>
+                  )}
+                  {providerName && (
+                    <div>
+                      <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Chủ thiết bị</p>
+                      <p className="font-semibold" style={{ color: '#0f1729' }}>{providerName}</p>
+                    </div>
+                  )}
                   {delivery === 'DELIVERY' && address && (
                     <div className="col-span-2">
                       <p className="text-xs font-medium mb-1" style={{ color: '#8694ad' }}>Địa chỉ giao</p>
@@ -190,6 +209,11 @@ function BookingCheckoutForm() {
                     </div>
                   )}
                 </div>
+                <p className="mt-4 border-t pt-3 text-xs" style={{ borderColor: '#DCEFFB', color: '#5a6b85' }}>
+                  {delivery === 'PICKUP'
+                    ? 'Địa điểm nhận cụ thể do chủ thiết bị hẹn với bạn sau khi duyệt đơn.'
+                    : 'Chủ thiết bị sẽ liên hệ xác nhận phí giao (nếu có).'}
+                </p>
               </div>
               <div className="rounded-xl border p-4 text-sm" style={{ borderColor: '#DCEFFB', background: '#f6fbfe' }}>
                 <p className="font-medium mb-1" style={{ color: '#0f1729' }}>Chính sách huỷ</p>
@@ -264,11 +288,27 @@ function BookingCheckoutForm() {
               {/* Price breakdown */}
               <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
                 <h3 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Chi tiết giá</h3>
-                <div className="space-y-2.5 text-sm">
+                <div className="space-y-2.5 whitespace-nowrap text-sm">
                   <div className="flex justify-between">
                     <span style={{ color: '#5a6b85' }}>Giá/ngày</span>
-                    <span style={{ color: '#0f1729' }}>{price.toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
+                    <span style={{ color: '#0f1729' }}>{price.toLocaleString('vi-VN')}{cur}</span>
                   </div>
+                  {checkoutStep === 2 && (
+                    <>
+                      <div className="flex justify-between">
+                        <span style={{ color: '#5a6b85' }}>Nhận</span>
+                        <span style={{ color: '#0f1729' }}>{new Date(from).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: '#5a6b85' }}>Trả</span>
+                        <span style={{ color: '#0f1729' }}>{new Date(to).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: '#5a6b85' }}>Nhận hàng</span>
+                        <span style={{ color: '#0f1729' }}>{delivery === 'PICKUP' ? 'Lấy tại nơi' : 'Giao hàng'}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between">
                     <span style={{ color: '#5a6b85' }}>Số ngày</span>
                     <span style={{ color: '#0f1729' }}>{rentalDays} ngày</span>
@@ -277,12 +317,6 @@ function BookingCheckoutForm() {
                     <div className="flex justify-between">
                       <span style={{ color: '#5a6b85' }}>Số lượng</span>
                       <span style={{ color: '#0f1729' }}>× {qty}</span>
-                    </div>
-                  )}
-                  {depositRate > 0 && (
-                    <div className="flex justify-between text-xs" style={{ color: '#8694ad' }}>
-                      <span>Đặt cọc ({(depositRate * 100).toFixed(0)}%)</span>
-                      <span>{deposit.toLocaleString('vi-VN')}</span>
                     </div>
                   )}
                 </div>
@@ -297,14 +331,30 @@ function BookingCheckoutForm() {
                 {voucher && (
                   <div className="mt-3 flex justify-between text-sm" style={{ color: '#15803d' }}>
                     <span>Giảm giá ({voucher.code})</span>
-                    <span>-{voucher.discount.toLocaleString('vi-VN')}</span>
+                    <span>-{voucher.discount.toLocaleString('vi-VN')}{cur}</span>
                   </div>
                 )}
 
-                <div className="flex justify-between border-t pt-2.5 mt-3 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
-                  <span style={{ color: '#0f1729' }}>Tổng cộng</span>
-                  <span style={{ color: '#2a7bd9' }}>{(subtotal - (voucher?.discount ?? 0)).toLocaleString('vi-VN')} {listing?.currency ?? 'VND'}</span>
+                <div className="flex items-baseline justify-between gap-2 whitespace-nowrap border-t pt-2.5 mt-3 text-[15px] font-bold" style={{ borderColor: '#DCEFFB' }}>
+                  <span style={{ color: '#0f1729' }}>Tổng tiền thuê</span>
+                  <span style={{ color: '#0f1729' }}>{(subtotal - (voucher?.discount ?? 0)).toLocaleString('vi-VN')}{cur}</span>
                 </div>
+
+                {depositRate > 0 && (
+                  <div className="mt-3 border-t pt-3" style={{ borderColor: '#DCEFFB' }}>
+                    <div className="flex items-baseline justify-between gap-2 whitespace-nowrap py-1 text-sm">
+                      <span style={{ color: '#1e5aa8' }}>Trả ngay (cọc {(depositRate * 100).toFixed(0)}%)</span>
+                      <span className="font-semibold" style={{ color: '#2a7bd9' }}>{deposit.toLocaleString('vi-VN')}{cur}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-2 whitespace-nowrap py-1 text-sm">
+                      <span style={{ color: '#5a6b85' }}>Trả sau</span>
+                      <span style={{ color: '#0f1729' }}>{Math.max(subtotal - deposit - (voucher?.discount ?? 0), 0).toLocaleString('vi-VN')}{cur}</span>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: '#8694ad' }}>
+                      Phần trả sau thanh toán khi chủ thiết bị duyệt đơn, trong vòng 24 giờ.
+                    </p>
+                  </div>
+                )}
 
                 {checkoutStep === 1 ? (
                   <button
@@ -338,15 +388,20 @@ function BookingCheckoutForm() {
                         </svg>
                         Đang xử lý…
                       </span>
-                    ) : 'Ký hợp đồng & Chọn thanh toán →'}
+                    ) : 'Ký hợp đồng và thanh toán'}
                   </button>
                 )}
 
                 <p className="mt-2 text-center text-xs" style={{ color: '#8694ad' }}>
                   {checkoutStep === 1
-                    ? 'Giữ chỗ 15 phút sau khi đặt. Thanh toán qua PayOS ở bước tiếp theo.'
+                    ? 'Giữ chỗ 15 phút sau khi đặt. Thanh toán ở bước tiếp theo.'
                     : 'Ký điện tử có giá trị pháp lý. Bạn sẽ chọn cổng thanh toán ở trang tiếp theo.'}
                 </p>
+                {checkoutStep === 2 && !canSign && (
+                  <p className="mt-1.5 text-center text-xs" style={{ color: '#5a6b85' }}>
+                    Để tiếp tục: {[!contractAgreed && 'tick đồng ý điều khoản', isV2 && !signature && 'ký tên ở phần Ký tên (Bên B)'].filter(Boolean).join(' và ')}.
+                  </p>
+                )}
               </div>
 
               {/* Hold countdown (shown after booking created) */}

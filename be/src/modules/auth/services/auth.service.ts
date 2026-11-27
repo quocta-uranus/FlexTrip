@@ -329,15 +329,15 @@ export class AuthService {
         },
       );
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
     }
     if (typeof payload.sub !== 'string')
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: AUTH_USER_INCLUDE,
     });
-    if (!user) throw new UnauthorizedException('Invalid refresh token');
+    if (!user) throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
     this.assertCanAuthenticate(user);
     const tokenHash = this.hashToken(token);
     if (typeof payload.sid === 'string') {
@@ -351,7 +351,7 @@ export class AuthService {
         session.revokedAt ||
         session.expiresAt <= new Date()
       )
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
       return this.signTokens(
         user,
         {
@@ -364,7 +364,7 @@ export class AuthService {
       );
     }
     if (!user.refreshToken || this.hashToken(user.refreshToken) !== tokenHash)
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
     return this.signTokens(user, { deviceName: 'Legacy session' });
   }
 
@@ -644,7 +644,7 @@ export class AuthService {
       },
     });
     if (update.count !== 1)
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
     await this.prisma.user.update({
       where: { id: user.id },
       data: { refreshToken },

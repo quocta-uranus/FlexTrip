@@ -56,6 +56,8 @@ export interface StaffBooking {
   deliveryAddress: string | null;
   checkedInAt: string | null;
   checkedOutAt: string | null;
+  handoverCondition?: string | null;
+  returnCondition?: string | null;
   listing: {
     id: string;
     title: string;

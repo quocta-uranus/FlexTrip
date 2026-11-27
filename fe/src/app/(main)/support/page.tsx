@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { ChevronDown, LifeBuoy, Plus } from 'lucide-react';
 import { Pagination } from '@/components/admin/pagination';
 import { EmptyState } from '@/components/empty-state';
@@ -66,20 +67,21 @@ export default function SupportPage() {
   const faqs = useFaqs();
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#2a7bd9]">Hỗ trợ</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#0f1729]">Trung tâm hỗ trợ</h1>
-          <p className="mt-1 text-sm text-[#5a6b85]">Xem câu hỏi thường gặp hoặc gửi yêu cầu cho đội ngũ FlexTrip.</p>
-        </div>
-        <Link
-          href="/support/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1e5aa8]"
-        >
-          <Plus className="size-4" /> Tạo ticket
-        </Link>
-      </div>
+    <main className="flex-1 pb-8">
+      <PageHeader
+        title="Trung tâm hỗ trợ"
+        subtitle="Xem câu hỏi thường gặp hoặc gửi yêu cầu cho đội ngũ FlexTrip."
+        actions={
+          <Link
+            href="/support/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 transition-all hover:brightness-110 active:scale-95"
+          >
+            <Plus className="size-4" /> Tạo ticket
+          </Link>
+        }
+      />
+
+      <div className={PAGE_WIDTH}>
 
       <div className="mb-5 flex gap-2">
         {([['tickets', 'Ticket của tôi'], ['faq', 'Câu hỏi thường gặp']] as const).map(([value, label]) => (
@@ -149,6 +151,7 @@ export default function SupportPage() {
           <Pagination page={page} totalPages={tickets.data?.totalPages ?? 1} onChange={setPage} />
         </>
       )}
+      </div>
     </main>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight,
+  AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight,
   Clock3, FileText, MapPin, Package, Phone, Search, Shield, Truck, User2, X,
 } from 'lucide-react';
 import { useAdminBookingDetail, useAdminBookingList, useAdminBookingStats } from '@/hooks/admin/use-admin-bookings';
@@ -26,26 +26,25 @@ function fmtMoney(v: number | string) {
 
 // ── status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; bg: string; text: string; bar: string }> = {
-  PENDING_PAYMENT:  { label: 'Chờ TT',      bg: '#fff7ed', text: '#c2410c', bar: '#f97316' },
-  PENDING_APPROVAL: { label: 'Chờ duyệt',   bg: '#fefce8', text: '#a16207', bar: '#eab308' },
-  CONFIRMED:        { label: 'Đã xác nhận', bg: '#eff6ff', text: '#1d4ed8', bar: '#3b82f6' },
-  IN_PROGRESS:      { label: 'Đang thuê',   bg: '#f0fdf4', text: '#15803d', bar: '#22c55e' },
-  COMPLETED:        { label: 'Hoàn thành',  bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' },
-  CANCELLED:        { label: 'Đã huỷ',      bg: '#fef2f2', text: '#991b1b', bar: '#ef4444' },
-  DISPUTED:         { label: 'Tranh chấp',  bg: '#fdf4ff', text: '#7e22ce', bar: '#a855f7' },
-  REFUNDING:        { label: 'Đang HT',     bg: '#fefce8', text: '#a16207', bar: '#eab308' },
-  REFUNDED:         { label: 'Đã HT',       bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' },
+  // Amber = waiting on the admin, cyan = waiting on the customer; no two statuses share a colour.
+  PENDING_APPROVAL: { label: 'Chờ duyệt',      bg: '#fffbeb', text: '#92400e', bar: '#f59e0b' },
+  PENDING_PAYMENT:  { label: 'Chờ thanh toán', bg: '#ecfeff', text: '#155e75', bar: '#06b6d4' },
+  CONFIRMED:        { label: 'Đã xác nhận',    bg: '#eff6ff', text: '#1d4ed8', bar: '#3b82f6' },
+  IN_PROGRESS:      { label: 'Đang thuê',      bg: '#f0fdf4', text: '#15803d', bar: '#22c55e' },
+  COMPLETED:        { label: 'Hoàn thành',     bg: '#f0fdfa', text: '#115e59', bar: '#14b8a6' },
+  CANCELLED:        { label: 'Đã huỷ',         bg: '#fef2f2', text: '#991b1b', bar: '#ef4444' },
+  DISPUTED:         { label: 'Tranh chấp',     bg: '#faf5ff', text: '#6b21a8', bar: '#a855f7' },
+  REFUNDING:        { label: 'Đang hoàn tiền', bg: '#eef2ff', text: '#3730a3', bar: '#6366f1' },
+  REFUNDED:         { label: 'Đã hoàn tiền',   bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' },
 };
 
-const STATUS_TABS = [
-  { value: '', label: 'Tất cả' },
-  { value: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
-  { value: 'CONFIRMED', label: 'Đã xác nhận' },
-  { value: 'IN_PROGRESS', label: 'Đang thuê' },
-  { value: 'DISPUTED', label: 'Tranh chấp' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'CANCELLED', label: 'Đã huỷ' },
+// Order of the filter chips; every status is always listed, empty ones are just dimmed.
+const FILTER_ORDER = [
+  '', 'PENDING_APPROVAL', 'PENDING_PAYMENT', 'CONFIRMED', 'IN_PROGRESS', 'DISPUTED', 'COMPLETED', 'CANCELLED', 'REFUNDING', 'REFUNDED',
 ];
+
+// Same column widths for the header and every row, so nothing shifts from one booking to the next.
+const ROW_GRID = 'grid grid-cols-[minmax(0,2.1fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1.4fr)_96px_116px] items-center gap-4 px-4';
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CFG[status] ?? { label: status, bg: '#f1f5f9', text: '#475569', bar: '#94a3b8' };
@@ -58,96 +57,100 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ── booking row ───────────────────────────────────────────────────────────────
+const NEW_BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+function isNewBooking(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() < NEW_BOOKING_WINDOW_MS;
+}
+
+function fmtRange(start: string, end: string) {
+  const a = fmt(start);
+  const b = fmt(end);
+  return a.slice(-4) === b.slice(-4) ? `${a.slice(0, 5)} – ${b}` : `${a} – ${b}`;
+}
+
+function BookingTableHeader() {
+  return (
+    <div className={`${ROW_GRID} border-b border-[#e2e8f3] bg-[#f8fafc] py-2.5 text-[11px] font-semibold text-[#8694ad]`}>
+      <span>Sản phẩm</span>
+      <span>Thời gian</span>
+      <span>Traveler</span>
+      <span>Staff</span>
+      <span>Giá</span>
+      <span>Trạng thái</span>
+    </div>
+  );
+}
+
 function BookingRow({ row, onSelect }: { row: AdminBookingRow; onSelect: () => void }) {
-  const cfg = STATUS_CFG[row.status] ?? STATUS_CFG.COMPLETED;
   const nights = rentalDays(row.startDate, row.endDate);
+  const mediations = row._count.staffMediations;
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="group cursor-pointer rounded-xl border bg-white transition-all hover:-translate-y-px hover:shadow-md"
-      style={{ borderColor: '#e2e8f3', borderLeftWidth: 3, borderLeftColor: cfg.bar }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+      className={`${ROW_GRID} cursor-pointer border-b border-[#e2e8f3] py-3 text-xs transition-colors last:border-b-0 hover:bg-[#2a7bd9]/[0.05] focus-visible:bg-[#2a7bd9]/[0.07] focus-visible:outline-none`}
     >
-      <div className="flex flex-wrap items-start gap-4 p-4">
-        {/* Listing thumbnail */}
-        <div className="h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-[#f1f5fa]">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#f1f5fa]">
           {row.listing.imageUrls?.[0]
             ? <img src={row.listing.imageUrls[0]} alt="" className="h-full w-full object-cover" />
-            : <div className="flex h-full items-center justify-center text-2xl">⛺</div>}
+            : <div className="flex h-full items-center justify-center text-lg">⛺</div>}
         </div>
-
-        {/* Main info */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-[#0f1729]">{row.listing.title}</p>
-              <p className="flex items-center gap-1 text-xs text-[#8694ad]">
-                <MapPin className="h-3 w-3 shrink-0" />{row.listing.location}
-              </p>
-            </div>
-            <StatusBadge status={row.status} />
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5a6b85]">
-            <span className="flex items-center gap-1">
-              <CalendarDays className="h-3.5 w-3.5 text-[#8694ad]" />
-              {fmt(row.startDate)} → {fmt(row.endDate)} ({nights} ngày)
-            </span>
-            <span className="font-semibold text-[#2a7bd9]">{fmtMoney(row.totalPrice)}</span>
-          </div>
-        </div>
-
-        {/* Parties */}
-        <div className="hidden min-w-[300px] grid-cols-3 gap-3 text-xs sm:grid">
-          {/* Traveler */}
-          <div className="rounded-lg bg-[#f8fafc] p-2.5">
-            <p className="mb-1 font-bold uppercase tracking-wide text-[#8694ad]" style={{ fontSize: 9 }}>Traveler</p>
-            <div className="flex items-center gap-1.5">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2a7bd9] text-[10px] font-bold text-white">
-                {row.traveler.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-[#0f1729]">{row.traveler.name}</p>
-                <p className="truncate text-[#8694ad]">{row.traveler.email}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Staff */}
-          <div className="rounded-lg bg-[#f8fafc] p-2.5">
-            <p className="mb-1 font-bold uppercase tracking-wide text-[#8694ad]" style={{ fontSize: 9 }}>Staff</p>
-            {row.assignedStaff ? (
-              <div className="flex items-center gap-1.5">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#64748b] text-[10px] font-bold text-white">
-                  {row.assignedStaff.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-[#0f1729]">{row.assignedStaff.name}</p>
-                  {row.assignedStaff.staffProfile?.employeeCode && (
-                    <p className="text-[#8694ad]">{row.assignedStaff.staffProfile.employeeCode}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-[#8694ad] italic">Chưa phân công</p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-[#0f1729]">{row.listing.title}</p>
+            {isNewBooking(row.createdAt) && (
+              <span className="shrink-0 rounded-md bg-[#2a7bd9] px-1.5 py-px text-[9.5px] font-bold tracking-wide text-white">MỚI</span>
             )}
           </div>
-
-          {/* Meta */}
-          <div className="rounded-lg bg-[#f8fafc] p-2.5">
-            <p className="mb-1 font-bold uppercase tracking-wide text-[#8694ad]" style={{ fontSize: 9 }}>Chi tiết</p>
-            <p className="text-[#5a6b85]">
-              {row.deliveryMethod === 'DELIVERY'
-                ? <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Giao hàng</span>
-                : <span className="flex items-center gap-1"><Package className="h-3 w-3" />Nhận trực tiếp</span>}
-            </p>
-            {row._count.staffMediations > 0 && (
-              <p className="mt-0.5 flex items-center gap-1 text-amber-600">
-                <AlertTriangle className="h-3 w-3" />{row._count.staffMediations} biên bản
-              </p>
-            )}
-          </div>
+          <p className="flex items-center gap-1 truncate text-[#8694ad]">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">{row.listing.location}</span>
+            <span aria-hidden="true">·</span>
+            {row.deliveryMethod === 'DELIVERY'
+              ? <span className="flex shrink-0 items-center gap-1"><Truck className="h-3 w-3" />Giao hàng</span>
+              : <span className="flex shrink-0 items-center gap-1"><Package className="h-3 w-3" />Nhận trực tiếp</span>}
+          </p>
         </div>
       </div>
+
+      <div className="min-w-0">
+        <p className="truncate font-medium text-[#0f1729]">{fmtRange(row.startDate, row.endDate)}</p>
+        <p className="text-[#8694ad]">{nights} ngày</p>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2a7bd9] text-[10px] font-bold text-white">
+          {row.traveler.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-[#0f1729]">{row.traveler.name}</p>
+          <p className="truncate text-[#8694ad]">{row.traveler.email}</p>
+        </div>
+      </div>
+
+      {row.assignedStaff ? (
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#64748b] text-[10px] font-bold text-white">
+            {row.assignedStaff.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-[#0f1729]">{row.assignedStaff.name}</p>
+            {mediations > 0 ? (
+              <p className="flex items-center gap-1 text-amber-600"><AlertTriangle className="h-3 w-3" />{mediations} biên bản</p>
+            ) : (
+              <p className="truncate text-[#8694ad]">{row.assignedStaff.staffProfile?.employeeCode}</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p className="italic text-[#8694ad]">Chưa phân công</p>
+      )}
+
+      <p className="text-sm font-semibold text-[#0f1729]">{fmtMoney(row.totalPrice)}</p>
+      <div><StatusBadge status={row.status} /></div>
     </div>
   );
 }
@@ -372,100 +375,51 @@ export default function AdminBookingsPage() {
         <div className="mb-8">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2a7bd9]">Admin</p>
           <h1 className="mt-1 text-2xl font-bold text-[#0f1729]">Quản lý Booking</h1>
-          <p className="mt-1 text-sm text-[#5a6b85]">Toàn bộ đơn thuê trên hệ thống</p>
+          <p className="mt-1 text-sm text-[#5a6b85]">
+            Toàn bộ đơn thuê trên hệ thống
+            {stats && ` · ${stats.total} đơn, ${stats.withStaff} có staff, ${stats.withoutStaff} chưa có`}
+          </p>
         </div>
 
-        {/* Stats grid */}
-        <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Total */}
-          <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-            <p className="text-3xl font-bold text-[#0f1729]">{stats?.total ?? '—'}</p>
-            <p className="mt-1 text-sm text-[#5a6b85]">Tổng booking</p>
-            {stats && (
-              <div className="mt-3 flex gap-2 text-xs">
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700">
-                  {stats.withStaff} có staff
-                </span>
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">
-                  {stats.withoutStaff} chưa có
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Search */}
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-[#e2e8f3] bg-white px-3 py-2.5">
+          <Search className="h-4 w-4 shrink-0 text-[#8694ad]" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Tìm tên sản phẩm, traveler, địa điểm..."
+            className="flex-1 bg-transparent text-sm text-[#0f1729] outline-none placeholder:text-[#8694ad]"
+          />
+          {search && (
+            <button onClick={() => handleSearch('')} aria-label="Xoá tìm kiếm" className="text-[#8694ad] hover:text-[#5a6b85]">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
-          {/* By status — show 3 key ones */}
-          {(['IN_PROGRESS', 'DISPUTED', 'COMPLETED'] as const).map((s) => {
-            const cfg = STATUS_CFG[s];
-            const count = (stats?.byStatus as Record<string, number> | undefined)?.[s] ?? 0;
+        {/* Status filter with counts */}
+        <div className="mb-5 flex flex-wrap gap-2">
+          {FILTER_ORDER.map((value) => {
+            const count = value === '' ? stats?.total : (stats?.byStatus as Record<string, number> | undefined)?.[value] ?? 0;
+            const cfg = value === '' ? undefined : STATUS_CFG[value];
+            const label = cfg?.label ?? 'Tất cả';
+            const active = status === value;
+            const empty = value !== '' && !count && !active;
             return (
-              <div
-                key={s}
-                className="cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-                style={{ borderColor: '#DCEFFB', borderTopWidth: 3, borderTopColor: cfg.bar }}
-                onClick={() => handleStatus(status === s ? '' : s)}
+              <button
+                key={value || 'all'}
+                onClick={() => handleStatus(value)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  active ? 'border-[#2a7bd9] bg-[#2a7bd9] text-white' : 'border-[#e2e8f3] bg-white text-[#5a6b85] hover:bg-[#f8fafc]'
+                } ${empty ? 'opacity-55' : ''}`}
               >
-                <p className="text-3xl font-bold" style={{ color: cfg.bar }}>{count}</p>
-                <p className="mt-1 text-sm" style={{ color: cfg.text }}>{cfg.label}</p>
-                <p className="mt-2 text-xs text-[#8694ad]">Click để lọc →</p>
-              </div>
+                {cfg && <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.bar }} />}
+                {label}
+                {count !== undefined && <span className={active ? 'text-white/80' : 'text-[#8694ad]'}>{count}</span>}
+              </button>
             );
           })}
-        </div>
-
-        {/* All statuses mini row */}
-        {stats && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {Object.entries(stats.byStatus).map(([s, count]) => {
-              const cfg = STATUS_CFG[s] ?? { label: s, bg: '#f1f5f9', text: '#475569' };
-              return (
-                <button
-                  key={s}
-                  onClick={() => handleStatus(status === s ? '' : s)}
-                  className="rounded-full px-3 py-1 text-xs font-semibold transition-all"
-                  style={{
-                    background: status === s ? cfg.text : cfg.bg,
-                    color: status === s ? '#fff' : cfg.text,
-                  }}
-                >
-                  {cfg.label}: {count}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Search + filter bar */}
-        <div className="mb-5 flex flex-wrap gap-3">
-          <div className="flex min-w-[260px] flex-1 items-center gap-2 rounded-xl border border-[#e2e8f3] bg-white px-3 py-2">
-            <Search className="h-4 w-4 shrink-0 text-[#8694ad]" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Tìm tên sản phẩm, traveler, địa điểm..."
-              className="flex-1 bg-transparent text-sm text-[#0f1729] outline-none placeholder:text-[#8694ad]"
-            />
-            {search && (
-              <button onClick={() => handleSearch('')} className="text-[#8694ad] hover:text-[#5a6b85]">
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-1 overflow-x-auto rounded-xl border border-[#e2e8f3] bg-white p-1">
-            {STATUS_TABS.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => handleStatus(t.value)}
-                className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
-                style={status === t.value
-                  ? { background: '#2a7bd9', color: '#fff' }
-                  : { color: '#5a6b85' }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* List */}
@@ -484,11 +438,16 @@ export default function AdminBookingsPage() {
           </div>
         )}
 
-        <div className="space-y-3">
-          {(listQ.data?.items ?? []).map((row) => (
-            <BookingRow key={row.id} row={row} onSelect={() => setSelectedId(row.id)} />
-          ))}
-        </div>
+        {(listQ.data?.items ?? []).length > 0 && (
+          <div className="overflow-x-auto rounded-2xl border border-[#e2e8f3] bg-white">
+            <div className="min-w-[940px]">
+              <BookingTableHeader />
+              {(listQ.data?.items ?? []).map((row) => (
+                <BookingRow key={row.id} row={row} onSelect={() => setSelectedId(row.id)} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Pagination */}
         {listQ.data && listQ.data.totalPages > 1 && (

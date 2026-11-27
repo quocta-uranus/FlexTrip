@@ -66,7 +66,7 @@ export interface Booking {
   createdAt: string;
   updatedAt: string;
   listing?: Listing;
-  traveler?: { id: string; name: string; avatarUrl?: string | null };
+  traveler?: { id: string; name: string; avatarUrl?: string | null; email?: string | null };
   assignedStaff?: {
     id: string;
     name: string;

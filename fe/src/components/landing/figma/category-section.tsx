@@ -4,40 +4,15 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Tent } from 'lucide-react';
 import { LISTING_CATEGORIES, CATEGORY_ICON_MAP } from '@/constants/categories';
-import { PillBadge } from '@/components/ui/pill-badge';
 import { PillButton } from '@/components/ui/pill-button';
 
-const CATEGORY_IMAGES: Record<string, { image: string; tag: string; defaultCount: number }> = {
-  CAMPING: {
-    image: '/assets/camping.jpg',
-    tag: 'Lều trại, bàn ghế, bếp dã ngoại',
-    defaultCount: 42,
-  },
-  TREKKING: {
-    image: '/assets/backpack.jpg',
-    tag: 'Balo trợ lực, gậy leo núi, đèn pin',
-    defaultCount: 28,
-  },
-  BEACH: {
-    image: '/assets/kayak.jpg',
-    tag: 'Thuyền SUP, kayak, áo phao an toàn',
-    defaultCount: 19,
-  },
-  CAMERA_GEAR: {
-    image: '/assets/camera.jpg',
-    tag: 'GoPro, flycam, máy ảnh hành trình',
-    defaultCount: 35,
-  },
-  TRAVEL_ESSENTIALS: {
-    image: '/assets/gear.jpg',
-    tag: 'Vali du lịch, túi chống sốc, adapter',
-    defaultCount: 50,
-  },
-  FAMILY: {
-    image: '/assets/travel-kit.jpg',
-    tag: 'Bộ dã ngoại gia đình, lều che mát',
-    defaultCount: 16,
-  },
+const CATEGORY_IMAGES: Record<string, string> = {
+  CAMPING: '/assets/camping.jpg',
+  TREKKING: '/assets/backpack.jpg',
+  BEACH: '/assets/kayak.jpg',
+  CAMERA_GEAR: '/assets/camera.jpg',
+  TRAVEL_ESSENTIALS: '/assets/gear.jpg',
+  FAMILY: '/assets/travel-kit.jpg',
 };
 
 export function CategorySection() {
@@ -104,11 +79,7 @@ export function CategorySection() {
   }, [isDesktop, isPaused]);
 
   const renderCard = (cat: (typeof LISTING_CATEGORIES)[number], isClone = false, idx = 0) => {
-    const meta = CATEGORY_IMAGES[cat.value] || {
-      image: '/assets/camping.jpg',
-      tag: cat.description,
-      defaultCount: 15,
-    };
+    const image = CATEGORY_IMAGES[cat.value] ?? '/assets/camping.jpg';
     const IconComponent = CATEGORY_ICON_MAP[cat.value] || Tent;
 
     return (
@@ -119,34 +90,26 @@ export function CategorySection() {
         className="group relative w-[270px] sm:w-[310px] lg:w-[330px] h-[390px] sm:h-[420px] lg:h-[450px] shrink-0 rounded-[28px] sm:rounded-[32px] overflow-hidden shadow-md hover:shadow-2xl border border-sky-100 transition-all duration-300 block select-none cursor-pointer"
       >
         <img
-          src={meta.image}
+          src={image}
           alt={cat.label}
           draggable={false}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           loading="lazy"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/35 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10 pointer-events-none" />
 
-        {/* Top Badges: Icon + Count */}
-        <div className="absolute top-5 left-5 right-5 z-10 flex items-center justify-between gap-2">
-          <PillBadge
-            variant="dark"
-            className="bg-black/45 backdrop-blur-md text-white border-white/20 text-xs font-semibold py-1 px-3 shadow-xs flex items-center gap-1.5"
-          >
-            <IconComponent className="h-3.5 w-3.5 text-brand-mint" />
-            <span>{cat.label}</span>
-          </PillBadge>
-          <span className="text-[11px] font-bold text-white bg-brand/80 backdrop-blur-md px-2.5 py-1 rounded-full shadow-xs">
-            {meta.defaultCount}+ đồ
-          </span>
-        </div>
+        {/* Top badge: icon + category name */}
+        <span className="absolute top-5 left-5 z-10 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/25 bg-black/40 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
+          <IconComponent className="h-3.5 w-3.5 text-brand-mint" />
+          {cat.label}
+        </span>
 
         {/* Bottom Card Content */}
         <div className="absolute bottom-6 left-6 right-6 z-10 text-white flex items-end justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] sm:text-xs text-white/80 line-clamp-1 mb-1 font-medium">
-              {meta.tag}
+              {cat.description}
             </p>
             <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
               {cat.label}

@@ -14,7 +14,7 @@ const ADMIN_ALLOWED_PATHS = new Set([
 ]);
 
 // Prefix-based paths admin can visit
-const ADMIN_ALLOWED_PREFIXES = ['/admin', '/profile'];
+const ADMIN_ALLOWED_PREFIXES = ['/admin', '/profile', '/terms', '/privacy'];
 
 export function MarketplaceAccessBoundary({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

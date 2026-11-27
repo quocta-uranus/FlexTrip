@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TransactionRow } from '@/components/profile/transaction-row';
@@ -215,12 +216,7 @@ export default function PaymentsPage() {
 
   return (
     <>
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground sm:text-3xl">Ví FlexTrip</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Quản lý số dư, nạp tiền và theo dõi lịch sử giao dịch của bạn.
-        </p>
-      </div>
+      <PageHeader bare title="Ví FlexTrip" subtitle="Quản lý số dư, nạp tiền và theo dõi lịch sử giao dịch của bạn." />
 
       {walletLoading ? (
         <div className="h-52 animate-pulse rounded-3xl bg-[#e2e8f3]" />

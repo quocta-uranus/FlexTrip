@@ -112,7 +112,7 @@ export function PriceVolumeChart({ listingId }: Props) {
                     dataKey="bookingRate"
                     type="number"
                     tick={{ fontSize: 10, fill: '#8694ad' }}
-                    name="Booking/ngày"
+                    name="Đơn thuê/ngày"
                   />
                   <Tooltip content={<ScatterTooltip />} />
                   <ReferenceLine

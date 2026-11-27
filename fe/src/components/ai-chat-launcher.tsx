@@ -289,7 +289,7 @@ export function AiChatLauncher() {
   return (
     <>
       {isOpen && (
-        <section ref={panelRef} className="fixed bottom-20 right-3 z-[59] flex h-[min(590px,calc(100vh-104px))] w-[calc(100vw-24px)] max-w-[390px] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(28,83,145,0.28),0_4px_18px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:right-5" style={panelPosition ? { left: panelPosition.x, top: panelPosition.y, right: 'auto', bottom: 'auto' } : undefined} aria-label="FlexTrip AI chat">
+        <section ref={panelRef} className="fixed bottom-20 right-3 z-[59] flex h-[min(590px,calc(100vh-104px))] w-[calc(100vw-24px)] max-w-[390px] flex-col overflow-hidden rounded-[28px] border border-white/70 bg-white/90 shadow-[0_24px_70px_rgba(28,83,145,0.28),0_4px_18px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:right-5" style={panelPosition ? { left: panelPosition.x, top: panelPosition.y, right: 'auto', bottom: 'auto' } : undefined} aria-label="Trò chuyện với trợ lý FlexTrip">
           <header onPointerDown={handlePanelPointerDown} onPointerMove={handlePanelPointerMove} onPointerUp={stopPanelDragging} onPointerCancel={stopPanelDragging} onDragStart={(event) => event.preventDefault()} className={`relative min-h-[124px] touch-none select-none overflow-hidden px-4 pb-4 pt-3 text-white ${panelDragging ? 'cursor-grabbing' : 'cursor-grab'}`} style={{ background: 'linear-gradient(135deg, #155cb4 0%, #2a7bd9 48%, #52c8de 100%)' }} title="Giữ và kéo thanh màu xanh để di chuyển chatbox">
             <div className="absolute -right-8 -top-14 h-36 w-36 rounded-full bg-white/15 blur-sm" />
             <div className="absolute bottom-1 left-32 h-16 w-16 rounded-full bg-cyan-200/15 blur-xl" />

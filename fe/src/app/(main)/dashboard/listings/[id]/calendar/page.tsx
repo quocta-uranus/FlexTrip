@@ -183,7 +183,7 @@ export default function ListingCalendarPage() {
             ←
           </Link>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: '#0f1729' }}>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
               Quản lý lịch trống
             </h1>
             {listing && (

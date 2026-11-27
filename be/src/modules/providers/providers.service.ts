@@ -16,7 +16,7 @@ export class ProvidersService {
       },
     });
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
     const isProvider = user.roles.some((r) => r.role === 'PROVIDER');
     if (!isProvider) {
@@ -71,7 +71,7 @@ export class ProvidersService {
       where: { id: userId },
       include: { roles: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
     const isProvider = user.roles.some((r) => r.role === 'PROVIDER');
     if (!isProvider) throw new NotFoundException('Tài khoản này không có vai trò PROVIDER');

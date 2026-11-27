@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { StartChatButton } from '@/components/chat/start-chat-button';
 import Link from 'next/link';
 import { useBooking, useCancelBooking, useDeclineBooking } from '@/hooks/useBookings';
@@ -21,10 +21,66 @@ import type { ContractStatus } from '@/types/contract';
 import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { useInitiatePayment, usePayRental, useWallet } from '@/hooks/usePayments';
 import { bookingCode } from '@/lib/booking-code';
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/dispute-labels';
 import { PaymentMethodPicker } from '@/components/booking/payment-method-picker';
 import { rentalDays } from '@/lib/rental-days';
 
-const STATUS_STEPS: BookingStatus[] = ['PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
+const STATUS_STEPS: BookingStatus[] = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'];
+
+function HoldCountdown({ expiresAt }: { expiresAt: string }) {
+  const secondsLeft = () => Math.max(0, Math.round((new Date(expiresAt).getTime() - Date.now()) / 1000));
+  const [left, setLeft] = useState(secondsLeft);
+  useEffect(() => {
+    const id = setInterval(() => setLeft(secondsLeft()), 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expiresAt]);
+  const expired = left === 0;
+  return (
+    <div
+      className="rounded-xl border p-3.5 text-center"
+      style={{ borderColor: '#fed7aa', background: '#fff7ed' }}
+    >
+      <p className="text-xs font-medium" style={{ color: '#c2410c' }}>{expired ? 'Đã hết thời gian giữ chỗ' : 'Giữ chỗ còn'}</p>
+      {!expired && (
+        <p className="text-2xl font-bold tabular-nums" style={{ color: '#c2410c' }}>
+          {String(Math.floor(left / 60)).padStart(2, '0')}:{String(left % 60).padStart(2, '0')}
+        </p>
+      )}
+      <p className="mt-0.5 text-[11px]" style={{ color: '#c2410c' }}>
+        {expired ? 'Đơn sẽ tự huỷ nếu chưa thanh toán cọc.' : 'Hết giờ mà chưa thanh toán, đơn sẽ tự huỷ.'}
+      </p>
+    </div>
+  );
+}
+
+const payLabel = (v?: string | null) => (v ? PAYMENT_METHOD_LABELS[v] ?? v : '—');
+
+function PersonCard({ title, name, avatarUrl, lines, tone }: {
+  title: string; name: string; avatarUrl?: string | null; lines: Array<string | null | undefined>; tone: { bg: string; fg: string };
+}) {
+  return (
+    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+      <h2 className="mb-3 text-sm font-semibold" style={{ color: '#0f1729' }}>{title}</h2>
+      <div className="flex items-center gap-3">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold" style={{ background: tone.bg, color: tone.fg }}>
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold" style={{ color: '#0f1729' }}>{name}</p>
+          {lines.filter(Boolean).map((l) => (
+            <p key={l} className="truncate text-xs" style={{ color: '#5a6b85' }}>{l}</p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BookingDetailContent() {
   const { id } = useParams<{ id: string }>();
@@ -191,6 +247,7 @@ function BookingDetailContent() {
               const done = currentStepIdx >= i;
               const current = currentStepIdx === i;
               const labels: Record<string, string> = {
+                PENDING_PAYMENT: 'Thanh toán cọc',
                 PENDING_APPROVAL: 'Chờ xác nhận',
                 CONFIRMED: 'Đã xác nhận',
                 IN_PROGRESS: 'Đang thuê',
@@ -270,11 +327,56 @@ function BookingDetailContent() {
             </div>
           </div>
 
+          {/* People */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {booking.traveler && (
+              <PersonCard
+                title="Người đặt"
+                name={booking.traveler.name}
+                avatarUrl={booking.traveler.avatarUrl}
+                lines={[booking.traveler.email]}
+                tone={{ bg: '#eff6ff', fg: '#1d4ed8' }}
+              />
+            )}
+            {booking.listing?.provider && (
+              <PersonCard
+                title="Người cho thuê"
+                name={booking.listing.provider.providerProfile?.shopName ?? booking.listing.provider.name}
+                avatarUrl={booking.listing.provider.avatarUrl}
+                lines={[
+                  booking.listing.provider.providerProfile?.shopName ? booking.listing.provider.name : null,
+                  booking.listing.location ? `Khu vực: ${booking.listing.location}` : null,
+                ]}
+                tone={{ bg: '#f5f3ff', fg: '#6d28d9' }}
+              />
+            )}
+          </div>
+
           {/* Delivery info */}
-          {booking.deliveryMethod === 'DELIVERY' && booking.deliveryAddress && (
+          {booking.deliveryMethod && (
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
-              <h2 className="mb-2 text-sm font-semibold" style={{ color: '#0f1729' }}>Địa chỉ giao hàng</h2>
-              <p className="text-sm" style={{ color: '#5a6b85' }}>{booking.deliveryAddress}</p>
+              <h2 className="mb-4 text-sm font-semibold" style={{ color: '#0f1729' }}>Nhận hàng</h2>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>Hình thức</p>
+                  <p className="font-semibold" style={{ color: '#0f1729' }}>
+                    {booking.deliveryMethod === 'DELIVERY' ? 'Giao hàng' : 'Lấy tại nơi'}
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs" style={{ color: '#8694ad' }}>
+                    {booking.deliveryMethod === 'DELIVERY' ? 'Địa chỉ giao hàng' : 'Khu vực nhận'}
+                  </p>
+                  <p className="font-semibold" style={{ color: '#0f1729' }}>
+                    {booking.deliveryMethod === 'DELIVERY' ? booking.deliveryAddress ?? '—' : booking.listing?.location ?? '—'}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs" style={{ color: '#5a6b85' }}>
+                {booking.deliveryMethod === 'DELIVERY'
+                  ? 'Chủ thiết bị sẽ liên hệ xác nhận phí giao (nếu có).'
+                  : 'Địa điểm nhận cụ thể do chủ thiết bị hẹn với bạn sau khi xác nhận đơn.'}
+              </p>
             </div>
           )}
 
@@ -283,14 +385,6 @@ function BookingDetailContent() {
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Staff phụ trách</span>
-                {booking.assignedStaff.staffProfile?.employeeCode && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                  >
-                    {booking.assignedStaff.staffProfile.employeeCode}
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -350,7 +444,7 @@ function BookingDetailContent() {
                 </div>
               )}
               <div className="flex justify-between border-t pt-2.5 text-base font-bold" style={{ borderColor: '#DCEFFB' }}>
-                <span style={{ color: '#0f1729' }}>Tổng cộng</span>
+                <span style={{ color: '#0f1729' }}>Tổng tiền thuê</span>
                 <span style={{ color: '#2a7bd9' }}>{(price - discount).toLocaleString('vi-VN')} {booking.listing?.currency ?? 'VND'}</span>
               </div>
               {booking.payment?.status === 'PAID' && (
@@ -368,7 +462,7 @@ function BookingDetailContent() {
                           : 'Đã thanh toán'}
                       </p>
                       <p className="text-xs" style={{ color: '#5a6b85' }}>
-                        Qua {booking.payment.gateway ?? booking.payment.method ?? '—'}
+                        Qua {payLabel(booking.payment.gateway ?? booking.payment.method)}
                       </p>
                     </div>
                   </div>
@@ -383,7 +477,7 @@ function BookingDetailContent() {
               )}
               {booking.payment && booking.payment.status !== 'PAID' && (
                 <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
-                  Cổng TT: {booking.payment.gateway ?? booking.payment.method ?? '—'} · Trạng thái: {booking.payment.status}
+                  Cổng thanh toán: {payLabel(booking.payment.gateway ?? booking.payment.method)} · Trạng thái: {PAYMENT_STATUS_LABELS[booking.payment.status] ?? booking.payment.status}
                 </div>
               )}
             </div>
@@ -391,9 +485,14 @@ function BookingDetailContent() {
             {/* PAY-01: Payment initiation for traveler when PENDING_PAYMENT */}
             {!isProvider && booking.status === 'PENDING_PAYMENT' && (
               <div className="mt-4 space-y-2.5">
-                <div className="rounded-xl bg-[#f6fbfe] px-3 py-2.5 text-xs leading-relaxed text-[#5a6b85]">
-                  Bây giờ bạn chỉ cần <strong className="text-[#0f1729]">đặt cọc {deposit.toLocaleString('vi-VN')} VND</strong>.
-                  Phần tiền thuê còn lại ({rentalAmount.toLocaleString('vi-VN')} VND) thanh toán sau khi provider xác nhận đơn, trong vòng 24 giờ.
+                <div className="rounded-xl bg-[#2a7bd9]/[0.07] px-3.5 py-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-xs text-[#1e5aa8]">Cần thanh toán ngay</span>
+                    <span className="text-lg font-bold text-[#2a7bd9]">{deposit.toLocaleString('vi-VN')} VND</span>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-[#5a6b85]">
+                    Còn lại <strong className="font-semibold text-[#0f1729]">{rentalAmount.toLocaleString('vi-VN')} VND</strong>: thanh toán sau khi chủ thiết bị xác nhận đơn, trong vòng 24 giờ.
+                  </p>
                 </div>
                 {payError && (
                   <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{payError}</p>
@@ -431,10 +530,14 @@ function BookingDetailContent() {
             {isProvider && rentalUnpaid && (
               <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
                 Đang chờ khách thanh toán tiền thuê còn lại{balanceDueText ? <> (hạn {balanceDueText})</> : null}.
-                Bạn chỉ giao hàng sau khi khách đã thanh toán.
+                Nhân viên chỉ giao hàng sau khi khách đã thanh toán.
               </p>
             )}
           </div>
+
+          {!isProvider && booking.status === 'PENDING_PAYMENT' && booking.holdExpiresAt && (
+            <HoldCountdown expiresAt={booking.holdExpiresAt} />
+          )}
 
           {/* Actions */}
           <div className="rounded-2xl border bg-white p-5 space-y-3" style={{ borderColor: '#DCEFFB' }}>

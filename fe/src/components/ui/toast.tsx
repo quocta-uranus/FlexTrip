@@ -34,6 +34,27 @@ export function Toast({
     ? 'fixed right-3 top-20 z-[100] w-[calc(100%-1.5rem)] sm:right-6 sm:top-24 sm:w-auto sm:max-w-sm'
     : 'fixed inset-0 z-50 flex items-center justify-center';
 
+  // Top-right is the quiet style for admin screens: it never covers the table the admin is working on.
+  if (position === 'top-right') {
+    const isError = variant === 'error';
+    return (
+      <div className={`${positionClass} pointer-events-none`} role="status" aria-live="polite">
+        <div className="pointer-events-auto animate-bounce-in w-full sm:w-auto">
+          <div
+            className={`flex items-start gap-3 rounded-xl border border-l-4 bg-white px-4 py-3 shadow-lg ${
+              isError ? 'border-red-100 border-l-red-500' : 'border-green-100 border-l-green-500'
+            }`}
+          >
+            {isError
+              ? <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+              : <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />}
+            <span className="text-sm font-medium whitespace-pre-line text-slate-800">{message}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`${positionClass} pointer-events-none`}>
       <div className="pointer-events-auto animate-bounce-in w-full sm:w-auto">

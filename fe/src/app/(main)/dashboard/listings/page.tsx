@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import {
   useMyListings, useDeleteListing, usePublishListing,
   usePauseListing, useResumeListing, useBulkUpload,
@@ -13,8 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import type { Listing } from '@/types/listing';
 import {
-  Plus, Upload, Eye, Pencil, Trash2, Play, Pause, Send,
-  ChevronRight, MapPin, Tent, Package, CheckCircle2, Loader2, AlertTriangle,
+  Plus, Eye, Pencil, Trash2, Play, Pause, Send,
+  MapPin, Tent, Package, CheckCircle2, Loader2, AlertTriangle,
 } from 'lucide-react';
 
 // ── Status config ────────────────────────────────────────────────────────────
@@ -296,7 +297,7 @@ function SkeletonCard() {
 
 export default function ManageListingsPage() {
   const { data: listings, isLoading } = useMyListings();
-  const { mutate: bulkUpload, isPending: uploading, data: uploadResult } = useBulkUpload();
+  const { mutate: bulkUpload, data: uploadResult } = useBulkUpload();
   const fileRef = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<string>('ALL');
   const [deleteTarget, setDeleteTarget] = useState<Listing | null>(null);
@@ -311,51 +312,31 @@ export default function ManageListingsPage() {
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
 
-      {/* ── Page header ── */}
-      <div className="bg-white shadow-sm ring-1 ring-black/[0.04]">
-        <div className="mx-auto max-w-6xl px-4 pb-5 pt-24 sm:px-6 sm:pt-28">
-          <nav className="mb-3 flex items-center gap-1.5 text-xs text-slate-400">
-            <Link href="/dashboard" className="hover:text-[#2a7bd9] transition-colors">Dashboard</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="font-medium text-slate-600">Sản phẩm</span>
-          </nav>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Quản lý sản phẩm</h1>
-              <p className="mt-0.5 text-sm text-slate-400">
-                {listings?.length ?? 0} sản phẩm · {counts['ACTIVE'] ?? 0} đang cho thuê
-              </p>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) bulkUpload(f); e.target.value = ''; }}
-              />
-              {/* <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-50"
-              >
-                {uploading
-                  ? <><Loader2 className="h-4 w-4 animate-spin" />Đang upload…</>
-                  : <><Upload className="h-4 w-4" />Nhập hàng loạt</>}
-              </button> */}
-              <Link
-                href="/dashboard/listings/new"
-                className="flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 transition-all hover:brightness-110 active:scale-95"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm mới
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Sản phẩm' }]}
+        title="Quản lý sản phẩm"
+        subtitle={`${listings?.length ?? 0} sản phẩm · ${counts['ACTIVE'] ?? 0} đang cho thuê`}
+        actions={
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) bulkUpload(f); e.target.value = ''; }}
+            />
+            <Link
+              href="/dashboard/listings/new"
+              className="flex items-center gap-2 rounded-xl bg-[#2a7bd9] px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#2a7bd9]/25 transition-all hover:brightness-110 active:scale-95"
+            >
+              <Plus className="h-4 w-4" />
+              Thêm mới
+            </Link>
+          </>
+        }
+      />
 
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className={`${PAGE_WIDTH} pb-10`}>
 
         {/* ── Upload result ── */}
         {uploadResult && (

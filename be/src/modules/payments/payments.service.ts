@@ -58,10 +58,10 @@ export class PaymentsService implements OnApplicationBootstrap {
       where: { id: bookingId },
       include: { payment: true, listing: { select: { title: true } } },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== travelerId) throw new BadRequestException('Không có quyền thanh toán booking này');
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Booking không ở trạng thái chờ thanh toán');
+      throw new BadRequestException('Đơn thuê không ở trạng thái chờ thanh toán');
     }
 
     const totalAmount = Number(booking.totalPrice);
@@ -145,7 +145,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         });
 
         const wallet = await tx.wallet.findUnique({ where: { userId: travelerId } });
-        if (!wallet) throw new BadRequestException('Wallet not found');
+        if (!wallet) throw new BadRequestException('Không tìm thấy ví');
 
         await tx.wallet.update({
           where: { userId: travelerId },
@@ -375,11 +375,11 @@ export class PaymentsService implements OnApplicationBootstrap {
       where: { id: bookingId },
       include: { payment: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== travelerId) throw new ForbiddenException('Không có quyền thanh toán booking này');
     const payment = booking.payment;
     if (booking.status !== BookingStatus.CONFIRMED || payment?.status !== PaymentStatus.PAID) {
-      throw new BadRequestException('Booking chưa đến bước thanh toán tiền thuê');
+      throw new BadRequestException('Đơn thuê chưa đến bước thanh toán tiền thuê');
     }
     if (payment.rentalPaidAt) throw new BadRequestException('Tiền thuê đã được thanh toán');
     if (booking.balanceDueAt && booking.balanceDueAt < new Date()) {
@@ -400,7 +400,7 @@ export class PaymentsService implements OnApplicationBootstrap {
 
       await this.prisma.$transaction(async (tx) => {
         const wallet = await tx.wallet.findUnique({ where: { userId: travelerId } });
-        if (!wallet) throw new BadRequestException('Wallet not found');
+        if (!wallet) throw new BadRequestException('Không tìm thấy ví');
         await tx.wallet.update({
           where: { userId: travelerId },
           data: { availableBalance: { decrement: rentalAmount } },
@@ -513,7 +513,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         userId: booking.listing.providerId,
         type: 'PAYMENT',
         title: 'Khách đã thanh toán đủ',
-        body: `Khách đã trả tiền thuê "${booking.listing.title}". Bạn có thể giao hàng.`,
+        body: `Khách đã trả tiền thuê "${booking.listing.title}". Đơn sẵn sàng để nhân viên bàn giao.`,
         data: { bookingId },
       },
     });
@@ -728,9 +728,9 @@ export class PaymentsService implements OnApplicationBootstrap {
         traveler: { select: { id: true, name: true, email: true } },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== requesterId && booking.listing?.provider?.id !== requesterId) {
-      throw new NotFoundException('Booking không tồn tại');
+      throw new NotFoundException('Đơn thuê không tồn tại');
     }
 
     const nights = rentalDaysBetween(booking.startDate, booking.endDate);

@@ -8,6 +8,6 @@ export function useAdminToast() {
   const success = useCallback((message: string) => setState({ message, variant: 'success' }), []);
   const error = useCallback((err: unknown) => setState({ message: err instanceof Error ? err.message : 'Đã có lỗi xảy ra', variant: 'error' }), []);
   const close = useCallback(() => setState(null), []);
-  const node = <Toast show={state !== null} message={state?.message ?? ''} variant={state?.variant} onClose={close} />;
+  const node = <Toast show={state !== null} message={state?.message ?? ''} variant={state?.variant} position="top-right" onClose={close} />;
   return { success, error, node };
 }

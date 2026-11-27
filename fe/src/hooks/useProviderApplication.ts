@@ -22,8 +22,8 @@ const ENTRIES: Record<ProviderEntryState, ProviderEntry> = {
   },
   NEEDS_UPDATE: {
     state: 'NEEDS_UPDATE',
-    label: 'Bổ sung hồ sơ',
-    hint: 'Hồ sơ cần cập nhật',
+    label: 'Gửi lại hồ sơ',
+    hint: 'Hồ sơ chưa được duyệt',
     href: '/become-provider/status',
   },
   APPROVED: { state: 'APPROVED', label: 'Chuyển sang Provider', hint: 'Đã được duyệt', href: '/dashboard' },

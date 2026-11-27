@@ -67,7 +67,7 @@ export function Navbar() {
   const isStaff = user?.roles?.includes('STAFF') ?? false;
   const isAdmin = user?.roles?.includes('ADMIN') ?? false;
   const NAV_LINKS = isAdmin
-    ? [{ href: '/search', label: 'Xem marketplace', icon: '🔍' }]
+    ? [{ href: '/search', label: 'Khám phá thiết bị', icon: '🔍' }]
     : isStaff
       ? STAFF_NAV_LINKS
       : isProvider

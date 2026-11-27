@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { useState } from 'react';
 import { Check, Copy, Ticket } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
@@ -55,10 +56,7 @@ export default function MyVouchersPage() {
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Voucher của tôi</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Nhập mã ở bước giỏ hàng để trừ vào tiền thuê trả sau.</p>
-      </div>
+      <PageHeader bare title="Voucher của tôi" subtitle="Nhập mã ở bước giỏ hàng để trừ vào tiền thuê trả sau." />
 
       <div className="flex gap-2" role="tablist">
         {([['available', `Dùng được (${data?.available.length ?? 0})`], ['history', 'Lịch sử dùng']] as const).map(([key, label]) => (

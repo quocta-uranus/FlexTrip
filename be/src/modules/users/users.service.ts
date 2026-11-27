@@ -13,7 +13,7 @@ export class UsersService {
       where: { id: userId },
       include: { roles: true, kycApplications: { orderBy: { createdAt: 'desc' }, take: 1 } },
     });
-    if (!u) throw new NotFoundException('User not found');
+    if (!u) throw new NotFoundException('Người dùng không tồn tại');
     return this.publicProfile(u, req);
   }
 

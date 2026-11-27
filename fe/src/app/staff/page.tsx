@@ -1,33 +1,22 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   AlertTriangle, ArrowRight, CalendarDays, Camera, CheckCircle2,
   ClipboardList, Clock3, Lock, MapPin, Package, RotateCcw, Scale, TrendingUp, Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { ActionButton } from '@/components/staff/action-button';
 import { ConditionDialog } from '@/components/staff/condition-dialog';
+import { isBeforeRentalStart } from '@/lib/handover-date';
+import { MediationFormDialog } from '@/components/staff/mediation-form-dialog';
+import { MediationActionDialog } from '@/components/staff/mediation-action-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { useRequestPayout, useWallet, useWalletTransactions } from '@/hooks/usePayments';
-import {
-  useCreateMediation, useEscalateMediation,
-  useMyBookings, useResolveMediation, useStaffMediations, useStaffTasks,
-} from '@/hooks/use-staff-operations';
-import {
-  staffEscalationSchema, staffMediationSchema, staffResolutionSchema,
-  type StaffEscalationInput, type StaffMediationInput, type StaffResolutionInput,
-} from '@/lib/validators/staff.schema';
+import { useMyBookings, useStaffMediations, useStaffTasks } from '@/hooks/use-staff-operations';
 import type { StaffBooking, StaffMediation, StaffTask } from '@/types/staff';
 
 function localDate() {
@@ -49,6 +38,7 @@ function TaskCard({ task, onConfirm, onMediate }: {
 }) {
   const isHandover = task.type === 'HANDOVER';
   const completed = Boolean(task.completedAt);
+  const tooEarly = isHandover && !completed && isBeforeRentalStart(task.scheduledAt);
   return (
     <Card className="border-0 bg-white shadow-sm ring-1 ring-[#e2e8f3]">
       <CardHeader className="border-b border-[#f1f5fa]">
@@ -63,7 +53,7 @@ function TaskCard({ task, onConfirm, onMediate }: {
             </div>
           </div>
           <Badge variant={completed ? 'secondary' : 'outline'}>
-            {completed ? 'Đã hoàn thành' : 'Chờ xử lý'}
+            {completed ? (isHandover ? 'Đã giao xong' : 'Đã nhận lại xong') : 'Chờ xử lý'}
           </Badge>
         </div>
       </CardHeader>
@@ -80,99 +70,18 @@ function TaskCard({ task, onConfirm, onMediate }: {
           <div><p className="text-[#8694ad]">Provider</p><p className="font-medium text-[#0f1729]">{task.listing.provider.name}</p><p className="text-xs text-[#8694ad]">{task.listing.provider.phone ?? '—'}</p></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button disabled={completed} onClick={() => onConfirm(task)} className="bg-[#2a7bd9] hover:bg-[#1e5aa8]">
-            <Camera className="h-4 w-4" />{completed ? 'Đã xác nhận' : 'Chụp ảnh & xác nhận'}
-          </Button>
+          <ActionButton variant={isHandover ? 'primary-blue' : 'primary-emerald'} disabled={completed || tooEarly} onClick={() => onConfirm(task)}>
+            <Camera className="h-[18px] w-[18px]" />{completed ? (isHandover ? 'Đã giao thiết bị' : 'Đã nhận lại thiết bị') : 'Chụp ảnh & xác nhận'}
+          </ActionButton>
+          {tooEarly && <p className="basis-full text-xs text-amber-700">Chưa tới ngày thuê nên chưa thể bàn giao.</p>}
           {!completed && (
-            <Button variant="outline" onClick={() => onMediate(task)}>
-              <Scale className="h-4 w-4" />Có bất đồng
-            </Button>
+            <ActionButton variant="warn" onClick={() => onMediate(task)}>
+              <Scale className="h-[18px] w-[18px]" />Có bất đồng
+            </ActionButton>
           )}
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// ── Mediation dialog ─────────────────────────────────────────────────────
-function MediationDialog({ task, onClose, onDone }: {
-  task: StaffTask | null; onClose: () => void; onDone: (msg: string) => void;
-}) {
-  const mutation = useCreateMediation();
-  const form = useForm<StaffMediationInput>({
-    resolver: zodResolver(staffMediationSchema),
-    defaultValues: { files: [], issue: '', travelerStatement: '', providerStatement: '' },
-  });
-  const submit = form.handleSubmit((v) => {
-    if (!task) return;
-    mutation.mutate({ bookingId: task.bookingId, ...v }, { onSuccess: () => { form.reset(); onClose(); onDone('Đã lập biên bản thương lượng.'); } });
-  });
-  return (
-    <Dialog open={Boolean(task)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Biên bản thương lượng tại chỗ</DialogTitle>
-          <DialogDescription>Ghi nhận trung lập ý kiến hai bên và bằng chứng trước khi quyết định.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-4">
-          <div className="space-y-2"><Label>Vấn đề phát sinh</Label><Textarea rows={4} {...form.register('issue')} />{form.formState.errors.issue && <p className="text-xs text-red-600">{form.formState.errors.issue.message}</p>}</div>
-          <div className="space-y-2"><Label>Ý kiến Traveler</Label><Textarea rows={3} {...form.register('travelerStatement')} /></div>
-          <div className="space-y-2"><Label>Ý kiến Provider</Label><Textarea rows={3} {...form.register('providerStatement')} /></div>
-          <div className="space-y-2"><Label>Ảnh bằng chứng (tối đa 10)</Label><Input type="file" accept="image/*" multiple onChange={(e) => form.setValue('files', Array.from(e.target.files ?? []))} /></div>
-          {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(mutation.error)}</p>}
-          <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Đang lập...' : 'Lập biên bản'}</Button></DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Mediation action dialog ───────────────────────────────────────────────
-function MediationActionDialog({ mediation, action, onClose, onDone }: {
-  mediation: StaffMediation | null; action: 'resolve' | 'escalate'; onClose: () => void; onDone: (msg: string) => void;
-}) {
-  const resolve = useResolveMediation();
-  const escalate = useEscalateMediation();
-  const resolveForm = useForm<StaffResolutionInput>({ resolver: zodResolver(staffResolutionSchema) });
-  const escalateForm = useForm<StaffEscalationInput>({ resolver: zodResolver(staffEscalationSchema), defaultValues: { type: 'DAMAGE_CLAIM', priority: 'HIGH' } });
-  const submitResolve = resolveForm.handleSubmit((v) => {
-    if (!mediation) return;
-    resolve.mutate({ id: mediation.id, resolution: v.resolution }, { onSuccess: () => { resolveForm.reset(); onClose(); onDone('Đã ghi nhận thoả thuận.'); } });
-  });
-  const submitEscalate = escalateForm.handleSubmit((v) => {
-    if (!mediation) return;
-    escalate.mutate({ id: mediation.id, type: v.type, priority: v.priority, requestedAmount: v.requestedAmount ? Number(v.requestedAmount) : undefined, additionalNotes: v.additionalNotes },
-      { onSuccess: () => { escalateForm.reset(); onClose(); onDone('Đã chuyển vụ việc lên Admin.'); } });
-  });
-  const pending = resolve.isPending || escalate.isPending;
-  const error = resolve.error ?? escalate.error;
-  return (
-    <Dialog open={Boolean(mediation)} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{action === 'resolve' ? 'Ghi nhận thoả thuận' : 'Chuyển vụ việc lên Admin'}</DialogTitle>
-          <DialogDescription className="line-clamp-2">{mediation?.issue}</DialogDescription>
-        </DialogHeader>
-        {action === 'resolve' ? (
-          <form onSubmit={submitResolve} className="space-y-4">
-            <div className="space-y-2"><Label>Nội dung hai bên đã thống nhất</Label><Textarea rows={5} {...resolveForm.register('resolution')} />{resolveForm.formState.errors.resolution && <p className="text-xs text-red-600">{resolveForm.formState.errors.resolution.message}</p>}</div>
-            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(error)}</p>}
-            <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" disabled={pending}>Hoàn tất thương lượng</Button></DialogFooter>
-          </form>
-        ) : (
-          <form onSubmit={submitEscalate} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Loại tranh chấp</Label><select className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" {...escalateForm.register('type')}><option value="DAMAGE_CLAIM">Hư hỏng</option><option value="REFUND_REQUEST">Hoàn tiền</option><option value="PAYMENT_DISPUTE">Thanh toán</option><option value="CANCELLATION_DISPUTE">Huỷ booking</option></select></div>
-              <div className="space-y-2"><Label>Mức ưu tiên</Label><select className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" {...escalateForm.register('priority')}><option value="MEDIUM">Trung bình</option><option value="HIGH">Cao</option><option value="CRITICAL">Khẩn cấp</option></select></div>
-            </div>
-            <div className="space-y-2"><Label>Số tiền yêu cầu (nếu có)</Label><Input type="number" min="0" {...escalateForm.register('requestedAmount')} /></div>
-            <div className="space-y-2"><Label>Ghi chú</Label><Textarea rows={3} {...escalateForm.register('additionalNotes')} /></div>
-            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errMsg(error)}</p>}
-            <DialogFooter><Button type="button" variant="outline" onClick={onClose}>Huỷ</Button><Button type="submit" variant="destructive" disabled={pending}><AlertTriangle className="h-4 w-4" />Chuyển Admin</Button></DialogFooter>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -263,9 +172,9 @@ function StaffWalletSection() {
       )}
 
       <div className="flex gap-3">
-        <Button onClick={() => setShowPayoutForm((v) => !v)} disabled={available < 100_000}>
-          <Wallet />Yêu cầu rút tiền
-        </Button>
+        <ActionButton variant="primary-blue" onClick={() => setShowPayoutForm((v) => !v)} disabled={available < 100_000}>
+          <Wallet className="h-[18px] w-[18px]" />Yêu cầu rút tiền
+        </ActionButton>
       </div>
 
       {showPayoutForm && (
@@ -290,10 +199,10 @@ function StaffWalletSection() {
               </div>
             ))}
             <div className="flex gap-2">
-              <Button onClick={handlePayout} disabled={payout.isPending}>
+              <ActionButton variant="primary-blue" onClick={handlePayout} disabled={payout.isPending}>
                 {payout.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}
-              </Button>
-              <Button variant="outline" onClick={() => setShowPayoutForm(false)}>Huỷ</Button>
+              </ActionButton>
+              <ActionButton variant="neutral" onClick={() => setShowPayoutForm(false)}>Huỷ</ActionButton>
             </div>
           </CardContent>
         </Card>
@@ -525,12 +434,12 @@ export default function StaffDashboard() {
                     <p className="font-mono text-[10px] text-[#8694ad]">#{item.bookingId.slice(0, 8)}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setActionState({ mediation: item, action: 'resolve' })}>
+                    <ActionButton variant="success" size="sm" onClick={() => setActionState({ mediation: item, action: 'resolve' })}>
                       <CheckCircle2 className="h-4 w-4" />Thoả thuận
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setActionState({ mediation: item, action: 'escalate' })}>
+                    </ActionButton>
+                    <ActionButton variant="primary-red" size="sm" onClick={() => setActionState({ mediation: item, action: 'escalate' })}>
                       <AlertTriangle className="h-4 w-4" />Chuyển Admin
-                    </Button>
+                    </ActionButton>
                   </div>
                 </CardContent>
               </Card>
@@ -558,14 +467,22 @@ export default function StaffDashboard() {
         open={Boolean(conditionTask)}
         type={conditionTask?.type ?? 'HANDOVER'}
         bookingId={conditionTask?.bookingId ?? ''}
+        context={conditionTask ? { title: conditionTask.listing.title, caption: `Traveler: ${conditionTask.traveler.name}` } : undefined}
         onClose={() => setConditionTask(null)}
         onDone={setNotice}
         onReportIssue={() => setMediationTask(conditionTask)}
       />
-      <MediationDialog task={mediationTask} onClose={() => setMediationTask(null)} onDone={setNotice} />
+      <MediationFormDialog
+        open={Boolean(mediationTask)}
+        bookingId={mediationTask?.bookingId ?? ''}
+        context={mediationTask ? { title: mediationTask.listing.title, caption: `Traveler: ${mediationTask.traveler.name}` } : undefined}
+        onClose={() => setMediationTask(null)}
+        onDone={setNotice}
+      />
       <MediationActionDialog
-        mediation={actionState?.mediation ?? null}
+        mediationId={actionState?.mediation.id ?? null}
         action={actionState?.action ?? 'resolve'}
+        issue={actionState?.mediation.issue ?? ''}
         onClose={() => setActionState(null)}
         onDone={setNotice}
       />

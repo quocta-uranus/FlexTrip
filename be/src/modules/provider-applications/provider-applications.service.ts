@@ -11,7 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ResendService } from '../auth/services/resend.service';
 import { ConfigService } from '@nestjs/config';
 import { CreateProviderApplicationDto, RejectApplicationDto } from './provider-applications.dto';
-import { ApplicationStatus, Role, ShopCategory } from '@prisma/client';
+import { ApplicationStatus, NotificationType, Role, ShopCategory } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { RequestContext } from '../../common/request-context';
 
@@ -44,7 +44,10 @@ export class ProviderApplicationsService {
     const application = await this.prisma.providerApplication.findFirst({
       where: { email: { equals: user.email, mode: 'insensitive' } },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, status: true, adminNote: true, city: true, categories: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true, status: true, adminNote: true, name: true, phone: true, email: true, city: true, categories: true,
+        description: true, createdAt: true, updatedAt: true,
+      },
     });
     return { application };
   }
@@ -129,6 +132,7 @@ export class ProviderApplicationsService {
 
     // Send approval email
     await this.resend.sendProviderApproved(app.email, app.name);
+    await this.notifyApplicant(user.id, 'Hồ sơ Provider đã được duyệt', 'Bạn có thể vào trang quản lý để đăng thiết bị.');
 
     return { message: 'Đã duyệt và gửi email cho provider.' };
   }
@@ -142,7 +146,7 @@ export class ProviderApplicationsService {
 
     await this.assertAdmin(adminUserId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.providerApplication.update({
         where: { id },
         data: { status: ApplicationStatus.REJECTED, adminNote: dto.adminNote },
@@ -155,6 +159,20 @@ export class ProviderApplicationsService {
         after: { status: updated.status, adminNote: updated.adminNote },
       });
       return updated;
+    });
+
+    const applicant = await this.prisma.user.findFirst({ where: { email: { equals: app.email, mode: 'insensitive' } }, select: { id: true } });
+    if (applicant) {
+      const note = dto.adminNote?.trim();
+      await this.notifyApplicant(applicant.id, 'Hồ sơ Provider chưa được duyệt', note ? `Ghi chú từ quản trị viên: ${note}` : 'Hãy xem trang trạng thái để chỉnh hồ sơ rồi gửi lại.');
+    }
+    return updated;
+  }
+
+  // Người dùng không thấy email ngay, nên kết quả cũng phải hiện ở chuông thông báo.
+  private notifyApplicant(userId: string, title: string, body: string) {
+    return this.prisma.notification.create({
+      data: { userId, type: NotificationType.SYSTEM, title, body, data: { providerApplication: true } },
     });
   }
 

@@ -4,17 +4,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarDays, ClipboardList, MessageCircle, Scale, UserCircle } from 'lucide-react';
 import { useMe } from '@/hooks/useSession';
+import { useAuthStore } from '@/store/auth.store';
 
 const NAV = [
   { href: '/staff', label: 'Dashboard', icon: CalendarDays, exact: true },
-  { href: '/staff/bookings', label: 'Booking của tôi', icon: ClipboardList, exact: false },
+  { href: '/staff/bookings', label: 'Đơn thuê của tôi', icon: ClipboardList, exact: false },
   { href: '/messages', label: 'Tin nhắn', icon: MessageCircle, exact: false },
   { href: '/staff/complete-profile', label: 'Hồ sơ', icon: UserCircle, exact: false },
 ];
 
 export function StaffSidebar() {
   const pathname = usePathname();
-  const { data: user } = useMe();
+  // Cùng nguồn với tên ở thanh trên (auth store); useMe vẫn chạy để làm mới store.
+  useMe();
+  const user = useAuthStore((s) => s.user);
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) ?? '?';
 
   return (
@@ -27,7 +30,7 @@ export function StaffSidebar() {
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-[#0f1729]">{user?.name ?? '—'}</p>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2a7bd9]">Staff Operations</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2a7bd9]">Nhân viên vận hành</p>
           </div>
         </div>
       </div>

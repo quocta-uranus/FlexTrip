@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { useLogout } from "@/hooks/useAuthMutations";
+import { useAdminSidebarCounts } from "@/hooks/admin/use-admin-sidebar-counts";
 import { Menu, X } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -127,6 +128,7 @@ export function AdminSidebar() {
   const me = useAuthStore((s) => s.user);
   const logout = useLogout();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const counts = useAdminSidebarCounts(Boolean(me));
 
   return (
     <>
@@ -204,9 +206,18 @@ export function AdminSidebar() {
                       {ICONS[item.icon]}
                     </span>
                     {item.title}
+                    {(counts[item.href] ?? 0) > 0 && (
+                      <span
+                        className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white"
+                        style={{ background: "#e11d48" }}
+                        aria-label={`${counts[item.href]} mục cần xử lý`}
+                      >
+                        {counts[item.href] > 99 ? "99+" : counts[item.href]}
+                      </span>
+                    )}
                     {active && (
                       <span
-                        className="ml-auto h-1.5 w-1.5 rounded-full"
+                        className={`${(counts[item.href] ?? 0) > 0 ? "ml-2" : "ml-auto"} h-1.5 w-1.5 rounded-full`}
                         style={{ background: "#2a7bd9" }}
                       />
                     )}

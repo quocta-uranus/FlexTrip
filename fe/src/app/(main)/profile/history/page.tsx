@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/layout/page-header';
 import { ArrowUpDown, CalendarDays, ChevronDown, KeyRound, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,12 +12,11 @@ const filterButtonClass =
 export default function HistoryPage() {
   return (
     <>
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground sm:text-3xl">Lịch sử thuê / cho thuê</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Xem lại các lượt bạn đã thuê hoặc các lượt cho thuê từ chỗ nghỉ của bạn.
-        </p>
-      </div>
+      <PageHeader
+        bare
+        title="Lịch sử thuê / cho thuê"
+        subtitle="Xem lại các lượt bạn đã thuê hoặc các lượt cho thuê từ chỗ nghỉ của bạn."
+      />
 
       <Tabs defaultValue="traveler">
         <TabsList>

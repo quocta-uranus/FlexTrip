@@ -37,6 +37,7 @@ import { useMe } from "@/hooks/useSession";
 import { useSetAvatar } from "@/hooks/useSetAvatar";
 import { useQueryClient } from "@tanstack/react-query";
 import { Toast } from "@/components/ui/toast";
+import { CATEGORY_LABELS } from "@/types/listing";
 import type { ProviderProfile } from "@/lib/api/client";
 import { ReputationProgressCard } from "@/components/reputation/reputation-badge";
 import { useMyReputation } from "@/hooks/useReputation";
@@ -209,7 +210,7 @@ export default function ShopProfilePage() {
         identityId="#FLX-SHOP-00219"
         roleBadge={<RoleBadge role="PROVIDER" />}
         name={p.shopName}
-        subtitle={`Chủ shop: ${p.ownerName} · ${p.category} · 📍 ${p.pickupAddress}`}
+        subtitle={`Chủ shop: ${p.ownerName} · ${(CATEGORY_LABELS as Record<string, string>)[p.category] ?? CATEGORY_MAP[p.category] ?? p.category} · 📍 ${p.pickupAddress}`}
         completion={completion}
         avatar={
           <div className="relative">
@@ -530,7 +531,7 @@ export default function ShopProfilePage() {
         </Card>
 
         <Card title="Thông báo shop" subtitle="Cảnh báo booking, tin nhắn, payout" className="lg:col-span-2">
-          <ToggleRow label="Booking mới" desc="Push & email khi có yêu cầu thuê" value={p.notifyBooking} onChange={(v) => update("notifyBooking", v)} disabled={!editing} />
+          <ToggleRow label="Đơn thuê mới" desc="Push & email khi có yêu cầu thuê" value={p.notifyBooking} onChange={(v) => update("notifyBooking", v)} disabled={!editing} />
           <ToggleRow label="Tin nhắn traveler" desc="Âm thanh & badge khi có tin nhắn mới" value={p.notifyMessage} onChange={(v) => update("notifyMessage", v)} disabled={!editing} />
           <ToggleRow label="Payout / rút tiền" desc="Thông báo khi tiền về tài khoản" value={p.notifyPayout} onChange={(v) => update("notifyPayout", v)} disabled={!editing} />
         </Card>
@@ -563,7 +564,7 @@ export default function ShopProfilePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
               }
-              title="Payout method"
+              title="Phương thức nhận tiền"
               desc="Vietcombank ••• 4477"
               action="Đổi"
             />
@@ -574,7 +575,7 @@ export default function ShopProfilePage() {
       <StickyCta primary={{ label: "📅 Quản lý lịch trống" }} secondary={{ label: "💬 Chat Zalo" }} />
       <StickyEditBar visible={editing} savedAt={savedAt} onSave={handleSave} onCancel={cancel} brand="#2a7bd9" />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
-      <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
+      <Toast position="top-right" show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
     </div>
   );
 }

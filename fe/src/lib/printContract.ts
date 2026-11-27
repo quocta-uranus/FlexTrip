@@ -106,7 +106,7 @@ export function printContract(contract: PrintableContract, travelerName: string,
 
   const conditionBox = contract.productConditionNote
     ? `<div class="condition-box">
-        <strong>Tình trạng sản phẩm (Provider khai báo):</strong><br/>
+        <strong>Tình trạng sản phẩm (Bên A khai báo):</strong><br/>
         ${escapeHtml(contract.productConditionNote)}
        </div>`
     : '';
@@ -267,7 +267,7 @@ export function printContract(contract: PrintableContract, travelerName: string,
   </div>
 
   <div class="footer">
-    Hợp đồng được ký điện tử trên nền tảng FlexTrip · Có giá trị pháp lý theo Luật Giao dịch điện tử Việt Nam · flextrip.vn
+    Hợp đồng được ký điện tử trên nền tảng FlexTrip · Có giá trị pháp lý theo Luật Giao dịch điện tử Việt Nam · flextrip.asia
   </div>
 
 </body>

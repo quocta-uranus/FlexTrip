@@ -84,7 +84,7 @@ export default function UserAccountsPage() {
           <KpiCards
             items={[
               {
-                label: "Total Users",
+                label: "Tổng người dùng",
                 value: String(stats?.total ?? "—"),
                 hint: `+${stats?.newThisMonth ?? 0} this month`,
                 icon: (
@@ -94,7 +94,7 @@ export default function UserAccountsPage() {
                 ),
               },
               {
-                label: "Active",
+                label: "Đang hoạt động",
                 value: String(stats?.active ?? "—"),
                 hint: activePct,
                 icon: (
@@ -104,9 +104,9 @@ export default function UserAccountsPage() {
                 ),
               },
               {
-                label: "Suspended",
+                label: "Đã tạm khoá",
                 value: String(stats?.suspended ?? "—"),
-                hint: "Pending review",
+                hint: "Chờ duyệt",
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
@@ -114,9 +114,9 @@ export default function UserAccountsPage() {
                 ),
               },
               {
-                label: "Disabled",
+                label: "Đã vô hiệu",
                 value: String(stats?.disabled ?? "—"),
-                hint: "Inactive accounts",
+                hint: "Tài khoản không hoạt động",
                 icon: (
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -148,7 +148,7 @@ export default function UserAccountsPage() {
           className="rounded-xl border bg-white px-4 py-2.5 text-sm outline-none"
           style={{ borderColor: "#e2e8f3" }}
         >
-          <option value="ALL">All Roles</option>
+          <option value="ALL">Tất cả vai trò</option>
           <option value="TRAVELER">Traveler</option>
           <option value="PROVIDER">Provider</option>
           <option value="ADMIN">Admin</option>
@@ -160,9 +160,9 @@ export default function UserAccountsPage() {
           className="rounded-xl border bg-white px-4 py-2.5 text-sm outline-none"
           style={{ borderColor: "#e2e8f3" }}
         >
-          <option value="ALL">All Status</option>
-          <option value="ACTIVE">Active</option>
-          <option value="SUSPENDED">Suspended</option>
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="ACTIVE">Đang hoạt động</option>
+          <option value="SUSPENDED">Đã tạm khoá</option>
           <option value="DISABLED">Disabled</option>
         </select>
       </div>
@@ -174,7 +174,7 @@ export default function UserAccountsPage() {
               <tr style={{ background: "#f8fafc" }}>
                 <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>User</th>
                 <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Role</th>
-                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Status</th>
+                <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Trạng thái</th>
                 <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>KYC</th>
                 <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Bookings</th>
                 <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider" style={{ color: "#5a6b85" }}>Actions</th>

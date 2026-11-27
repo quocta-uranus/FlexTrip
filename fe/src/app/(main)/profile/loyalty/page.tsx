@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/layout/page-header';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Gift, Sparkles } from 'lucide-react';
@@ -34,12 +35,11 @@ export default function LoyaltyPage() {
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Điểm thưởng</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Mỗi đơn thuê hoàn thành được {me?.pointsPerOrder ?? 1} điểm. Đổi điểm lấy voucher giảm giá tiền thuê.
-        </p>
-      </div>
+      <PageHeader
+        bare
+        title="Điểm thưởng"
+        subtitle={`Mỗi đơn thuê hoàn thành được ${me?.pointsPerOrder ?? 1} điểm. Đổi điểm lấy voucher giảm giá tiền thuê.`}
+      />
 
       <section className="rounded-2xl border border-border bg-card p-6">
         {isLoading ? <Skeleton className="h-20 w-full" /> : (
