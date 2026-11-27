@@ -75,7 +75,7 @@ export function ScheduleFormDialog({ open, onOpenChange, schedule, onSuccess, on
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sch-recipients">Email nhận báo cáo</Label>
-            <Input id="sch-recipients" placeholder="a@flextrip.vn, b@flextrip.vn" aria-invalid={!!errors.recipients} {...form.register('recipients')} />
+            <Input id="sch-recipients" placeholder="a@flextrip.asia, b@flextrip.asia" aria-invalid={!!errors.recipients} {...form.register('recipients')} />
             {errors.recipients && <p className="text-xs font-medium text-red-600">{errors.recipients.message}</p>}
           </div>
           <DialogFooter>

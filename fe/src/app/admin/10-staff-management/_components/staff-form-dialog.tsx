@@ -203,7 +203,7 @@ export function StaffFormDialog({ open, onOpenChange, staff, onSuccess, onError 
                       id="staff-email"
                       type="email"
                       autoComplete="off"
-                      placeholder="nhanvien@flextrip.vn"
+                      placeholder="nhanvien@flextrip.asia"
                       disabled={editing}
                       aria-invalid={!!form.formState.errors.email}
                       className="h-11 rounded-xl border-slate-200 bg-[#f8fafc] pl-10 focus-visible:border-[#2a7bd9] focus-visible:ring-[#2a7bd9]/15 disabled:bg-slate-100"

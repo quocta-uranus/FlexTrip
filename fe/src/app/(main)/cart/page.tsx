@@ -354,7 +354,7 @@ export default function CartPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px]" style={{ color: '#8694ad' }}>
-                  * Tiền thuê còn lại thanh toán khi nhận đồ
+                  * Tiền thuê còn lại thanh toán trong 24 giờ sau khi chủ đồ xác nhận
                   {totalDiscount > 0 && ` (${Math.max(cart.total - cart.depositTotal - totalDiscount, 0).toLocaleString('vi-VN')} ₫ sau giảm giá)`}
                 </p>
               </div>
