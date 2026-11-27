@@ -21,6 +21,7 @@ import type { ContractStatus } from '@/types/contract';
 import { ExportPdfButton } from '@/components/contracts/ExportPdfButton';
 import { useInitiatePayment, usePayRental, useWallet } from '@/hooks/usePayments';
 import { bookingCode } from '@/lib/booking-code';
+import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/dispute-labels';
 import { PaymentMethodPicker } from '@/components/booking/payment-method-picker';
 import { rentalDays } from '@/lib/rental-days';
 
@@ -49,6 +50,34 @@ function HoldCountdown({ expiresAt }: { expiresAt: string }) {
       <p className="mt-0.5 text-[11px]" style={{ color: '#c2410c' }}>
         {expired ? 'Đơn sẽ tự huỷ nếu chưa thanh toán cọc.' : 'Hết giờ mà chưa thanh toán, đơn sẽ tự huỷ.'}
       </p>
+    </div>
+  );
+}
+
+const payLabel = (v?: string | null) => (v ? PAYMENT_METHOD_LABELS[v] ?? v : '—');
+
+function PersonCard({ title, name, avatarUrl, lines, tone }: {
+  title: string; name: string; avatarUrl?: string | null; lines: Array<string | null | undefined>; tone: { bg: string; fg: string };
+}) {
+  return (
+    <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
+      <h2 className="mb-3 text-sm font-semibold" style={{ color: '#0f1729' }}>{title}</h2>
+      <div className="flex items-center gap-3">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold" style={{ background: tone.bg, color: tone.fg }}>
+            {name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold" style={{ color: '#0f1729' }}>{name}</p>
+          {lines.filter(Boolean).map((l) => (
+            <p key={l} className="truncate text-xs" style={{ color: '#5a6b85' }}>{l}</p>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -298,6 +327,31 @@ function BookingDetailContent() {
             </div>
           </div>
 
+          {/* People */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {booking.traveler && (
+              <PersonCard
+                title="Người đặt"
+                name={booking.traveler.name}
+                avatarUrl={booking.traveler.avatarUrl}
+                lines={[booking.traveler.email]}
+                tone={{ bg: '#eff6ff', fg: '#1d4ed8' }}
+              />
+            )}
+            {booking.listing?.provider && (
+              <PersonCard
+                title="Người cho thuê"
+                name={booking.listing.provider.providerProfile?.shopName ?? booking.listing.provider.name}
+                avatarUrl={booking.listing.provider.avatarUrl}
+                lines={[
+                  booking.listing.provider.providerProfile?.shopName ? booking.listing.provider.name : null,
+                  booking.listing.location ? `Khu vực: ${booking.listing.location}` : null,
+                ]}
+                tone={{ bg: '#f5f3ff', fg: '#6d28d9' }}
+              />
+            )}
+          </div>
+
           {/* Delivery info */}
           {booking.deliveryMethod && (
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
@@ -331,14 +385,6 @@ function BookingDetailContent() {
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: '#DCEFFB' }}>
               <div className="mb-3 flex items-center gap-2">
                 <span className="text-sm font-semibold" style={{ color: '#0f1729' }}>Staff phụ trách</span>
-                {booking.assignedStaff.staffProfile?.employeeCode && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                  >
-                    {booking.assignedStaff.staffProfile.employeeCode}
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -416,7 +462,7 @@ function BookingDetailContent() {
                           : 'Đã thanh toán'}
                       </p>
                       <p className="text-xs" style={{ color: '#5a6b85' }}>
-                        Qua {booking.payment.gateway ?? booking.payment.method ?? '—'}
+                        Qua {payLabel(booking.payment.gateway ?? booking.payment.method)}
                       </p>
                     </div>
                   </div>
@@ -431,7 +477,7 @@ function BookingDetailContent() {
               )}
               {booking.payment && booking.payment.status !== 'PAID' && (
                 <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: '#f6fbfe', color: '#5a6b85' }}>
-                  Cổng TT: {booking.payment.gateway ?? booking.payment.method ?? '—'} · Trạng thái: {booking.payment.status}
+                  Cổng thanh toán: {payLabel(booking.payment.gateway ?? booking.payment.method)} · Trạng thái: {PAYMENT_STATUS_LABELS[booking.payment.status] ?? booking.payment.status}
                 </div>
               )}
             </div>
@@ -484,7 +530,7 @@ function BookingDetailContent() {
             {isProvider && rentalUnpaid && (
               <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
                 Đang chờ khách thanh toán tiền thuê còn lại{balanceDueText ? <> (hạn {balanceDueText})</> : null}.
-                Bạn chỉ giao hàng sau khi khách đã thanh toán.
+                Nhân viên chỉ giao hàng sau khi khách đã thanh toán.
               </p>
             )}
           </div>

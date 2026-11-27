@@ -12,11 +12,11 @@ import { rentalDays as rentalDaysFn } from '@/lib/rental-days';
 type Tab = 'PENDING_APPROVAL' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'ALL';
 
 const TABS: Array<{ key: Tab; label: string }> = [
+  { key: 'ALL', label: 'Tất cả' },
   { key: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
   { key: 'IN_PROGRESS', label: 'Đang thuê' },
   { key: 'COMPLETED', label: 'Hoàn thành' },
-  { key: 'ALL', label: 'Tất cả' },
 ];
 
 function DeclineModal({
@@ -69,7 +69,7 @@ function DeclineModal({
 }
 
 export default function ProviderBookingsPage() {
-  const [tab, setTab] = useState<Tab>('PENDING_APPROVAL');
+  const [tab, setTab] = useState<Tab>('ALL');
   const [declineTarget, setDeclineTarget] = useState<string | null>(null);
   const approve = useApproveBooking();
 
@@ -231,14 +231,6 @@ export default function ProviderBookingsPage() {
                           <span className="text-xs" style={{ color: '#8694ad' }}>
                             Staff: <span style={{ color: '#5a6b85' }}>{booking.assignedStaff.name}</span>
                           </span>
-                          {booking.assignedStaff.staffProfile?.employeeCode && (
-                            <span
-                              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                            >
-                              {booking.assignedStaff.staffProfile.employeeCode}
-                            </span>
-                          )}
                         </div>
                       )}
                     </div>

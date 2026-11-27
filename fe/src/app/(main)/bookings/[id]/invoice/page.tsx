@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useInvoice } from '@/hooks/usePayments';
 import { CATEGORY_LABELS } from '@/types/listing';
 import { bookingCode } from '@/lib/booking-code';
+import { PAYMENT_METHOD_LABELS } from '@/lib/dispute-labels';
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -181,7 +182,7 @@ export default function InvoicePage() {
             </p>
             {invoice.payment.depositPaid > 0 && (
               <div className="flex justify-between" style={{ color: '#5a6b85' }}>
-                <span>Tiền cọc đã trả{invoice.payment.gateway ? ` (${invoice.payment.gateway})` : ''}</span>
+                <span>Tiền cọc đã trả{invoice.payment.gateway ? ` (${PAYMENT_METHOD_LABELS[invoice.payment.gateway] ?? invoice.payment.gateway})` : ''}</span>
                 <span>{invoice.payment.depositPaid.toLocaleString('vi-VN')}₫</span>
               </div>
             )}
