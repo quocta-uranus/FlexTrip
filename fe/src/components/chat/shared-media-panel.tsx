@@ -111,8 +111,8 @@ export function SharedMediaPanel({ conversationId, onJumpTo, onClose }: Props) {
       <Tabs defaultValue="media" className="flex-1 flex-col overflow-y-auto p-3">
         <TabsList className="w-full">
           <TabsTrigger value="media">Ảnh</TabsTrigger>
-          <TabsTrigger value="files">File</TabsTrigger>
-          <TabsTrigger value="links">Link</TabsTrigger>
+          <TabsTrigger value="files">Tệp</TabsTrigger>
+          <TabsTrigger value="links">Liên kết</TabsTrigger>
         </TabsList>
         {(['media', 'files', 'links'] as const).map((kind) => (
           <TabsContent key={kind} value={kind} className="pt-3">

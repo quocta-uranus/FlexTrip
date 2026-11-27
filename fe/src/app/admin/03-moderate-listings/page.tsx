@@ -19,11 +19,11 @@ import { formatDate, formatDateTime, formatVnd } from "@/lib/format";
 import { LISTING_STATUS_LABEL, type AdminListing, type ListingTab, type ModerateAction } from "@/types/admin";
 
 const statusStyles: Record<string, { label: string; color: string; bg: string }> = {
-  ACTIVE: { label: "Active", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
-  INACTIVE: { label: "Inactive", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
-  SUSPENDED: { label: "Suspended", color: "#ea580c", bg: "rgba(234,88,12,0.1)" },
-  REMOVED: { label: "Removed", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
-  DRAFT: { label: "Draft", color: "#8694ad", bg: "rgba(134,148,173,0.15)" },
+  ACTIVE: { label: "Đang hiển thị", color: "#16a34a", bg: "rgba(34,197,94,0.1)" },
+  INACTIVE: { label: "Tạm ẩn", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
+  SUSPENDED: { label: "Đã tạm khoá", color: "#ea580c", bg: "rgba(234,88,12,0.1)" },
+  REMOVED: { label: "Đã gỡ", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
+  DRAFT: { label: "Bản nháp", color: "#8694ad", bg: "rgba(134,148,173,0.15)" },
 };
 
 const categoryEmoji: Record<string, string> = CATEGORY_ICONS as Record<string, string>;
@@ -121,7 +121,7 @@ export default function ModerateListingsPage() {
       <div className="mb-8 grid gap-4 sm:grid-cols-4">
         {[
           { label: "Flagged Listings", value: stats?.flagged ?? "—", color: "#dc2626", bg: "rgba(239,68,68,0.1)" },
-          { label: "Suspended", value: stats?.suspended ?? "—", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
+          { label: "Đã tạm khoá", value: stats?.suspended ?? "—", color: "#ca8a04", bg: "rgba(234,179,8,0.1)" },
           { label: "Removed This Week", value: stats?.removedThisWeek ?? "—", color: "#6b7280", bg: "rgba(107,114,128,0.1)" },
           { label: "Avg Resolution", value: `${stats?.avgResolutionHours ?? "—"}h`, color: "#2a7bd9", bg: "rgba(42,123,217,0.1)" },
         ].map((stat) => (

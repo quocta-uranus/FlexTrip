@@ -13,7 +13,7 @@ const QUICK_ACTIONS = [
   { title: "Đăng ký Provider", desc: "Duyệt hồ sơ Provider mới", icon: "🏪", href: "/admin/02-provider-registration", color: "#16a34a" },
   { title: "Kiểm duyệt đánh giá", desc: "Xử lý đánh giá do AI hoặc hệ thống gắn cờ", icon: "⭐", href: "/admin/reviews", color: "#7c3aed" },
   { title: "Nhân sự", desc: "Phân công & quản lý staff", icon: "👔", href: "/admin/10-staff-management", color: "#0f1729" },
-  { title: "Booking", desc: "Xem tất cả đơn thuê & staff", icon: "📦", href: "/admin/11-bookings", color: "#2a7bd9" },
+  { title: "Đơn thuê", desc: "Xem tất cả đơn thuê và nhân viên phụ trách", icon: "📦", href: "/admin/11-bookings", color: "#2a7bd9" },
 ];
 
 const MODULE_LABEL: Record<string, string> = {

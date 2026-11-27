@@ -17,7 +17,7 @@ export class RefundService {
       select: { travelerId: true, payment: true },
     });
     const payment = booking.payment;
-    if (!payment) throw new BadRequestException('Booking chưa có thanh toán để hoàn tiền');
+    if (!payment) throw new BadRequestException('Đơn thuê chưa có thanh toán để hoàn tiền');
 
     // A wallet-paid deposit is still frozen until the balance is paid, so the hold ends with the refund
     const depositStillFrozen = payment.gateway === PaymentGateway.WALLET && !payment.rentalPaidAt;

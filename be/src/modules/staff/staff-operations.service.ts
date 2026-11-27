@@ -10,7 +10,7 @@ import { RequestContext } from '../../common/request-context';
 import { uploadImage } from '../../common/upload.util';
 import { AuditService } from '../audit/audit.service';
 import { PaymentsService } from '../payments/payments.service';
-import { RENTAL_UNPAID_MESSAGE, isRentalSettled } from '../booking/booking.constants';
+import { RENTAL_UNPAID_MESSAGE, isBeforeRentalStart, isRentalSettled } from '../booking/booking.constants';
 import { paginate, skipTake } from '../../common/dto/pagination.dto';
 import { loadPresentedContract } from '../contracts/contracts.present';
 import {
@@ -46,7 +46,7 @@ export class StaffOperationsService {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: DETAIL_INCLUDE });
     if (!booking) throw new NotFoundException({ code: 'BOOKING_NOT_FOUND', message: 'Không tìm thấy booking.' });
     if (booking.assignedStaffId !== staffId)
-      throw new ForbiddenException({ code: 'BOOKING_NOT_ASSIGNED', message: 'Booking này không được phân công cho bạn.' });
+      throw new ForbiddenException({ code: 'BOOKING_NOT_ASSIGNED', message: 'Đơn thuê này không được phân công cho bạn.' });
     return booking;
   }
 
@@ -120,6 +120,11 @@ export class StaffOperationsService {
       throw new ConflictException({ code: 'INVALID_BOOKING_STATUS', message: 'Chỉ xác nhận bàn giao cho booking đã được xác nhận.' });
     if (booking.checkedInAt)
       throw new ConflictException({ code: 'HANDOVER_ALREADY_CONFIRMED', message: 'Tác vụ bàn giao đã hoàn thành.' });
+    if (isBeforeRentalStart(booking.startDate))
+      throw new ConflictException({
+        code: 'HANDOVER_TOO_EARLY',
+        message: `Chưa tới ngày thuê (${booking.startDate.toISOString().slice(0, 10).split('-').reverse().join('/')}), chưa thể bàn giao.`,
+      });
     if (booking.payment && !isRentalSettled(booking.payment))
       throw new ConflictException({ code: 'RENTAL_UNPAID', message: RENTAL_UNPAID_MESSAGE });
     // Biên bản là bằng chứng khi tranh chấp: không cho bàn giao khi chưa kiểm đủ, tránh ghi "✗" cho đồ đã giao.
@@ -219,7 +224,7 @@ export class StaffOperationsService {
   async createMediation(staffId: string, bookingId: string, dto: CreateMediationDto, ctx: RequestContext) {
     const booking = await this.assignedBooking(staffId, bookingId);
     if (booking.status !== BookingStatus.CONFIRMED && booking.status !== BookingStatus.IN_PROGRESS)
-      throw new ConflictException({ code: 'MEDIATION_NOT_ALLOWED', message: 'Booking không ở giai đoạn giao hoặc nhận thiết bị.' });
+      throw new ConflictException({ code: 'MEDIATION_NOT_ALLOWED', message: 'Đơn thuê không ở giai đoạn giao hoặc nhận thiết bị.' });
     return this.prisma.$transaction(async (tx) => {
       const mediation = await tx.staffMediation.create({
         data: { bookingId, staffId, issue: dto.issue, travelerStatement: dto.travelerStatement, providerStatement: dto.providerStatement, evidenceUrls: dto.evidenceUrls ?? [] },

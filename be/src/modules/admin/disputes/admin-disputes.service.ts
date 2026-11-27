@@ -237,7 +237,7 @@ export class AdminDisputesService {
             message: 'Số tiền hoàn không hợp lệ (chỉ khi chấp nhận, và không vượt quá số đã thanh toán).',
           });
         if (!REFUNDABLE.includes(d.booking.status))
-          throw new ConflictException({ code: 'BOOKING_NOT_REFUNDABLE', message: `Booking ở trạng thái ${d.booking.status} không thể hoàn tiền.` });
+          throw new ConflictException({ code: 'BOOKING_NOT_REFUNDABLE', message: `Đơn thuê ở trạng thái ${d.booking.status} không thể hoàn tiền.` });
         await this.refunds.refundDispute(tx, d.booking.id, refund, `Hoàn tiền tranh chấp booking ${d.booking.id}`);
       }
 

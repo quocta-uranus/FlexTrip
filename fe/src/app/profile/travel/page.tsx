@@ -453,7 +453,7 @@ export default function TravelProfilePage() {
             <SectionCard id="thong-bao" icon={Bell} title="Thông báo" desc="Cách chúng tôi liên lạc với bạn">
               <ToggleRow label="Email thông báo" desc="Đặt thuê, nhắc lịch, cập nhật quan trọng" value={p.emailNotifications} onChange={(v) => update("emailNotifications", v)} disabled={!editing} />
               <ToggleRow label="SMS thông báo" desc="OTP và cảnh báo bảo mật" value={p.smsNotifications} onChange={(v) => update("smsNotifications", v)} disabled={!editing} />
-              <ToggleRow label="Email marketing" desc="Ưu đãi và gợi ý chuyến đi" value={p.marketingEmails} onChange={(v) => update("marketingEmails", v)} disabled={!editing} />
+              <ToggleRow label="Email khuyến mãi" desc="Ưu đãi và gợi ý chuyến đi" value={p.marketingEmails} onChange={(v) => update("marketingEmails", v)} disabled={!editing} />
             </SectionCard>
 
             <SectionCard id="bao-mat" icon={KeyRound} title="Bảo mật" desc="Mật khẩu, xác thực và thiết bị đăng nhập">
@@ -608,9 +608,9 @@ export default function TravelProfilePage() {
         secondary={{ label: "💬 Chat CSKH", onClick: () => alert('Chat coming soon!') }}
       />
       {showConfetti && <ConfettiBurst pieces={confetti} />}
-      <Toast show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
+      <Toast position="top-right" show={showSaved} message="Đã lưu hồ sơ thành công!" onClose={() => setShowSaved(false)} />
       {saveError && (
-        <Toast show={Boolean(saveError)} message={saveError} onClose={() => setSaveError(null)} />
+        <Toast position="top-right" variant="error" show={Boolean(saveError)} message={saveError} onClose={() => setSaveError(null)} />
       )}
     </div>
   );

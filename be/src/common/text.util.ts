@@ -5,5 +5,7 @@ export function normalizeVi(input: string): string {
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D')
     .toLowerCase()
+    // A stray double space ("Đà  Nẵng") must not stop a region rule from matching
+    .replace(/\s+/g, ' ')
     .trim();
 }

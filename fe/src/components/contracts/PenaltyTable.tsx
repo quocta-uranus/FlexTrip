@@ -13,7 +13,7 @@ export function PenaltyTable({ rules, conditionNote }: PenaltyTableProps) {
       {conditionNote && (
         <div className="rounded-xl border p-4 text-sm" style={{ borderColor: '#fed7aa', background: '#fff7ed' }}>
           <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: '#c2410c' }}>
-            Tình trạng sản phẩm (Provider khai báo)
+            Tình trạng sản phẩm (Bên A khai báo)
           </p>
           <p style={{ color: '#7c2d12' }}>{conditionNote}</p>
         </div>

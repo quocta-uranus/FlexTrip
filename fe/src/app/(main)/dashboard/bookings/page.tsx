@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import Link from 'next/link';
 import { useProviderBookings, useApproveBooking, useDeclineBooking } from '@/hooks/useBookings';
 import { BookingStatusBadge } from '@/components/booking-status-badge';
@@ -11,11 +12,11 @@ import { rentalDays as rentalDaysFn } from '@/lib/rental-days';
 type Tab = 'PENDING_APPROVAL' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'ALL';
 
 const TABS: Array<{ key: Tab; label: string }> = [
+  { key: 'ALL', label: 'Tất cả' },
   { key: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
   { key: 'CONFIRMED', label: 'Đã xác nhận' },
   { key: 'IN_PROGRESS', label: 'Đang thuê' },
   { key: 'COMPLETED', label: 'Hoàn thành' },
-  { key: 'ALL', label: 'Tất cả' },
 ];
 
 function DeclineModal({
@@ -68,7 +69,7 @@ function DeclineModal({
 }
 
 export default function ProviderBookingsPage() {
-  const [tab, setTab] = useState<Tab>('PENDING_APPROVAL');
+  const [tab, setTab] = useState<Tab>('ALL');
   const [declineTarget, setDeclineTarget] = useState<string | null>(null);
   const approve = useApproveBooking();
 
@@ -85,24 +86,23 @@ export default function ProviderBookingsPage() {
         <DeclineModal bookingId={declineTarget} onClose={() => setDeclineTarget(null)} />
       )}
 
-      <div className="mx-auto max-w-5xl px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <Link href="/dashboard" className="text-sm" style={{ color: '#8694ad' }}>
-              ← Dashboard
-            </Link>
-            <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>Quản lý đặt thuê</h1>
-          </div>
-          {pendingCount > 0 && (
+      <PageHeader
+        breadcrumb={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Đơn thuê' }]}
+        title="Quản lý đặt thuê"
+        subtitle="Duyệt, bắt đầu và hoàn thành các đơn thuê của bạn"
+        actions={
+          pendingCount > 0 && (
             <span
               className="rounded-full px-3 py-1 text-sm font-semibold"
               style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa' }}
             >
               {pendingCount} đơn chờ duyệt
             </span>
-          )}
-        </div>
+          )
+        }
+      />
+
+      <div className={`${PAGE_WIDTH} pb-10`}>
 
         {/* Tabs */}
         <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border bg-white p-1" style={{ borderColor: '#DCEFFB' }}>
@@ -231,14 +231,6 @@ export default function ProviderBookingsPage() {
                           <span className="text-xs" style={{ color: '#8694ad' }}>
                             Staff: <span style={{ color: '#5a6b85' }}>{booking.assignedStaff.name}</span>
                           </span>
-                          {booking.assignedStaff.staffProfile?.employeeCode && (
-                            <span
-                              className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                            >
-                              {booking.assignedStaff.staffProfile.employeeCode}
-                            </span>
-                          )}
                         </div>
                       )}
                     </div>

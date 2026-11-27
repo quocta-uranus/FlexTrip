@@ -17,6 +17,16 @@ export class UpdateStaffRuleDto extends PartialType(CreateStaffRuleDto) {}
 
 export class AssignStaffDto {
   @ApiProperty() @IsString() staffId!: string;
+
+  @ApiPropertyOptional({ description: 'Bắt buộc khi đổi từ nhân viên đang phụ trách sang người khác' })
+  @IsOptional() @IsString() @MaxLength(200)
+  reason?: string;
+}
+
+export class UnassignStaffQueryDto {
+  @ApiPropertyOptional({ description: 'Lý do bỏ gán (bắt buộc)' })
+  @IsOptional() @IsString() @MaxLength(200)
+  reason?: string;
 }
 
 export class ListAssignableBookingsQueryDto extends PaginationQueryDto {

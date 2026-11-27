@@ -26,6 +26,7 @@ describe('common utils', () => {
   it('normalizeVi strips diacritics, đ and case', () => {
     expect(normalizeVi('Quận 1, TP.Hồ Chí Minh')).toBe('quan 1, tp.ho chi minh');
     expect(normalizeVi('Đà Lạt')).toBe('da lat');
+    expect(normalizeVi('  Đà   Nẵng ')).toBe('da nang');
   });
 
   it('money helpers', () => {

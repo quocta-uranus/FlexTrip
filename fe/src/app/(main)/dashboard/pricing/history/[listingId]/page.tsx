@@ -111,7 +111,7 @@ export default function PriceHistoryPage({
             </svg>
             Quay lại
           </Link>
-          <h1 className="text-2xl font-bold" style={{ color: '#0f1729' }}>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
             Lịch sử thay đổi giá
           </h1>
           <p className="mt-1 text-sm" style={{ color: '#5a6b85' }}>

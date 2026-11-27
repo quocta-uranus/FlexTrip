@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { PillButton } from '@/components/ui/pill-button';
 import { LISTING_CATEGORIES } from '@/constants/categories';
 import type { ListingCategory } from '@/constants/categories';
 
@@ -19,7 +20,6 @@ const CATEGORY_PHOTOS: Record<ListingCategory, string> = {
 // Three copies of the six cards always cover even a very wide screen, so the loop never shows a gap.
 const COPIES = 3;
 const BASE_SPEED = 0.7;
-const CARD_GAP = 20;
 
 const WIDE_QUERY = '(min-width: 768px)';
 const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
@@ -70,37 +70,27 @@ export function CategoryCarousel() {
     return () => cancelAnimationFrame(frame);
   }, [autoScroll, paused, loopWidth]);
 
-  function step(direction: 1 | -1) {
-    const track = trackRef.current;
-    const card = track?.children[0] as HTMLElement | undefined;
-    if (!track || !card) return;
-    const distance = card.offsetWidth + CARD_GAP;
-    if (autoScroll) {
-      targetRef.current += direction * distance;
-    } else {
-      track.scrollBy({ left: direction * distance, behavior: 'smooth' });
-    }
-  }
-
-  const arrow =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-sky-100 bg-white text-ink shadow-xs transition-colors hover:border-brand hover:text-brand-blue';
   const copies = autoScroll ? COPIES : 1;
 
   return (
-    <section aria-label="Khám phá theo danh mục" className="scroll-mt-28">
-      <div className="mx-auto mb-5 flex max-w-6xl items-end justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <section aria-label="Danh mục thiết bị" className="w-full scroll-mt-24 overflow-hidden py-10 sm:py-14 lg:py-16">
+      <div className="mx-auto mb-8 flex max-w-6xl flex-col justify-between gap-4 px-4 sm:mb-10 sm:flex-row sm:items-end sm:px-6 lg:px-8">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">Khám phá theo danh mục</h2>
-          <p className="mt-1 text-sm text-slate-600">Tìm trang bị chuyên biệt cho từng trải nghiệm dã ngoại.</p>
+          <h2 className="text-[clamp(1.75rem,2.2vw+1rem,2.75rem)] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">
+            Khám phá theo danh mục
+          </h2>
+          <p className="mt-3 text-sm text-slate-600 sm:text-base">
+            Tìm trang bị chuyên biệt cho từng trải nghiệm dã ngoại.
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button type="button" aria-label="Danh mục trước" onClick={() => step(-1)} className={arrow}>
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button type="button" aria-label="Danh mục sau" onClick={() => step(1)} className={arrow}>
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
+        <PillButton
+          href="/search"
+          variant="outline"
+          size="md"
+          className="h-10 border-brand bg-white px-5 text-[13px] font-semibold shadow-none hover:bg-sky-50"
+        >
+          Tất cả thiết bị
+        </PillButton>
       </div>
 
       <div
@@ -112,10 +102,10 @@ export function CategoryCarousel() {
       >
         <ul
           ref={trackRef}
-          // The first card starts on the same left edge as the section title above it.
-          className={`flex gap-5 py-2 ${
+          // No left margin: the track fills the full width and wraps seamlessly, like the landing ticker.
+          className={`m-0 flex list-none items-center gap-6 p-0 ${
             autoScroll
-              ? 'ml-6 w-max will-change-transform lg:ml-[max(2rem,calc((100%-72rem)/2+2rem))]'
+              ? 'w-max will-change-transform'
               : 'snap-x snap-mandatory overflow-x-auto pl-4 pr-4 scroll-pl-4 sm:pl-6 sm:pr-6 sm:scroll-pl-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
           }`}
         >
@@ -124,19 +114,19 @@ export function CategoryCarousel() {
               <li
                 key={`${copy}-${value}`}
                 aria-hidden={copy > 0 || undefined}
-                className="w-[260px] shrink-0 snap-start sm:w-[280px]"
+                className="w-[270px] shrink-0 snap-start sm:w-[310px] lg:w-[330px]"
               >
                 <Link
                   href={`/search?category=${value}`}
                   tabIndex={copy > 0 ? -1 : undefined}
                   draggable={false}
-                  className="group relative flex h-[340px] select-none flex-col justify-between overflow-hidden rounded-3xl bg-ink p-5 text-white"
+                  className="group relative flex h-[390px] select-none flex-col justify-between overflow-hidden rounded-[28px] bg-ink p-5 pb-6 text-white sm:h-[420px] sm:rounded-[32px] lg:h-[450px]"
                 >
                   <Image
                     src={CATEGORY_PHOTOS[value]}
                     alt=""
                     fill
-                    sizes="280px"
+                    sizes="330px"
                     draggable={false}
                     className="z-0 object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -147,10 +137,10 @@ export function CategoryCarousel() {
                     {label}
                   </span>
 
-                  <div className="relative z-20 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-xl font-bold leading-tight text-white">{label}</h3>
-                      <p className="mt-1.5 line-clamp-2 min-h-[2.5rem] text-xs leading-5 text-white/80">{description}</p>
+                  <div className="relative z-20 flex items-end justify-between gap-3 px-1">
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-1 line-clamp-1 text-[11px] font-medium text-white/80 sm:text-xs">{description}</p>
+                      <h3 className="text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">{label}</h3>
                     </div>
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/20 backdrop-blur-md transition-colors group-hover:border-brand group-hover:bg-brand">
                       <ArrowRight className="h-4 w-4" />

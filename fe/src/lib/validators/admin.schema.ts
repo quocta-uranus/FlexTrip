@@ -18,7 +18,7 @@ export const resolveDisputeSchema = (maxRefund: number | null) =>
       path: ['penaltyAmount'], message: 'Chỉ phạt traveler khi chấp nhận tranh chấp',
     })
     .refine((d) => d.refundAmount === undefined || (maxRefund !== null && d.refundAmount <= maxRefund), {
-      path: ['refundAmount'], message: maxRefund === null ? 'Booking chưa có thanh toán' : 'Không được vượt quá số đã thanh toán',
+      path: ['refundAmount'], message: maxRefund === null ? 'Đơn thuê chưa có thanh toán' : 'Không được vượt quá số đã thanh toán',
     });
 export type ResolveDisputeInput = z.infer<ReturnType<typeof resolveDisputeSchema>>;
 

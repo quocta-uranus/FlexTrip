@@ -75,8 +75,8 @@ export class BookingProcessor extends WorkerHost {
     await this.notify(
       booking.travelerId,
       NotificationType.BOOKING,
-      'Booking đã hết hạn giữ chỗ',
-      'Bạn chưa hoàn tất thanh toán trong 15 phút. Booking đã bị huỷ tự động.',
+      'Đơn thuê đã hết hạn giữ chỗ',
+      'Bạn chưa hoàn tất thanh toán trong 15 phút. Đơn thuê đã bị huỷ tự động.',
       { bookingId },
     );
 

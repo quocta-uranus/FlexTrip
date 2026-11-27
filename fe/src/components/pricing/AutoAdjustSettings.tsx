@@ -72,7 +72,7 @@ export function AutoAdjustSettings({ listingId }: Props) {
           onClick={() => setAutoAdjust((v) => !v)}
           className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200"
           style={{ background: autoAdjust ? '#2a7bd9' : '#d1d5db' }}
-          aria-label="Toggle auto-adjust"
+          aria-label="Bật tự động điều chỉnh giá"
         >
           <span
             className="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200"

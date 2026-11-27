@@ -166,7 +166,7 @@ export function DarkAccordionSection() {
           <div className="lg:col-span-5 relative aspect-[4/3] lg:aspect-[4/5] rounded-3xl overflow-hidden shadow-xl border border-white/10 bg-slate-900">
             <img
               src={previousImage}
-              alt="Previous activity background"
+              alt="Ảnh nền hoạt động trước"
               className="absolute inset-0 h-full w-full object-cover"
             />
 

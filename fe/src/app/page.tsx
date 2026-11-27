@@ -1,6 +1,5 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { HeroSection } from "@/components/landing/figma/hero-section";
-import { StatsBar } from "@/components/landing/figma/stats-bar";
 import { StorySection } from "@/components/landing/figma/story-section";
 import { CategorySection } from "@/components/landing/figma/category-section";
 import { FeaturedSection } from "@/components/landing/figma/featured-section";
@@ -27,11 +26,6 @@ export default function Home() {
         <main>
           {/* 1. Inset Hero Shell with Rotating Images, Capsule Search & AI Trigger */}
           <HeroSection />
-
-          {/* 2. Real Stats Bar from GET /public/stats */}
-          <ScrollReveal delayMs={40}>
-            <StatsBar />
-          </ScrollReveal>
 
           {/* 3. Scroll-scrub promise headline + 4 core commitments */}
           <ScrollReveal delayMs={60}>

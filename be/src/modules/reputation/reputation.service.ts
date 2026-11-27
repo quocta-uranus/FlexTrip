@@ -166,7 +166,7 @@ export class ReputationService {
     const metrics = [
       this.gteMetric(
         'completedBookings',
-        'Booking hoàn thành',
+        'Đơn thuê hoàn thành',
         completed,
         thresholds.providerCompleted,
         'booking',
@@ -217,7 +217,7 @@ export class ReputationService {
     const metrics = [
       this.gteMetric(
         'completedBookings',
-        'Booking hoàn thành',
+        'Đơn thuê hoàn thành',
         completed,
         thresholds.travelerCompleted,
         'booking',

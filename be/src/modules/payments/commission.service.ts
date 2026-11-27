@@ -22,7 +22,7 @@ export class CommissionService {
     });
 
 
-    if (!booking?.payment) throw new NotFoundException('Payment not found for booking');
+    if (!booking?.payment) throw new NotFoundException('Không tìm thấy thanh toán của booking');
 
     const existing = await this.prisma.commissionLedger.findUnique({
       where: { paymentId: booking.payment.id },

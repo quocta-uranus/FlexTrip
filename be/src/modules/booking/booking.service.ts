@@ -152,7 +152,7 @@ export class BookingService {
       where: { id: bookingId },
       select: { id: true, travelerId: true, listingId: true, status: true },
     });
-    if (!initialBooking) throw new NotFoundException('Booking không tồn tại');
+    if (!initialBooking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (initialBooking.travelerId !== travelerId) throw new ForbiddenException();
 
     // Remove hold expiry job
@@ -166,9 +166,9 @@ export class BookingService {
         where: { id: bookingId },
         include: { listing: { select: { id: true, title: true, providerId: true } }, payment: true },
       });
-      if (!booking) throw new NotFoundException('Booking không tồn tại');
+      if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
       if (booking.status !== BookingStatus.PENDING_PAYMENT)
-        throw new BadRequestException('Booking không ở trạng thái chờ thanh toán');
+        throw new BadRequestException('Đơn thuê không ở trạng thái chờ thanh toán');
       if (booking.holdExpiresAt && booking.holdExpiresAt < new Date())
         throw new BadRequestException('Thời gian giữ chỗ đã hết, vui lòng đặt lại');
 
@@ -262,7 +262,7 @@ export class BookingService {
         contract: { select: { id: true, status: true, travelerSignedAt: true, providerSignedAt: true } },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const isOwner =
       booking.travelerId === userId || booking.listing.providerId === userId;
@@ -356,7 +356,7 @@ export class BookingService {
       where: { id: bookingId },
       include: { listing: { select: { id: true, title: true, providerId: true } }, payment: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const isTraveler = booking.travelerId === userId;
     const isProvider = booking.listing.providerId === userId;
@@ -380,7 +380,7 @@ export class BookingService {
       case BookingStatus.PENDING_APPROVAL: {
         await this.cancelWithRefund(bookingId, !!booking.payment, cancelledBy, dto.reason, true);
         const notifyId = isTraveler ? booking.listing.providerId : booking.travelerId;
-        await this.notify(notifyId, NotificationType.BOOKING, 'Booking đã bị huỷ',
+        await this.notify(notifyId, NotificationType.BOOKING, 'Đơn thuê đã bị huỷ',
           `${isTraveler ? 'Traveler' : 'Provider'} đã huỷ "${booking.listing.title}". Tiền hoàn 100%.`,
           { bookingId });
         return { message: 'Đã huỷ, hoàn tiền 100%', refundAmount: Number(booking.depositAmount) };
@@ -469,7 +469,7 @@ export class BookingService {
         payment: { select: { id: true, rentalAmount: true, rentalPaidAt: true } },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.listing.providerId !== providerId)
       throw new ForbiddenException('Bạn không phải provider của listing này');
     return booking;

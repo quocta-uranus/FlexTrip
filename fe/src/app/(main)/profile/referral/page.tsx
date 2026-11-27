@@ -1,5 +1,6 @@
 'use client';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { useState } from 'react';
 import { Check, Copy, Users } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
@@ -37,14 +38,14 @@ export default function ReferralPage() {
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Giới thiệu bạn bè</h1>
-        {me && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            Bạn bè đăng ký bằng mã của bạn nhận {vnd(me.rewards.refereeVoucherVnd)}. Khi họ hoàn thành đơn thuê đầu tiên, bạn nhận {vnd(me.rewards.referrerVoucherVnd)} (tối đa {me.rewards.monthlyCap} lượt/tháng).
-          </p>
-        )}
-      </div>
+      <PageHeader
+        bare
+        title="Giới thiệu bạn bè"
+        subtitle={
+          me &&
+          `Bạn bè đăng ký bằng mã của bạn nhận ${vnd(me.rewards.refereeVoucherVnd)}. Khi họ hoàn thành đơn thuê đầu tiên, bạn nhận ${vnd(me.rewards.referrerVoucherVnd)} (tối đa ${me.rewards.monthlyCap} lượt/tháng).`
+        }
+      />
 
       <section className="rounded-2xl border border-border bg-card p-6">
         {isLoading || !me ? <Skeleton className="h-20 w-full" /> : (

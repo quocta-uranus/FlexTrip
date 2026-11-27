@@ -56,7 +56,7 @@ interface AdminProfile {
 
 const initial: AdminProfile = {
   fullName: "Trần Quốc Bảo",
-  email: "bao.admin@flextrip.vn",
+  email: "bao.admin@flextrip.asia",
   phone: "+84 909 000 999",
   employeeId: "EMP-AD-0042",
   department: "Trust & Safety",

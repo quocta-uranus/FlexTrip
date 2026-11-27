@@ -40,11 +40,18 @@ export function HomeGate({ children }: { children: React.ReactNode }) {
   const showTravelerHome =
     isAuthenticated && !isStaffOrAdmin && roles.includes('TRAVELER') && (!roles.includes('PROVIDER') || arrivalMode === 'traveler');
 
+  // Staff work from their dashboard only; the public home is not for them.
+  const sendToStaff = isAuthenticated && roles.includes('STAFF') && !roles.includes('ADMIN');
+
   useEffect(() => {
     if (sendToProvider) router.replace(modeHome('provider'));
   }, [sendToProvider, router]);
 
-  if (sendToProvider) return <div className="min-h-screen bg-sky-50" aria-busy="true" />;
+  useEffect(() => {
+    if (sendToStaff) router.replace('/staff');
+  }, [sendToStaff, router]);
+
+  if (sendToProvider || sendToStaff) return <div className="min-h-screen bg-sky-50" aria-busy="true" />;
   if (showTravelerHome && user) return <TravelerHome userName={user.name} />;
   if (storedSession && !isAuthenticated && !gaveUp) {
     return <div className="min-h-screen bg-sky-50" aria-busy="true" />;

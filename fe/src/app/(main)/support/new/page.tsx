@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import Link from 'next/link';
+import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,14 +34,15 @@ function NewTicketForm() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8 pt-24 sm:pt-28 sm:px-6">
-      <Link href="/support" className="text-sm font-semibold text-[#2a7bd9] hover:underline">← Trung tâm hỗ trợ</Link>
-      <h1 className="mt-3 text-3xl font-bold text-[#0f1729]">Gửi yêu cầu hỗ trợ</h1>
-      <p className="mt-1 text-sm text-[#5a6b85]">
-        Mô tả vấn đề của bạn, hệ thống sẽ tự phân loại và chuyển đến đúng bộ phận. Chúng tôi phản hồi ngay trong ticket này.
-      </p>
+    <main className="flex-1 pb-8">
+      <PageHeader
+        breadcrumb={[{ label: 'Hỗ trợ', href: '/support' }, { label: 'Gửi yêu cầu' }]}
+        title="Gửi yêu cầu hỗ trợ"
+        subtitle="Mô tả vấn đề của bạn, hệ thống sẽ tự phân loại và chuyển đến đúng bộ phận. Chúng tôi phản hồi ngay trong ticket này."
+      />
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5 rounded-2xl border border-[#e2e8f3] bg-white p-6">
+      <div className={PAGE_WIDTH}>
+      <form onSubmit={onSubmit} className="mx-auto w-full max-w-2xl space-y-5 rounded-2xl border border-[#e2e8f3] bg-white p-6">
         <div className="space-y-2">
           <Label htmlFor="subject">Tiêu đề</Label>
           <Input id="subject" placeholder="VD: Chưa nhận được tiền hoàn cọc" maxLength={150} aria-invalid={!!errors.subject} {...form.register('subject')} />
@@ -71,6 +72,7 @@ function NewTicketForm() {
           </Button>
         </div>
       </form>
+      </div>
     </main>
   );
 }

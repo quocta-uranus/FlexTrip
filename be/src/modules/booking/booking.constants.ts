@@ -40,3 +40,11 @@ export const RENTAL_UNPAID_MESSAGE = 'Khách chưa thanh toán tiền thuê còn
 export function isRentalSettled(payment: { rentalAmount: unknown; rentalPaidAt: Date | null }): boolean {
   return !!payment.rentalPaidAt || Number(payment.rentalAmount) <= 0;
 }
+
+// Ngày thuê lưu theo 00:00 UTC của ngày khách chọn, còn "hôm nay" phải tính theo giờ Việt Nam để 6 giờ sáng vẫn được bàn giao.
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+export function isBeforeRentalStart(startDate: Date, now: Date = new Date()): boolean {
+  const today = new Date(now.getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
+  return today < startDate.toISOString().slice(0, 10);
+}

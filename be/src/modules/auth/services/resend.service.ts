@@ -65,7 +65,7 @@ export class ResendService {
             </p>
             <div style="background:#f1f5fa;border-radius:10px;padding:16px;margin-bottom:20px">
               <p style="margin:0;font-size:13px;color:#5a6b85">
-                Cần hỗ trợ? Hãy liên hệ <a href="mailto:support@flextrip.vn" style="color:#2a7bd9">support@flextrip.vn</a>.
+                Cần hỗ trợ? Hãy liên hệ <a href="mailto:support@flextrip.asia" style="color:#2a7bd9">support@flextrip.asia</a>.
               </p>
             </div>
             <p style="margin:0;color:#8694ad;font-size:12px;text-align:center">

@@ -61,7 +61,7 @@ export class ContractsService {
         },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const rentalDays = rentalDaysBetween(booking.startDate, booking.endDate);
 
@@ -89,6 +89,7 @@ export class ContractsService {
       unitPrice: Number(booking.listing.price),
       totalPrice: Number(booking.totalPrice),
       depositAmount: Number(booking.depositAmount),
+      discountAmount: Number(booking.discountAmount),
       depositRate: DEPOSIT_RATE,
       deliveryMethod: booking.deliveryMethod,
       deliveryAddress: booking.deliveryAddress ?? undefined,
@@ -164,7 +165,7 @@ export class ContractsService {
         },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const l = booking.listing;
     const profile = l.provider.providerProfile;
@@ -276,7 +277,7 @@ export class ContractsService {
       where: { id: bookingId },
       select: { id: true, travelerId: true, status: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== travelerId) throw new ForbiddenException();
     if (booking.status !== 'PENDING_PAYMENT') {
       throw new BadRequestException('Chỉ có thể ký hợp đồng khi booking ở trạng thái chờ thanh toán');
@@ -361,7 +362,7 @@ export class ContractsService {
         },
       },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== userId) throw new ForbiddenException();
 
     const rentalDays = rentalDaysBetween(booking.startDate, booking.endDate);
@@ -387,6 +388,7 @@ export class ContractsService {
       unitPrice: Number(booking.listing.price),
       totalPrice: Number(booking.totalPrice),
       depositAmount: Number(booking.depositAmount),
+      discountAmount: Number(booking.discountAmount),
       depositRate: DEPOSIT_RATE,
       deliveryMethod: booking.deliveryMethod,
       deliveryAddress: booking.deliveryAddress ?? undefined,
