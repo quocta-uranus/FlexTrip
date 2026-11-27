@@ -40,6 +40,7 @@ export function getNotificationHref(notification: AppNotification, isProvider: b
   }
   if (notification.type === 'PAYMENT') return '/profile/payments';
   if (ticketId) return `/support/${ticketId}`;
+  if (data.providerApplication === true) return '/become-provider/status';
   if (notification.type === 'REVIEW') {
     if (isProvider) return '/profile/shop';
     return bookingId ? `/bookings/${bookingId}` : '/profile/reviews';

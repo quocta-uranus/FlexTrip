@@ -27,19 +27,17 @@ interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 // One button look for every action in the staff area: tall, rounded, one strong primary and quiet secondaries.
-export function ActionButton({ variant, size = 'md', className, type = 'button', ...props }: ActionButtonProps) {
-  const primary = variant.startsWith('primary');
-  return (
-    <button
-      type={type}
-      className={cn(
-        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl transition-all focus-visible:outline-none focus-visible:ring-[3px] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:active:scale-100 [&_svg]:shrink-0',
-        primary ? 'font-semibold' : 'font-medium',
-        SIZE[size],
-        VARIANT[variant],
-        className,
-      )}
-      {...props}
-    />
+// Same look for a link that must stay a real <a> (ctrl-click, open in new tab).
+export function actionButtonClass(variant: ActionVariant, size: keyof typeof SIZE = 'md', className?: string) {
+  return cn(
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl transition-all focus-visible:outline-none focus-visible:ring-[3px] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:active:scale-100 [&_svg]:shrink-0',
+    variant.startsWith('primary') ? 'font-semibold' : 'font-medium',
+    SIZE[size],
+    VARIANT[variant],
+    className,
   );
+}
+
+export function ActionButton({ variant, size = 'md', className, type = 'button', ...props }: ActionButtonProps) {
+  return <button type={type} className={actionButtonClass(variant, size, className)} {...props} />;
 }

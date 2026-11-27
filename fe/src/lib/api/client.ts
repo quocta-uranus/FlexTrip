@@ -827,7 +827,7 @@ export const providerApplicationApi = {
     api.get('/provider-applications/me') as Promise<{
       application: Pick<
         ProviderApplication,
-        'id' | 'status' | 'adminNote' | 'city' | 'categories' | 'createdAt' | 'updatedAt'
+        'id' | 'status' | 'adminNote' | 'name' | 'phone' | 'email' | 'city' | 'categories' | 'description' | 'createdAt' | 'updatedAt'
       > | null;
     }>,
 

@@ -80,6 +80,18 @@ export default function ApplyProviderPage() {
     if (user) reset((current) => ({ ...current, name: user.name, phone: user.phone ?? '' }));
   }, [user, reset]);
 
+  // A returned application comes back with what was sent, so only the flagged part needs fixing.
+  useEffect(() => {
+    if (entry.state !== 'NEEDS_UPDATE' || !application) return;
+    reset({
+      name: application.name,
+      phone: application.phone,
+      city: application.city,
+      categories: application.categories as ProviderApplicationInput['categories'],
+      description: application.description ?? '',
+    });
+  }, [entry.state, application, reset]);
+
   // Resubmitting is only for a first application or one that came back for changes.
   useEffect(() => {
     if (!isLoading && (entry.state === 'PENDING' || entry.state === 'APPROVED')) {
@@ -138,7 +150,7 @@ export default function ApplyProviderPage() {
 
         <div className="mt-4">
           <h1 className="!text-2xl font-extrabold tracking-tight text-ink sm:!text-3xl">
-            {entry.state === 'NEEDS_UPDATE' ? 'Bổ sung hồ sơ Provider' : 'Đăng ký trở thành Provider'}
+            {entry.state === 'NEEDS_UPDATE' ? 'Gửi lại hồ sơ Provider' : 'Đăng ký trở thành Provider'}
           </h1>
           {entry.state === 'NEEDS_UPDATE' && application?.adminNote && (
             <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
@@ -286,7 +298,8 @@ export default function ApplyProviderPage() {
                     ))}
                   </dl>
                   <p className="rounded-xl bg-sky-50 p-3 text-sm text-slate-600">
-                    Sau khi gửi, bạn theo dõi tình trạng hồ sơ ngay trên FlexTrip. Quản trị viên có thể yêu cầu bổ sung thông tin nếu cần.
+                    Sau khi gửi, bạn theo dõi tình trạng hồ sơ ngay trên FlexTrip.
+                    {entry.state === 'NEEDS_UPDATE' && ' Hồ sơ cũ vẫn được lưu làm lịch sử.'}
                   </p>
                   {submitError && <p className="rounded-xl bg-red-50 p-3 text-sm text-danger">{submitError}</p>}
                 </div>
@@ -308,7 +321,7 @@ export default function ApplyProviderPage() {
               ) : (
                 <button type="submit" disabled={isSubmitting} className={primaryBtn}>
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Gửi đăng ký
+                  {entry.state === 'NEEDS_UPDATE' ? 'Gửi lại hồ sơ' : 'Gửi đăng ký'}
                 </button>
               )}
             </div>

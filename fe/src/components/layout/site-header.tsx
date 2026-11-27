@@ -13,6 +13,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { ProviderMenuItem } from '@/components/provider/provider-menu-item';
 import { ModeSwitcher } from '@/components/layout/mode-switcher';
 import { useAppMode } from '@/hooks/useAppMode';
+import { useProviderEntry } from '@/hooks/useProviderApplication';
 import { modeHome, type AppMode } from '@/lib/app-mode';
 import { jumpToSection } from '@/lib/scroll-to-section';
 import {
@@ -25,18 +26,23 @@ import {
   CreditCard,
   Shield,
   Star,
-  Package,
   LogOut,
   Menu,
   X,
   Globe,
-  Heart,
   MessageCircle,
   Ticket,
   Gift,
   UserPlus,
-  Award, LifeBuoy } from 'lucide-react';
+  Award, LifeBuoy, Store } from 'lucide-react';
 import { useConversations } from '@/hooks/useMessages';
+
+const PROVIDER_ENTRY_LABEL = {
+  NONE: 'Trở thành Provider',
+  PENDING: 'Hồ sơ Provider: chờ duyệt',
+  NEEDS_UPDATE: 'Hồ sơ Provider: chưa được duyệt',
+  APPROVED: 'Hồ sơ Provider đã được duyệt: chuyển sang Provider',
+} as const;
 
 interface SiteHeaderProps {
   isRoot?: boolean;
@@ -97,6 +103,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   const { user, isAuthenticated } = useAuthStore();
   const { mutate: logout } = useLogout();
   const { mode, isDual, setMode } = useAppMode();
+  const providerEntry = useProviderEntry();
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -187,7 +194,7 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
 
   // Role-specific navigation links for logged-in users
   const loggedInNavLinks = isAdmin
-    ? [{ href: '/search', label: 'Xem marketplace' }]
+    ? [{ href: '/search', label: 'Khám phá thiết bị' }]
     : isStaff
       ? [
           { href: '/staff', label: 'Lịch vận hành' },
@@ -214,8 +221,6 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   const supportItem = { href: '/support', label: 'Hỗ trợ', icon: icon(LifeBuoy) };
   const travelerItems = [
     profileItem,
-    { href: '/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
-    { href: '/wishlist', label: 'Thiết bị đã lưu', icon: icon(Heart) },
     { href: '/profile/reviews', label: 'Đánh giá của tôi', icon: icon(Star) },
     loyaltyItem,
     referralItem,
@@ -225,10 +230,6 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
   ];
   const providerItems = [
     profileItem,
-    { href: '/dashboard', label: 'Provider Dashboard', icon: icon(Compass) },
-    { href: '/dashboard/listings', label: 'Quản lý thiết bị', icon: icon(Package) },
-    { href: '/dashboard/bookings', label: 'Đơn thuê', icon: icon(ClipboardList) },
-    { href: '/dashboard/reviews', label: 'Quản lý đánh giá', icon: icon(Star) },
     { href: '/dashboard/incentives', label: 'Ưu đãi top-rated', icon: icon(Award) },
     loyaltyItem,
     referralItem,
@@ -244,13 +245,13 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
     : isStaff
       ? [
           { href: '/staff', label: 'Dashboard', icon: icon(ClipboardList) },
-          { href: '/staff/bookings', label: 'Booking của tôi', icon: icon(ClipboardList) },
+          { href: '/staff/bookings', label: 'Đơn thuê của tôi', icon: icon(ClipboardList) },
           { href: '/staff/complete-profile', label: 'Hồ sơ cá nhân', icon: icon(User) },
         ]
       : isDual
         ? mode === 'provider' ? providerItems : travelerItems
         : isProvider
-          ? [...travelerItems, ...providerItems.filter((item) => item !== profileItem && item !== walletItem && item !== supportItem && item !== voucherItem && item !== loyaltyItem && item !== referralItem)]
+          ? providerItems
           : travelerItems;
 
   const onHome = pathname === '/';
@@ -383,6 +384,29 @@ export function SiteHeader({ isRoot = false }: SiteHeaderProps) {
           {/* Logged in action icons */}
           {isAuthenticated && user && (
             <>
+              {providerEntry.canApply && providerEntry.entry.state !== 'NONE' && (
+                <Link
+                  href={providerEntry.entry.href}
+                  title={PROVIDER_ENTRY_LABEL[providerEntry.entry.state]}
+                  aria-label={PROVIDER_ENTRY_LABEL[providerEntry.entry.state]}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                    onDark ? 'text-white hover:bg-white/10' : 'text-[#68655E] hover:bg-black/5'
+                  }`}
+                >
+                  <span className="relative">
+                    <Store className="h-5 w-5" />
+                    <span
+                      className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ring-2 ${onDark ? 'ring-black/30' : 'ring-white'} ${
+                        providerEntry.entry.state === 'NEEDS_UPDATE'
+                          ? 'bg-red-500'
+                          : providerEntry.entry.state === 'APPROVED'
+                            ? 'bg-emerald-500'
+                            : 'bg-amber-400'
+                      }`}
+                    />
+                  </span>
+                </Link>
+              )}
               <NotificationBell isProvider={providerNav} onDark={onDark} />
               {!isAdmin && !isStaff && (
                 <Link
