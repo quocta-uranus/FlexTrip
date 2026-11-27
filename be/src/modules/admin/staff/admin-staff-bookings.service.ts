@@ -5,6 +5,7 @@ import { AuditService } from '../../audit/audit.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { normalizeVi } from '../../../common/text.util';
 import { RequestContext } from '../../../common/request-context';
+import { bookingCode, bookingCodeTail } from '../../../common/booking-code.util';
 import { AdminStaffService, OPEN_BOOKING_STATUSES } from './admin-staff.service';
 import { AssignStaffDto, ListAssignableBookingsQueryDto } from './dto/admin-staff-rules.dto';
 
@@ -52,7 +53,7 @@ const notifyRemovedStaff = (tx: Prisma.TransactionClient, b: BookingRow, reason:
       userId: b.assignedStaffId!,
       type: NotificationType.BOOKING,
       title: 'Bạn không còn phụ trách đơn thuê',
-      body: `Admin đã rút bạn khỏi booking #${b.id.slice(0, 8)} — ${b.listing.title}. Lý do: ${reason}`,
+      body: `Admin đã rút bạn khỏi đơn thuê ${bookingCode(b.id)} — ${b.listing.title}. Lý do: ${reason}`,
       data: { bookingId: b.id },
     },
   });
@@ -63,17 +64,18 @@ export class AdminStaffBookingsService {
 
   async list(q: ListAssignableBookingsQueryDto) {
     const search = q.search?.trim();
+    const codeTail = search ? bookingCodeTail(search) : null;
     const contains = (s: string) => ({ contains: s, mode: 'insensitive' as const });
     const where: Prisma.BookingWhereInput = {
       ...(q.assigned === true ? { assignedStaffId: { not: null } } : q.assigned === false ? { assignedStaffId: null } : {}),
       ...(q.staffId ? { assignedStaffId: q.staffId } : {}),
       ...(q.status ? { status: q.status } : { status: { in: OPEN_BOOKING_STATUSES } }),
       ...(search
-        ? { OR: [{ id: search }, { listing: { title: contains(search) } }, { listing: { location: contains(search) } }] }
+        ? { OR: [{ id: search }, ...(codeTail ? [{ id: { endsWith: codeTail } }] : []), { listing: { title: contains(search) } }, { listing: { location: contains(search) } }] }
         : {}),
     };
     const [rows, total] = await this.prisma.$transaction([
-      this.prisma.booking.findMany({ where, select: BOOKING_SELECT, orderBy: { startDate: 'asc' }, ...skipTake(q) }),
+      this.prisma.booking.findMany({ where, select: BOOKING_SELECT, orderBy: { createdAt: 'desc' }, ...skipTake(q) }),
       this.prisma.booking.count({ where }),
     ]);
     return paginate(rows.map(toItem), total, q);
@@ -83,7 +85,7 @@ export class AdminStaffBookingsService {
     const b = await tx.booking.findUnique({ where: { id }, select: BOOKING_SELECT });
     if (!b) throw new NotFoundException({ code: 'BOOKING_NOT_FOUND', message: 'Không tìm thấy booking.' });
     if (!OPEN_BOOKING_STATUSES.includes(b.status))
-      throw new ConflictException({ code: 'BOOKING_NOT_ASSIGNABLE', message: `Booking ở trạng thái ${b.status} không thể phân công.` });
+      throw new ConflictException({ code: 'BOOKING_NOT_ASSIGNABLE', message: `Đơn thuê ở trạng thái ${b.status} không thể phân công.` });
     return b;
   }
 
@@ -104,8 +106,8 @@ export class AdminStaffBookingsService {
         data: {
           userId: dto.staffId,
           type: NotificationType.BOOKING,
-          title: 'Booking mới được phân công',
-          body: `Bạn được giao phụ trách booking #${id.slice(0, 8)} — ${updated.listing.title}.`,
+          title: 'Đơn thuê mới được phân công',
+          body: `Bạn được giao phụ trách đơn thuê ${bookingCode(id)} — ${updated.listing.title}.`,
           data: { bookingId: id },
         },
       });
@@ -139,8 +141,8 @@ export class AdminStaffBookingsService {
         data: {
           userId: rule.staffId,
           type: NotificationType.BOOKING,
-          title: 'Booking mới được phân công',
-          body: `Bạn được tự động giao phụ trách booking #${id.slice(0, 8)} — ${updated.listing.title}.`,
+          title: 'Đơn thuê mới được phân công',
+          body: `Bạn được tự động giao phụ trách đơn thuê ${bookingCode(id)} — ${updated.listing.title}.`,
           data: { bookingId: id },
         },
       });

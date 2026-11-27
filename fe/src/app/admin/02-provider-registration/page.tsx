@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Reveal, LiveDot } from "@/components/profile/wow";
 import { providerApplicationApi, type ProviderApplication } from "@/lib/api/client";
 
-import { CATEGORY_ICONS } from "@/constants/categories";
+import { CATEGORY_ICONS, CATEGORY_LABELS } from "@/constants/categories";
 
 const categoryIcons: Record<string, string> = {
   ...CATEGORY_ICONS,
@@ -14,6 +14,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 type FilterTab = "ALL" | "PENDING" | "APPROVED" | "REJECTED";
+const TAB_LABELS: Record<FilterTab, string> = { ALL: "Tất cả", PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" };
 
 export default function ProviderRegistrationPage() {
   const qc = useQueryClient();
@@ -90,7 +91,7 @@ export default function ProviderRegistrationPage() {
             }`}
             style={{ borderColor: filter === tab ? "#2a7bd9" : "transparent" }}
           >
-            {tab.charAt(0) + tab.slice(1).toLowerCase()}
+            {TAB_LABELS[tab]}
             {tab === "PENDING" && pendingCount > 0 && (
               <span
                 className="ml-2 rounded-full px-2 py-0.5 text-xs"
@@ -159,7 +160,7 @@ export default function ProviderRegistrationPage() {
                             className="rounded-lg bg-[#f1f5fa] px-2.5 py-1 text-xs font-medium"
                             style={{ color: "#5a6b85" }}
                           >
-                            {categoryIcons[cat]} {cat.replace("_", " ")}
+                            {categoryIcons[cat]} {(CATEGORY_LABELS as Record<string, string>)[cat] ?? cat}
                           </span>
                         ))}
                         <span className="text-xs" style={{ color: "#8694ad" }}>

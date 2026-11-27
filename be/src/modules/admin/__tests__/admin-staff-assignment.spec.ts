@@ -126,4 +126,22 @@ describe('ADMIN-10 rules & assignment', () => {
     const moved = await api.patch(`/admin/bookings/${hcmBooking.id}/assign`, { staffId: hcm2.id, reason: 'Staff nghỉ ốm' });
     expect(moved.body.assignedStaff).toMatchObject({ id: hcm2.id });
   });
+
+  it('searches by the code users see, in any case and with or without #', async () => {
+    const { api, hcmBooking, dlBooking } = await setup();
+    const code = hcmBooking.id.slice(-12).toUpperCase();
+    for (const q of [code, '#' + code, code.toLowerCase()]) {
+      const res = await api.get('/admin/bookings?search=' + encodeURIComponent(q));
+      expect(res.body.items.map((b: { id: string }) => b.id)).toEqual([hcmBooking.id]);
+    }
+    expect((await api.get('/admin/bookings?search=' + dlBooking.id.slice(-12))).body.items[0].id).toBe(dlBooking.id);
+  });
+
+  it('lists the most recently created booking first', async () => {
+    const { api, hcmBooking, dlBooking } = await setup();
+    await h.prisma.booking.update({ where: { id: hcmBooking.id }, data: { createdAt: new Date('2026-01-01T00:00:00Z') } });
+    await h.prisma.booking.update({ where: { id: dlBooking.id }, data: { createdAt: new Date('2026-06-01T00:00:00Z') } });
+    const ids = (await api.get('/admin/bookings')).body.items.map((b: { id: string }) => b.id);
+    expect(ids.indexOf(dlBooking.id)).toBeLessThan(ids.indexOf(hcmBooking.id));
+  });
 });

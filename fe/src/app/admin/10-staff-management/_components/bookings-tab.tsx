@@ -17,6 +17,7 @@ import { formatDate } from '@/lib/format';
 import type { ApiError } from '@/lib/api/client';
 import type { AssignableBooking, BookingStatus } from '@/types/admin';
 import { BOOKING_STATUS_LABEL } from '@/types/booking';
+import { bookingCode } from '@/lib/booking-code';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
   PENDING_APPROVAL: { bg: 'bg-yellow-50',  text: 'text-yellow-700', dot: 'bg-yellow-400' },
@@ -134,7 +135,7 @@ export function BookingsTab() {
         <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="border-b border-[#f1f5fa] bg-[#f8fafc] text-left">
-              {['Booking', 'Listing', 'Traveler', 'Ngày thuê', 'Trạng thái', 'Staff phụ trách', ''].map((h) => (
+              {['Đơn thuê', 'Sản phẩm', 'Traveler', 'Ngày thuê', 'Trạng thái', 'Staff phụ trách', ''].map((h) => (
                 <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#8694ad]">{h}</th>
               ))}
             </tr>
@@ -155,7 +156,7 @@ export function BookingsTab() {
                 {/* ID */}
                 <td className="px-5 py-3.5">
                   <span className="rounded-md bg-[#f1f5fa] px-2 py-0.5 font-mono text-[11px] text-[#5a6b85]">
-                    #{b.id.slice(0, 8)}
+                    {bookingCode(b.id)}
                   </span>
                 </td>
 
