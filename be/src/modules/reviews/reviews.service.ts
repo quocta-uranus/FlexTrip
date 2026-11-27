@@ -103,7 +103,7 @@ export class ReviewsService {
             },
           });
 
-          if (!booking) throw new NotFoundException('Booking không tồn tại');
+          if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
           if (booking.travelerId !== authorId)
             throw new ForbiddenException(
               'Bạn chỉ có thể đánh giá booking của mình',
@@ -123,7 +123,7 @@ export class ReviewsService {
           if (booking.review)
             throw new ConflictException({
               code: 'REVIEW_ALREADY_EXISTS',
-              message: 'Booking này đã được đánh giá.',
+              message: 'Đơn thuê này đã được đánh giá.',
             });
 
           const review = await tx.review.create({
@@ -195,7 +195,7 @@ export class ReviewsService {
       ) {
         throw new ConflictException({
           code: 'REVIEW_ALREADY_EXISTS',
-          message: 'Booking này đã được đánh giá.',
+          message: 'Đơn thuê này đã được đánh giá.',
         });
       }
       throw error;

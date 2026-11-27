@@ -281,7 +281,7 @@ export const CONFIG_REGISTRY = [
   {
     key: 'trusted_provider_min_completed',
     group: 'reputation',
-    label: 'Booking tối thiểu của Provider uy tín',
+    label: 'Đơn thuê tối thiểu của Provider uy tín',
     description: 'Số booking hoàn thành để đạt huy hiệu Provider uy tín',
     unit: 'booking',
     min: 1,
@@ -317,7 +317,7 @@ export const CONFIG_REGISTRY = [
   {
     key: 'reliable_traveler_min_completed',
     group: 'reputation',
-    label: 'Booking tối thiểu của Traveler đáng tin cậy',
+    label: 'Đơn thuê tối thiểu của Traveler đáng tin cậy',
     description: 'Số booking hoàn thành để đạt huy hiệu Traveler đáng tin cậy',
     unit: 'booking',
     min: 1,

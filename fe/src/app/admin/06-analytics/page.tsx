@@ -35,19 +35,19 @@ export default function AnalyticsPage() {
 
   const kpis = overview?.kpis;
   const kpiCards = [
-    { label: 'Total Revenue', value: formatVnd(kpis?.totalRevenue.value), change: kpis?.totalRevenue.change, icon: '💰', invert: false },
-    { label: 'Platform Commission', value: formatVnd(kpis?.platformCommission.value), change: kpis?.platformCommission.change, icon: '📈', invert: false },
-    { label: 'Active Users', value: kpis?.activeUsers.value?.toLocaleString('vi-VN') ?? '—', change: kpis?.activeUsers.change, icon: '👥', invert: false },
-    { label: 'Cancellation Rate', value: kpis ? `${kpis.cancellationRate.value}%` : '—', change: kpis?.cancellationRate.change, icon: '📉', invert: true },
+    { label: 'Tổng doanh thu', value: formatVnd(kpis?.totalRevenue.value), change: kpis?.totalRevenue.change, icon: '💰', invert: false },
+    { label: 'Hoa hồng nền tảng', value: formatVnd(kpis?.platformCommission.value), change: kpis?.platformCommission.change, icon: '📈', invert: false },
+    { label: 'Người dùng hoạt động', value: kpis?.activeUsers.value?.toLocaleString('vi-VN') ?? '—', change: kpis?.activeUsers.change, icon: '👥', invert: false },
+    { label: 'Tỷ lệ huỷ', value: kpis ? `${kpis.cancellationRate.value}%` : '—', change: kpis?.cancellationRate.change, icon: '📉', invert: true },
   ];
 
   const top = overview?.topMetrics;
   const topMetrics = [
-    { label: 'Avg. Booking Value', value: formatVnd(top?.avgBookingValue) },
-    { label: 'Total Bookings', value: top?.totalBookings?.toLocaleString('vi-VN') ?? '—' },
-    { label: 'Avg. Review Rating', value: top?.avgRating != null ? `${top.avgRating}★` : '—' },
-    { label: 'Provider Count', value: top?.providerCount?.toLocaleString('vi-VN') ?? '—' },
-    { label: 'Listing Count', value: top?.listingCount?.toLocaleString('vi-VN') ?? '—' },
+    { label: 'Giá trị đơn trung bình', value: formatVnd(top?.avgBookingValue) },
+    { label: 'Tổng số đơn thuê', value: top?.totalBookings?.toLocaleString('vi-VN') ?? '—' },
+    { label: 'Điểm đánh giá trung bình', value: top?.avgRating != null ? `${top.avgRating}★` : '—' },
+    { label: 'Số Provider', value: top?.providerCount?.toLocaleString('vi-VN') ?? '—' },
+    { label: 'Số sản phẩm', value: top?.listingCount?.toLocaleString('vi-VN') ?? '—' },
   ];
 
   const growth = overview?.userGrowth;
@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
         <div className="rounded-2xl border bg-white p-6 lg:col-span-2" style={{ borderColor: '#e2e8f3' }}>
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold" style={{ color: '#0f1729' }}>Revenue Trend</h3>
+              <h3 className="text-lg font-bold" style={{ color: '#0f1729' }}>Xu hướng doanh thu</h3>
               <p className="text-xs" style={{ color: '#5a6b85' }}>
                 {granularity === 'month' ? 'Monthly' : granularity === 'week' ? 'Weekly' : 'Daily'} revenue
               </p>
@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Reveal>
           <div className="rounded-2xl border bg-white p-6" style={{ borderColor: '#e2e8f3' }}>
-            <h3 className="mb-4 text-lg font-bold" style={{ color: '#0f1729' }}>Revenue by Category</h3>
+            <h3 className="mb-4 text-lg font-bold" style={{ color: '#0f1729' }}>Doanh thu theo danh mục</h3>
             {loading ? (
               <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : (

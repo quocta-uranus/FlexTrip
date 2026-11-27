@@ -25,10 +25,10 @@ export default function StaffManagementPage() {
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)
           : [
-              { label: 'Total Staff', value: stats?.total ?? 0, color: '#2a7bd9' },
+              { label: 'Tổng nhân viên', value: stats?.total ?? 0, color: '#2a7bd9' },
               { label: 'Đang hoạt động', value: stats?.active ?? 0, color: '#16a34a' },
               { label: 'Đang phụ trách', value: stats?.openAssignments ?? 0, color: '#7c3aed' },
-              { label: 'Booking chưa gán', value: stats?.unassignedBookings ?? 0, color: '#ca8a04' },
+              { label: 'Đơn thuê chưa gán', value: stats?.unassignedBookings ?? 0, color: '#ca8a04' },
             ].map((stat) => (
               <Reveal key={stat.label}>
                 <div className="rounded-2xl border bg-white p-4" style={{ borderColor: '#e2e8f3' }}>
@@ -43,7 +43,7 @@ export default function StaffManagementPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="staff">Nhân viên</TabsTrigger>
           <TabsTrigger value="rules">Rule phân công</TabsTrigger>
-          <TabsTrigger value="bookings">Booking</TabsTrigger>
+          <TabsTrigger value="bookings">Đơn thuê</TabsTrigger>
         </TabsList>
         <TabsContent value="staff"><StaffTab /></TabsContent>
         <TabsContent value="rules"><RulesTab /></TabsContent>

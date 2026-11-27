@@ -86,7 +86,7 @@ export function RuleFormDialog({ open, onOpenChange, rule, onSuccess, onError }:
               <DialogDescription className="mt-1.5 text-sm leading-5 text-slate-300">
                 {editing
                   ? 'Cập nhật khu vực, nhân viên hoặc mức ưu tiên.'
-                  : 'Booking thuộc khu vực này sẽ tự động được gán cho nhân viên được chọn.'}
+                  : 'Đơn thuê thuộc khu vực này sẽ tự động được gán cho nhân viên được chọn.'}
               </DialogDescription>
             </div>
           </div>

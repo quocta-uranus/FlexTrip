@@ -82,7 +82,7 @@ export function BookingWidget({ listing }: Props) {
         <Price price={price} currency={listing.currency} />
         <div className="mt-5 rounded-2xl bg-sky-50 p-4 text-sm leading-relaxed text-slate-600">
           {isAdmin
-            ? 'Tài khoản Admin chỉ xem thông tin marketplace và không thể tạo giao dịch.'
+            ? 'Tài khoản Admin chỉ xem thông tin trên sàn và không thể tạo giao dịch.'
             : 'Đây là thiết bị của bạn. Bạn không thể tự thuê thiết bị này.'}
         </div>
         <Link

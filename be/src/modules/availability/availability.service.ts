@@ -228,7 +228,7 @@ export class AvailabilityService {
       where: { id: bookingId },
       select: { listingId: true },
     });
-    if (!booking) throw new NotFoundException('Booking không tồn tại');
+    if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
 
     const listing = await prisma.listing.findUnique({
       where: { id: booking.listingId },

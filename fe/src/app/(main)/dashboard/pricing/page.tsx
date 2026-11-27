@@ -64,7 +64,7 @@ export default function PricingDashboardPage() {
           <div className="space-y-4">
             {/* Listing selector */}
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#e2e8f3] bg-white px-5 py-4">
-              <span className="text-sm font-semibold" style={{ color: '#5a6b85' }}>Listing:</span>
+              <span className="text-sm font-semibold" style={{ color: '#5a6b85' }}>Sản phẩm:</span>
               {isLoading ? (
                 <Skeleton className="h-8 w-48" />
               ) : (

@@ -90,7 +90,7 @@ export default function AuditLogPage() {
 
       <div className="mb-8 grid gap-4 sm:grid-cols-4">
         {[
-          { label: 'Total Actions (Today)', value: stats?.actionsToday ?? '—', color: '#2a7bd9' },
+          { label: 'Tổng thao tác hôm nay', value: stats?.actionsToday ?? '—', color: '#2a7bd9' },
           { label: 'Người thao tác hôm nay', value: stats?.activeActorsToday ?? '—', color: '#16a34a' },
           { label: 'Config Changes', value: stats?.configChangesWeek ?? '—', color: '#7c3aed' },
           { label: 'Suspensions (7 days)', value: stats?.suspensionsWeek ?? '—', color: '#dc2626' },

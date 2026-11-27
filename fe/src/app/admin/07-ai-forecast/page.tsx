@@ -5,7 +5,7 @@ import { Reveal, LiveDot } from "@/components/profile/wow";
 const forecastData = [
   { month: "Oct 2024", predicted: 520, lower: 480, upper: 560, actual: null },
   { month: "Nov 2024", predicted: 580, lower: 530, upper: 630, actual: null },
-  { month: "Dec 2024", predicted: 720, lower: 660, upper: 780, actual: null },
+  { month: "12/2024", predicted: 720, lower: 660, upper: 780, actual: null },
   { month: "Jan 2025", predicted: 490, lower: 440, upper: 540, actual: null },
   { month: "Feb 2025", predicted: 540, lower: 490, upper: 590, actual: null },
   { month: "Mar 2025", predicted: 620, lower: 560, upper: 680, actual: null },
@@ -36,8 +36,8 @@ export default function AIForecastPage() {
         </div>
         <div className="flex gap-2">
           <select className="rounded-xl border bg-white px-4 py-2 text-sm outline-none" style={{ borderColor: "#e2e8f3" }}>
-            <option>Next 6 months</option>
-            <option>Next 12 months</option>
+            <option>6 tháng tới</option>
+            <option>12 tháng tới</option>
             <option>Quarterly</option>
           </select>
           <button className="inline-flex items-center gap-2 rounded-full bg-[#2a7bd9] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#1e5aa8]">
@@ -50,10 +50,10 @@ export default function AIForecastPage() {
       {/* Forecast Summary */}
       <div className="mb-8 grid gap-4 sm:grid-cols-4">
         {[
-          { label: "Predicted Revenue (6mo)", value: "₫3.37B", confidence: "94%", color: "#2a7bd9" },
-          { label: "Growth Rate", value: "+18.5%", confidence: "High", color: "#16a34a" },
-          { label: "Peak Month", value: "Dec 2024", confidence: "₫720M", color: "#7c3aed" },
-          { label: "Model Accuracy", value: "92.3%", confidence: "MAPE: 7.7%", color: "#ca8a04" },
+          { label: "Doanh thu dự báo (6 tháng)", value: "₫3.37B", confidence: "94%", color: "#2a7bd9" },
+          { label: "Tốc độ tăng trưởng", value: "+18.5%", confidence: "Cao", color: "#16a34a" },
+          { label: "Tháng cao điểm", value: "12/2024", confidence: "₫720M", color: "#7c3aed" },
+          { label: "Độ chính xác mô hình", value: "92.3%", confidence: "MAPE: 7.7%", color: "#ca8a04" },
         ].map((kpi) => (
           <Reveal key={kpi.label}>
             <div className="rounded-2xl border bg-white p-5" style={{ borderColor: "#e2e8f3" }}>
@@ -69,7 +69,7 @@ export default function AIForecastPage() {
       <div className="mb-8 rounded-2xl border bg-white p-6" style={{ borderColor: "#e2e8f3" }}>
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>Revenue Forecast</h3>
+            <h3 className="text-lg font-bold" style={{ color: "#0f1729" }}>Dự báo doanh thu</h3>
             <p className="text-xs" style={{ color: "#5a6b85" }}>Historical data (solid) + AI prediction (dashed)</p>
           </div>
           <div className="flex items-center gap-4">

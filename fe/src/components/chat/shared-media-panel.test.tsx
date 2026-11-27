@@ -50,7 +50,7 @@ describe('SharedMediaPanel', () => {
 
   it('shows files with size and a download link', async () => {
     setup();
-    await userEvent.click(screen.getByRole('tab', { name: 'File' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Tệp' }));
     expect(screen.getByText('báo giá.pdf')).toBeInTheDocument();
     expect(screen.getByText('1.5 MB')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Tải/ })).toHaveAttribute('href', 'https://s.test/a.pdf');
@@ -58,7 +58,7 @@ describe('SharedMediaPanel', () => {
 
   it('shows links, with a card for internal listing links, and never links non-http(s) urls', async () => {
     setup();
-    await userEvent.click(screen.getByRole('tab', { name: 'Link' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Liên kết' }));
     expect(screen.getByRole('link', { name: 'https://example.com/a' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Lều 4 người/ })).toHaveAttribute('href', '/listings/l1');
     expect(screen.getByText('javascript:alert(1)')).toBeInTheDocument();
@@ -69,9 +69,9 @@ describe('SharedMediaPanel', () => {
     empty = true;
     setup();
     expect(screen.getByText('Chưa có ảnh nào')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'File' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Tệp' }));
     expect(screen.getByText('Chưa có file nào')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Link' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Liên kết' }));
     expect(screen.getByText('Chưa có link nào')).toBeInTheDocument();
     empty = false;
   });

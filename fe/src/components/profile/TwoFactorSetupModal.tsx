@@ -123,7 +123,7 @@ export function TwoFactorSetupModal({ onClose, onEnabled }: Props) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={setup.qrDataUrl}
-                    alt="QR Code 2FA"
+                    alt="Mã QR xác thực 2 bước"
                     className="rounded-lg border p-2"
                     style={{ borderColor: '#e2e8f3', width: 180, height: 180 }}
                   />
