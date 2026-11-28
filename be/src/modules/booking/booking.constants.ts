@@ -11,6 +11,7 @@ export const BookingJob = {
   ID_DOC_PURGE: 'id-doc-purge',
   BALANCE_EXPIRY: 'balance-expiry',
   APPROVAL_EXPIRY: 'approval-expiry',
+  OVERDUE_SCAN: 'overdue-scan',
 } as const;
 
 export const HOLD_MINUTES = 15;

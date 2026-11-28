@@ -1,7 +1,7 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BookingStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { PaginationQueryDto } from '../../../../common/dto/pagination.dto';
 
 export class ListAdminBookingsQueryDto extends PaginationQueryDto {
@@ -28,4 +28,21 @@ export class ListAdminBookingsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: '2026-12-31' })
   @IsOptional() @IsString()
   to?: string;
+
+  @ApiPropertyOptional({ enum: ['true', 'false'], description: 'Chỉ lấy đơn quá hạn bàn giao hoặc quá hạn trả' })
+  @IsOptional() @IsIn(['true', 'false'])
+  overdue?: 'true' | 'false';
+}
+
+export const HANDOVER_FAULTS = ['TRAVELER_NO_SHOW', 'PROVIDER_FAULT', 'PLATFORM_FAULT'] as const;
+export type HandoverFault = (typeof HANDOVER_FAULTS)[number];
+
+export class ResolveOverdueHandoverDto {
+  @ApiProperty({ enum: HANDOVER_FAULTS })
+  @IsIn(HANDOVER_FAULTS)
+  fault!: HandoverFault;
+
+  @ApiPropertyOptional()
+  @IsOptional() @IsString() @MaxLength(500)
+  note?: string;
 }

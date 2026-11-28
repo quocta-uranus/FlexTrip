@@ -9,6 +9,7 @@ import { ContractsModule } from '../contracts/contracts.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { VouchersModule } from '../vouchers/vouchers.module';
 import { BOOKING_QUEUE } from './booking.constants';
+import { OverdueService } from './overdue.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { BOOKING_QUEUE } from './booking.constants';
     BullModule.registerQueue({ name: BOOKING_QUEUE }),
   ],
   controllers: [BookingController],
-  providers: [BookingService, BookingProcessor],
+  providers: [BookingService, BookingProcessor, OverdueService],
   exports: [BookingService],
 })
 export class BookingModule {}
