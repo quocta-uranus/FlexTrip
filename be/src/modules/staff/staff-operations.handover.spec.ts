@@ -32,6 +32,7 @@ describe('StaffOperationsService.confirmHandover date rule', () => {
     assignedStaffId: 'staff1',
     checkedInAt: null,
     startDate,
+    endDate: new Date(startDate.getTime() + 5 * DAY),
     payment: { rentalAmount: 21000, rentalPaidAt: null },
     listing: { title: 'Lều trại' },
   });
@@ -57,5 +58,10 @@ describe('StaffOperationsService.confirmHandover date rule', () => {
   it('lets a later day pass the date check', async () => {
     const err = await make(dayFromToday(-3)).confirmHandover('staff1', 'b1', dto, ctx).catch((e) => e);
     expect(err.getResponse()).toMatchObject({ code: 'RENTAL_UNPAID' });
+  });
+
+  it('rejects a handover after the rental has ended', async () => {
+    const err = await make(dayFromToday(-6)).confirmHandover('staff1', 'b1', dto, ctx).catch((e) => e);
+    expect(err.getResponse()).toMatchObject({ code: 'HANDOVER_TOO_LATE' });
   });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
 import Link from 'next/link';
 import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import { useMyListings } from '@/hooks/useListings';
@@ -223,6 +224,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="shrink-0 text-right">
                           <BookingStatusBadge status={booking.status as BookingStatus} />
+                          <OverdueBadge booking={booking} className="mt-1.5" />
                           <p className="mt-1.5 text-xs font-bold text-[#2a7bd9]">
                             {price.toLocaleString('vi-VN')} ₫
                           </p>

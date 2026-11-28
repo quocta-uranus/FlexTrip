@@ -7,6 +7,7 @@ import { RefundService } from '../../payments/refund.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { toNumber } from '../../../common/money.util';
 import { loadPresentedContract } from '../../contracts/contracts.present';
+import { suggestLateFee } from '../../booking/late-fee.util';
 import { RequestContext } from '../../../common/request-context';
 import {
   ListDisputesQueryDto, ResolveDisputeDto, UpdateDisputePriorityDto, UpdateDisputeStatusDto,
@@ -135,6 +136,7 @@ export class AdminDisputesService {
         : null,
       contract: presentedContract ? { ...booking.contract, ...presentedContract } : booking.contract,
       history,
+      lateFee: suggestLateFee(booking),
     };
   }
 

@@ -13,7 +13,7 @@ export function useStaffTasks(date: string) {
   return useQuery({ queryKey: [...KEY, 'tasks', date], queryFn: () => staffApi.tasks(date) });
 }
 
-export function useMyBookings(params: { status?: string; page?: number; limit?: number } = {}) {
+export function useMyBookings(params: { status?: string; overdue?: 'true'; page?: number; limit?: number } = {}) {
   return useQuery({
     queryKey: [...KEY, 'my-bookings', params],
     queryFn: () => staffApi.myBookings(params),

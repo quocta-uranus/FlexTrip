@@ -30,6 +30,8 @@ import { AdminReviewsController } from './reviews/admin-reviews.controller';
 import { AdminReviewsService } from './reviews/admin-reviews.service';
 import { AdminBookingsController } from './bookings/admin-bookings.controller';
 import { AdminBookingsService } from './bookings/admin-bookings.service';
+import { AdminOverdueService } from './bookings/admin-overdue.service';
+import { VouchersModule } from '../vouchers/vouchers.module';
 import { AdminCommissionsController } from './finance/admin-commissions.controller';
 import { AdminCommissionsService } from './finance/admin-commissions.service';
 import { AdminModerationTermsController } from './moderation-terms/admin-moderation-terms.controller';
@@ -54,7 +56,7 @@ import { AdminReferralsController } from './referrals/admin-referrals.controller
 import { AdminReferralsService } from './referrals/admin-referrals.service';
 
 @Module({
-  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
+  imports: [AuthModule, ReviewsModule, PaymentsModule, SupportModule, VouchersModule, BullModule.registerQueue({ name: REPORT_SCHEDULE_QUEUE })],
   controllers: [
     AdminUsersController,
     AdminListingsController,
@@ -94,6 +96,7 @@ import { AdminReferralsService } from './referrals/admin-referrals.service';
     AdminStaffBookingsService,
     AdminReviewsService,
     AdminBookingsService,
+    AdminOverdueService,
     AdminCommissionsService,
     AdminModerationTermsService,
     AdminTicketsService,

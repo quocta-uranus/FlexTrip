@@ -1,5 +1,6 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
 import { useState } from 'react';
 import {
   CalendarDays, CheckCircle2, ClipboardList, Clock3,
@@ -62,7 +63,10 @@ function BookingCard({ booking }: { booking: StaffBooking }) {
                 {booking.deliveryAddress ?? booking.listing.location}
               </p>
             </div>
-            <StatusBadge status={booking.status} />
+            <div className="flex flex-col items-end gap-1.5">
+              <StatusBadge status={booking.status} />
+              <OverdueBadge booking={booking} />
+            </div>
           </div>
 
           {/* Dates */}

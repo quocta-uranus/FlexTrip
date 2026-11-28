@@ -102,6 +102,7 @@ export class AuthHarness {
   };
   bookingQueue = {
     add: jest.fn(),
+    upsertJobScheduler: jest.fn(),
     remove: jest.fn(),
     getJob: jest.fn(),
   };

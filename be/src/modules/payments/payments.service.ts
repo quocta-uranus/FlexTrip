@@ -5,7 +5,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import {
-  BookingStatus, CancelledBy, PaymentGateway, PaymentStatus, WalletTxType, TopupStatus,
+  BookingStatus, CancelledBy, PaymentGateway, PaymentStatus, Prisma, RefundReason, RefundStatus,
+  WalletTxType, TopupStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from './wallet.service';
@@ -63,6 +64,10 @@ export class PaymentsService implements OnApplicationBootstrap {
     if (booking.status !== BookingStatus.PENDING_PAYMENT) {
       throw new BadRequestException('Đơn thuê không ở trạng thái chờ thanh toán');
     }
+    // Past the hold the dates may already belong to someone else
+    if (booking.holdExpiresAt && booking.holdExpiresAt < new Date()) {
+      throw new BadRequestException('Thời gian giữ chỗ đã hết, vui lòng đặt lại');
+    }
 
     const totalAmount = Number(booking.totalPrice);
     const depositAmount = Number(booking.depositAmount);
@@ -83,9 +88,6 @@ export class PaymentsService implements OnApplicationBootstrap {
     if (fraudResult?.action === 'REVIEW') {
       this.logger.warn(`Payment flagged for REVIEW: ${bookingId}, score=${fraudResult.riskScore}, flags=${fraudResult.flags.join(', ')}`);
     }
-
-    // Cancel hold expiry job so booking is not auto-cancelled while payment is in progress
-    await this.bookingQueue.remove(`hold-${bookingId}`).catch(() => null);
 
     if (depositAmount <= 0) {
       await this.prisma.$transaction([
@@ -181,6 +183,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         returnUrl,
         cancelUrl,
         ipAddress,
+        expiresAt: booking.holdExpiresAt,
       });
 
       await this.prisma.payment.upsert({
@@ -305,16 +308,17 @@ export class PaymentsService implements OnApplicationBootstrap {
     response: unknown,
     linkWebhookLog: boolean,
   ) {
-    const flipped = await this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.payment.updateMany({
-        where: { id: paymentId, status: { not: PaymentStatus.PAID } },
+        // REFUNDED is excluded so a repeated callback cannot refund a late payment twice
+        where: { id: paymentId, status: { notIn: [PaymentStatus.PAID, PaymentStatus.REFUNDED] } },
         data: {
           status: PaymentStatus.PAID,
           gatewayTransId: transactionId,
           gatewayResponse: response as object,
         },
       });
-      if (count === 0) return false;
+      if (count === 0) return 'duplicate';
 
       if (linkWebhookLog) {
         await tx.paymentWebhookLog.updateMany({
@@ -323,13 +327,72 @@ export class PaymentsService implements OnApplicationBootstrap {
         });
       }
 
-      await tx.booking.update({
-        where: { id: bookingId },
+      const advanced = await tx.booking.updateMany({
+        where: {
+          id: bookingId,
+          status: BookingStatus.PENDING_PAYMENT,
+          OR: [{ holdExpiresAt: null }, { holdExpiresAt: { gt: new Date() } }],
+        },
         data: { status: BookingStatus.PENDING_APPROVAL },
       });
-      return true;
+      if (advanced.count > 0) return 'accepted';
+
+      await tx.booking.updateMany({
+        where: { id: bookingId, status: BookingStatus.PENDING_PAYMENT },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancelledBy: CancelledBy.SYSTEM,
+          cancellationReason: 'Hết thời gian giữ chỗ (15 phút)',
+          cancelledAt: new Date(),
+        },
+      });
+      const payment = await tx.payment.update({
+        where: { id: paymentId },
+        data: { status: PaymentStatus.REFUNDED },
+        select: { depositAmount: true },
+      });
+      await this.refundLatePayment(tx, paymentId, bookingId, Number(payment.depositAmount));
+      return 'refunded';
     });
-    if (flipped) await this.notifyDepositPaid(bookingId);
+    if (outcome === 'accepted') await this.notifyDepositPaid(bookingId);
+    if (outcome === 'refunded') await this.vouchersSvc.onBookingCancelled(bookingId, CancelledBy.SYSTEM);
+  }
+
+  // Money that arrives after the order is gone goes back to the traveler's wallet
+  private async refundLatePayment(tx: Prisma.TransactionClient, paymentId: string, bookingId: string, amount: number) {
+    if (amount <= 0) return;
+    const booking = await tx.booking.findUniqueOrThrow({
+      where: { id: bookingId },
+      select: { travelerId: true, listing: { select: { title: true } } },
+    });
+    const note = `Hoàn tiền do thanh toán sau khi đơn thuê “${booking.listing.title}” đã hết hiệu lực`;
+    const wallet = await tx.wallet.upsert({
+      where: { userId: booking.travelerId },
+      create: { userId: booking.travelerId, availableBalance: amount },
+      update: { availableBalance: { increment: amount } },
+    });
+    await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.walletId, type: WalletTxType.REFUND, amount,
+        balanceAfter: wallet.availableBalance, refType: 'booking', refId: bookingId, note,
+      },
+    });
+    await tx.refundRecord.create({
+      data: {
+        paymentId, amount, reason: RefundReason.SYSTEM,
+        status: RefundStatus.PROCESSED, note, processedAt: new Date(),
+      },
+    });
+    await tx.payment.update({ where: { id: paymentId }, data: { refundedAmount: { increment: amount } } });
+    await tx.notification.create({
+      data: {
+        userId: booking.travelerId,
+        type: 'PAYMENT',
+        title: 'Đã hoàn tiền vào ví',
+        body: `Đơn thuê "${booking.listing.title}" đã hết hiệu lực khi tiền về, nên số tiền được hoàn vào ví FlexTrip của bạn.`,
+        data: { bookingId },
+      },
+    });
   }
 
   async scheduleApprovalExpiry(bookingId: string, delay: number = APPROVAL_WINDOW_MS) {
@@ -431,6 +494,7 @@ export class PaymentsService implements OnApplicationBootstrap {
         description: `FT ${bookingId.slice(-8)} thue`,
         returnUrl,
         cancelUrl,
+        expiresAt: booking.balanceDueAt,
       });
       await this.prisma.payment.update({
         where: { id: payment.id },
@@ -488,7 +552,7 @@ export class PaymentsService implements OnApplicationBootstrap {
     transactionId: string | null,
     response: unknown,
   ) {
-    const { count } = await this.prisma.payment.updateMany({
+    const claim = {
       where: { id: paymentId, rentalPaidAt: null },
       data: {
         rentalPaidAt: new Date(),
@@ -496,7 +560,24 @@ export class PaymentsService implements OnApplicationBootstrap {
         rentalTransId: transactionId,
         ...(response ? { gatewayResponse: response as object } : {}),
       },
+    };
+    const current = await this.prisma.booking.findUniqueOrThrow({
+      where: { id: bookingId },
+      select: { status: true },
     });
+    if (current.status === BookingStatus.CANCELLED || current.status === BookingStatus.REFUNDED) {
+      await this.prisma.$transaction(async (tx) => {
+        if ((await tx.payment.updateMany(claim)).count === 0) return;
+        const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId }, select: { rentalAmount: true } });
+        const amount = Number(payment.rentalAmount);
+        // A wallet payment was already moved into escrow, so take it back out
+        if (gateway === PaymentGateway.WALLET && amount > 0) await this.escrowSvc.debit(amount, tx);
+        await this.refundLatePayment(tx, paymentId, bookingId, amount);
+      });
+      return;
+    }
+
+    const { count } = await this.prisma.payment.updateMany(claim);
     if (count === 0) return;
 
     await this.applyDepositToPrice(paymentId);

@@ -1,5 +1,6 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -9,7 +10,7 @@ import {
 import { StartChatButton } from '@/components/chat/start-chat-button';
 import { ActionButton } from '@/components/staff/action-button';
 import { ConditionDialog } from '@/components/staff/condition-dialog';
-import { isBeforeRentalStart } from '@/lib/handover-date';
+import { isAfterRentalEnd, isBeforeRentalStart } from '@/lib/handover-date';
 import { MediationFormDialog } from '@/components/staff/mediation-form-dialog';
 import { MediationActionDialog } from '@/components/staff/mediation-action-dialog';
 import { ContractViewer } from '@/components/contracts/ContractViewer';
@@ -146,6 +147,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const canHandover = booking.status === 'CONFIRMED' && !booking.checkedInAt;
   const canReturn = (booking.status === 'IN_PROGRESS' || booking.status === 'DISPUTED') && booking.checkedInAt && !booking.checkedOutAt;
   const tooEarly = Boolean(canHandover) && isBeforeRentalStart(booking.startDate);
+  const tooLate = Boolean(canHandover) && isAfterRentalEnd(booking.endDate);
   const canMediate = booking.status === 'CONFIRMED' || booking.status === 'IN_PROGRESS';
   const hasNextStep = Boolean(canHandover || canReturn);
   const statusCfg = STATUS_STYLE[booking.status] ?? { label: booking.status, bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' };
@@ -199,6 +201,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusCfg.dot }} />
                 {statusCfg.label}
               </span>
+              <OverdueBadge booking={booking} />
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -252,6 +255,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                 <p className="mt-1 text-sm text-[#0f1729]">
                   {canReturn ? (
                     <>Nhận lại thiết bị từ khách vào <b>{formatDate(booking.endDate)}</b>. Kiểm tra ngoại quan, phụ kiện và chụp ảnh tình trạng.</>
+                  ) : tooLate ? (
+                    <>Đã qua ngày kết thúc thuê nên không thể bàn giao. Vui lòng báo Admin xử lý đơn quá hạn.</>
                   ) : (
                     tooEarly ? (
                     <>Chưa tới ngày thuê. Có thể bàn giao từ <b>{formatDate(booking.startDate)}</b>.</>
@@ -272,7 +277,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
                     <Camera className="h-[18px] w-[18px]" />Kiểm tra & hoàn thành thuê
                   </ActionButton>
                 ) : (
-                  <ActionButton variant="primary-blue" disabled={tooEarly} onClick={() => setConditionDialog('HANDOVER')}>
+                  <ActionButton variant="primary-blue" disabled={tooEarly || tooLate} onClick={() => setConditionDialog('HANDOVER')}>
                     <Camera className="h-[18px] w-[18px]" />Giao thiết bị & bắt đầu thuê
                   </ActionButton>
                 )}

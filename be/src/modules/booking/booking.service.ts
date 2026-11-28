@@ -15,6 +15,7 @@ import {
 import {
   BOOKING_QUEUE, BookingJob, HOLD_MINUTES, REMINDER_DAYS_BEFORE, throwProviderHandoverBlocked,
 } from './booking.constants';
+import { daysPast } from './overdue.util';
 import { PaymentsService } from '../payments/payments.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { priceBooking, rentalDaysBetween } from './booking-price.util';
@@ -154,9 +155,6 @@ export class BookingService {
     });
     if (!initialBooking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (initialBooking.travelerId !== travelerId) throw new ForbiddenException();
-
-    // Remove hold expiry job
-    await this.bookingQueue.remove(`hold-${bookingId}`);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       // Row lock on Listing
@@ -399,6 +397,9 @@ export class BookingService {
             `Provider huỷ "${booking.listing.title}". Bạn sẽ được hoàn 100%.`, { bookingId });
           return { message: 'Đã huỷ, hoàn tiền 100%', refundAmount: Number(booking.depositAmount) };
         }
+        // Past the start date the fault is unknown, so an admin decides instead of the traveler forfeiting the money
+        if (daysPast(booking.startDate) > 0)
+          throw new BadRequestException('Đơn đã quá hạn bàn giao. Vui lòng liên hệ FlexTrip để được xử lý.');
         const daysUntilStart = Math.ceil(
           (new Date(booking.startDate).getTime() - Date.now()) / 86_400_000,
         );

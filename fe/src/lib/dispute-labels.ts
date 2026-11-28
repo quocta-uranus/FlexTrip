@@ -60,6 +60,7 @@ export const DISPUTE_ACTION_LABELS: Record<string, string> = {
   DISPUTE_RESOLVED: 'Chấp nhận tranh chấp',
   DISPUTE_REJECTED: 'Từ chối tranh chấp',
   DISPUTE_STAFF_ESCALATED: 'Nhân viên chuyển tranh chấp lên admin',
+  DISPUTE_LATE_RETURN_OPENED: 'Mở tranh chấp trả trễ',
 };
 
 export const DISPUTE_FIELD_LABELS: Record<string, string> = {

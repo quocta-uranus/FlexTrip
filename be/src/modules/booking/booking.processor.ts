@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
 import { VouchersService } from '../vouchers/vouchers.service';
 import { BOOKING_QUEUE, BookingJob, isRentalSettled } from './booking.constants';
+import { OverdueService } from './overdue.service';
 
 @Processor(BOOKING_QUEUE)
 export class BookingProcessor extends WorkerHost {
@@ -15,6 +16,7 @@ export class BookingProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     @Optional() private readonly paymentsSvc?: PaymentsService,
     @Optional() private readonly vouchersSvc?: VouchersService,
+    @Optional() private readonly overdueSvc?: OverdueService,
   ) {
     super();
   }
@@ -27,7 +29,7 @@ export class BookingProcessor extends WorkerHost {
         await this.handleHoldExpiry(bookingId);
         break;
       case BookingJob.AUTO_START:
-        await this.handleAutoStart(bookingId);
+        this.handleAutoStart(bookingId);
         break;
       case BookingJob.REMINDER:
         await this.handleReminder(bookingId);
@@ -46,6 +48,9 @@ export class BookingProcessor extends WorkerHost {
         break;
       case BookingJob.APPROVAL_EXPIRY:
         await this.handleApprovalExpiry(bookingId);
+        break;
+      case BookingJob.OVERDUE_SCAN:
+        await this.overdueSvc?.scan();
         break;
       default:
         this.logger.warn(`Unknown job: ${job.name}`);
@@ -171,46 +176,12 @@ export class BookingProcessor extends WorkerHost {
     this.logger.log(`Approval expired → CANCELLED: ${bookingId}`);
   }
 
-  // ─── Auto-start: CONFIRMED → IN_PROGRESS khi đến startDate ───────────────
+  // ─── Auto-start: bỏ qua ──────────────────────────────────────────────────
 
-  private async handleAutoStart(bookingId: string) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        id: true, status: true, travelerId: true, assignedStaffId: true,
-        listing: { select: { title: true, providerId: true } },
-        payment: { select: { rentalAmount: true, rentalPaidAt: true } },
-      },
-    });
-    if (!booking || booking.status !== BookingStatus.CONFIRMED) return;
-    // Có staff phụ trách thì chỉ staff mới được bắt đầu cuộc thuê
-    if (booking.assignedStaffId) return;
-    // Chưa trả nốt thì giữ CONFIRMED; job balance-expiry sẽ huỷ khi hết hạn
-    if (booking.payment && !isRentalSettled(booking.payment)) return;
-
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: BookingStatus.IN_PROGRESS },
-    });
-
-    await Promise.all([
-      this.notify(
-        booking.travelerId,
-        NotificationType.BOOKING,
-        'Chuyến thuê đã bắt đầu!',
-        `Đơn thuê "${booking.listing.title}" của bạn đã bắt đầu hôm nay.`,
-        { bookingId },
-      ),
-      this.notify(
-        booking.listing.providerId,
-        NotificationType.BOOKING,
-        'Chuyến thuê đã bắt đầu',
-        `Đơn thuê "${booking.listing.title}" đã bắt đầu hôm nay.`,
-        { bookingId },
-      ),
-    ]);
-
-    this.logger.log(`Auto-start → IN_PROGRESS: ${bookingId}`);
+  // Only a staff handover starts a rental; without its record the return can never be confirmed.
+  // The case stays so jobs already queued are consumed.
+  private handleAutoStart(bookingId: string) {
+    this.logger.log(`Auto-start bỏ qua, chờ Staff bàn giao: ${bookingId}`);
   }
 
   // ─── Reminder: notification 3 ngày trước startDate ───────────────────────

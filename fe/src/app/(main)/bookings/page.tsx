@@ -1,5 +1,6 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, CalendarDays, Check, ClipboardList, Clock, Info, Package, Plus, Truck } from 'lucide-react';
@@ -188,7 +189,10 @@ function FeaturedCard({ booking, now, reviewed }: { booking: Booking; now: Date;
       <div className="flex flex-col gap-3 p-6 sm:p-7">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="rounded-2xl bg-sky-50 px-3.5 py-2 text-[13px] font-bold text-sky-700">{countdown(booking, now)}</span>
-          <BookingStatusBadge status={booking.status} />
+          <div className="flex flex-wrap items-center gap-2">
+            <OverdueBadge booking={booking} />
+            <BookingStatusBadge status={booking.status} />
+          </div>
         </div>
         <h2 className="font-display text-3xl font-medium leading-tight tracking-[-0.02em] text-ink">
           <Link href={`/bookings/${booking.id}`} className="after:absolute after:inset-0">
@@ -241,7 +245,10 @@ function OrderCard({ booking, reviewed }: { booking: Booking; reviewed: boolean 
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4 pt-6">
-        <BookingStatusBadge status={booking.status} className="self-start" />
+        <div className="flex flex-wrap items-center gap-2">
+          <BookingStatusBadge status={booking.status} />
+          <OverdueBadge booking={booking} />
+        </div>
         <h3 className="truncate text-base font-bold tracking-tight text-ink">
           <Link href={`/bookings/${booking.id}`} className="after:absolute after:inset-0">
             {booking.listing?.title ?? `Đơn ${bookingCode(booking.id)}`}

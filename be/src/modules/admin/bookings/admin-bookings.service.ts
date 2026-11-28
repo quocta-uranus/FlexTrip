@@ -3,6 +3,7 @@ import { BookingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { paginate, skipTake } from '../../../common/dto/pagination.dto';
 import { loadPresentedContract } from '../../contracts/contracts.present';
+import { overdueWhere } from '../../booking/overdue.util';
 import { ListAdminBookingsQueryDto } from './dto/admin-bookings.dto';
 
 const LIST_SELECT = {
@@ -57,7 +58,8 @@ export class AdminBookingsService {
     const total = await this.prisma.booking.count();
     const withStaff = await this.prisma.booking.count({ where: { assignedStaffId: { not: null } } });
     const statusMap = Object.fromEntries(counts.map((c) => [c.status, c._count._all])) as Partial<Record<BookingStatus, number>>;
-    return { total, withStaff, withoutStaff: total - withStaff, byStatus: statusMap };
+    const overdue = await this.prisma.booking.count({ where: overdueWhere() });
+    return { total, withStaff, withoutStaff: total - withStaff, byStatus: statusMap, overdue };
   }
 
   async list(q: ListAdminBookingsQueryDto) {
@@ -65,6 +67,7 @@ export class AdminBookingsService {
     const contains = (s: string) => ({ contains: s, mode: 'insensitive' as const });
     const where: Prisma.BookingWhereInput = {
       ...(q.status ? { status: q.status } : {}),
+      ...(q.overdue === 'true' ? { AND: [overdueWhere()] } : {}),
       ...(q.staffId ? { assignedStaffId: q.staffId } : {}),
       ...(q.hasStaff === true ? { assignedStaffId: { not: null } } : q.hasStaff === false ? { assignedStaffId: null } : {}),
       ...(q.from || q.to ? {

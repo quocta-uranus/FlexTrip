@@ -114,6 +114,10 @@ export const adminApi = {
     stats: () => api.get('/admin/bookings-overview/stats') as Promise<T.AdminBookingStats>,
     list: (q: Q) => api.get(`/admin/bookings-overview${toQuery(q)}`) as Promise<T.Paginated<T.AdminBookingRow>>,
     detail: (id: string) => api.get(`/admin/bookings-overview/${id}`) as Promise<T.AdminBookingDetail>,
+    resolveOverdueHandover: (id: string, body: { fault: T.HandoverFault; note?: string }) =>
+      api.post(`/admin/bookings-overview/${id}/overdue-handover`, body) as Promise<{ refunded: number; toProvider: number }>,
+    openLateReturnDispute: (id: string) =>
+      api.post(`/admin/bookings-overview/${id}/late-return-dispute`, {}) as Promise<{ disputeId: string }>,
   },
 
   tickets: {
