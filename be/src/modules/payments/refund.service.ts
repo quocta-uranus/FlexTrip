@@ -58,7 +58,7 @@ export class RefundService {
   ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { payment: true, listing: { select: { providerId: true } } },
+      include: { payment: true, listing: { select: { providerId: true, title: true } } },
     });
     if (!booking?.payment) return;
 
@@ -102,7 +102,7 @@ export class RefundService {
           balanceAfter: wallet.availableBalance,
           refType: 'booking',
           refId: bookingId,
-          note: `Hoàn tiền hủy booking ${bookingId}`,
+          note: `Hoàn tiền hủy đơn thuê “${booking.listing.title}”`,
         },
       });
 
