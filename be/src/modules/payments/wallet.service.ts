@@ -2,6 +2,16 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { WalletTxType, WalletTxStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
+const ID = 'c[a-z0-9]{24}';
+// Wording of notes stored before they carried the listing title; specific patterns come first
+const LEGACY_NOTES: Array<[RegExp, (order: string, title: string) => string]> = [
+  [new RegExp(`Phạt bồi thường thiệt hại, tranh chấp ${ID}`), (order) => `Bồi thường thiệt hại do tranh chấp ${order}`],
+  [new RegExp(`Nhận bồi thường thiệt hại, tranh chấp ${ID}`), (order) => `Nhận bồi thường thiệt hại do tranh chấp ${order}`],
+  [new RegExp(`Hoàn tiền tranh chấp booking ${ID}`), (order) => `Hoàn tiền do tranh chấp ${order}`],
+  [new RegExp(`tiền thuê booking ${ID}`), (_, title) => `tiền thuê đơn${title}`],
+  [new RegExp(`booking ${ID}`), (order) => order],
+];
+
 @Injectable()
 export class WalletService {
   constructor(private readonly prisma: PrismaService) {}
@@ -36,7 +46,39 @@ export class WalletService {
       }),
       this.prisma.walletTransaction.count({ where: { walletId: wallet.walletId } }),
     ]);
-    return { items, total, page, limit };
+    return { items: await this.hideIdsInNotes(items), total, page, limit };
+  }
+
+  // Rewritten on read so that old rows need no database update
+  private async hideIdsInNotes<T extends { refType: string | null; refId: string | null; note: string | null }>(items: T[]) {
+    const legacy = items.filter((t) => LEGACY_NOTES.some(([pattern]) => pattern.test(t.note ?? '')));
+    if (!legacy.length) return items;
+
+    const idsOf = (refType: string) => legacy.flatMap((t) => (t.refType === refType && t.refId ? [t.refId] : []));
+    const [payments, disputes] = await Promise.all([
+      this.prisma.payment.findMany({ where: { id: { in: idsOf('payment') } }, select: { id: true, bookingId: true } }),
+      this.prisma.dispute.findMany({ where: { id: { in: idsOf('dispute-penalty') } }, select: { id: true, bookingId: true } }),
+    ]);
+    const bookingIdByRef = new Map([...payments, ...disputes].map((r) => [r.id, r.bookingId]));
+    const bookingIdOf = (t: T) => (t.refType === 'booking' ? t.refId : bookingIdByRef.get(t.refId ?? '')) ?? '';
+
+    const bookings = await this.prisma.booking.findMany({
+      where: { id: { in: legacy.map(bookingIdOf) } },
+      select: { id: true, listing: { select: { title: true } } },
+    });
+    const titleByBooking = new Map(bookings.map((b) => [b.id, b.listing.title]));
+
+    return items.map((t) => {
+      if (!legacy.includes(t)) return t;
+      const found = titleByBooking.get(bookingIdOf(t));
+      // A deleted order still must not show its id
+      const title = found ? ` “${found}”` : '';
+      const note = LEGACY_NOTES.reduce(
+        (text, [pattern, wording]) => text.replace(pattern, () => wording(`đơn thuê${title}`, title)),
+        t.note ?? '',
+      );
+      return { ...t, note };
+    });
   }
 
   async credit(userId: string, amount: number, opts: {

@@ -161,7 +161,7 @@ export class PaymentsService implements OnApplicationBootstrap {
             amount: depositAmount,
             refType: 'payment',
             refId: payment.id,
-            note: `Giữ cọc booking ${bookingId}`,
+            note: `Giữ cọc đơn thuê “${booking.listing.title}”`,
           },
         });
       });
@@ -373,7 +373,7 @@ export class PaymentsService implements OnApplicationBootstrap {
   async payRental(bookingId: string, travelerId: string, dto: InitiatePaymentDto) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: { payment: true },
+      include: { payment: true, listing: { select: { title: true } } },
     });
     if (!booking) throw new NotFoundException('Đơn thuê không tồn tại');
     if (booking.travelerId !== travelerId) throw new ForbiddenException('Không có quyền thanh toán booking này');
@@ -412,7 +412,7 @@ export class PaymentsService implements OnApplicationBootstrap {
             amount: rentalAmount,
             refType: 'payment',
             refId: payment.id,
-            note: `Thanh toán tiền thuê booking ${bookingId}`,
+            note: `Thanh toán tiền thuê đơn “${booking.listing.title}”`,
           },
         });
         // Tiền thuê nằm trong escrow tới khi booking COMPLETED
@@ -447,7 +447,7 @@ export class PaymentsService implements OnApplicationBootstrap {
   private async applyDepositToPrice(paymentId: string) {
     const payment = await this.prisma.payment.findUniqueOrThrow({
       where: { id: paymentId },
-      select: { gateway: true, depositAmount: true, booking: { select: { id: true, travelerId: true } } },
+      select: { gateway: true, depositAmount: true, booking: { select: { travelerId: true, listing: { select: { title: true } } } } },
     });
     const deposit = Number(payment.depositAmount);
     if (payment.gateway !== PaymentGateway.WALLET || deposit <= 0) return;
@@ -465,7 +465,7 @@ export class PaymentsService implements OnApplicationBootstrap {
           balanceAfter: wallet.availableBalance,
           refType: 'payment',
           refId: paymentId,
-          note: `Cọc được tính vào tiền thuê booking ${payment.booking.id}`,
+          note: `Cọc được tính vào tiền thuê đơn “${payment.booking.listing.title}”`,
         },
       });
       await this.escrowSvc.credit(deposit, tx);

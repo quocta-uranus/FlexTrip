@@ -17,7 +17,7 @@ export class CommissionService {
       where: { id: bookingId },
       include: {
         payment: true,
-        listing: { select: { providerId: true } },
+        listing: { select: { providerId: true, title: true } },
       },
     });
 
@@ -75,7 +75,7 @@ export class CommissionService {
           balanceAfter: providerWallet.availableBalance,
           refType: 'booking',
           refId: bookingId,
-          note: `Thu nhập từ booking ${bookingId}`,
+          note: `Thu nhập từ đơn thuê “${booking.listing.title}”`,
         },
       });
 
@@ -93,7 +93,7 @@ export class CommissionService {
             balanceAfter: staffWallet.availableBalance,
             refType: 'booking',
             refId: bookingId,
-            note: `Hoa hồng staff từ booking ${bookingId}`,
+            note: `Hoa hồng staff từ đơn thuê “${booking.listing.title}”`,
           },
         });
       }
