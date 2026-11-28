@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ActionButton } from '@/components/staff/action-button';
 import { ConditionDialog } from '@/components/staff/condition-dialog';
+import { OverdueSection } from '@/components/staff/overdue-section';
 import { isBeforeRentalStart } from '@/lib/handover-date';
 import { MediationFormDialog } from '@/components/staff/mediation-form-dialog';
 import { MediationActionDialog } from '@/components/staff/mediation-action-dialog';
@@ -330,6 +331,8 @@ export default function StaffDashboard() {
           </Card>
         </div>
       </section>
+
+      <OverdueSection />
 
       {/* ── Thống kê ngày ── */}
       <section className="space-y-4">

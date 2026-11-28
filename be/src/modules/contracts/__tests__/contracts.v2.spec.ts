@@ -12,7 +12,7 @@ const png = (bytes = 3000) =>
 
 describe('CONTRACT-LEGAL v2 signing', () => {
   const h = new ChatHarness();
-  beforeAll(() => h.open((b) => b.overrideProvider(getQueueToken(BOOKING_QUEUE)).useValue({ add: async () => undefined, remove: async () => undefined })));
+  beforeAll(() => h.open((b) => b.overrideProvider(getQueueToken(BOOKING_QUEUE)).useValue({ add: async () => undefined, remove: async () => undefined, upsertJobScheduler: async () => undefined })));
   afterAll(() => h.close());
   beforeEach(async () => {
     await h.reset();

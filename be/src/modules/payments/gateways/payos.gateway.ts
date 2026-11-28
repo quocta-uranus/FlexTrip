@@ -49,6 +49,7 @@ export class PayOsGateway implements IPaymentGateway {
     returnUrl: string;
     cancelUrl: string;
     ipAddress?: string;
+    expiresAt?: Date | null;
   }): Promise<PaymentInitResult> {
     // PayOS needs a unique integer; digits of our alphanumeric code collide (e.g. "1"), so use ms timestamp + 3 random digits
     const numericCode = Number(`${Date.now()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`);
@@ -62,7 +63,9 @@ export class PayOsGateway implements IPaymentGateway {
     };
 
     const signature = this.sign(body);
-    const payload = { ...body, signature };
+    // expiredAt is not part of the signed fields
+    const expiredAt = params.expiresAt ? Math.floor(params.expiresAt.getTime() / 1000) : undefined;
+    const payload = { ...body, signature, expiredAt };
 
     this.logger.debug(`[PayOS] initiate orderCode=${numericCode}`);
 

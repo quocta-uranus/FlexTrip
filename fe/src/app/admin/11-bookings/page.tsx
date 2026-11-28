@@ -1,5 +1,7 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
+import { OverdueActions } from '@/components/admin/overdue-actions';
 import { useState } from 'react';
 import {
   AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight,
@@ -150,7 +152,10 @@ function BookingRow({ row, onSelect }: { row: AdminBookingRow; onSelect: () => v
       )}
 
       <p className="text-sm font-semibold text-[#0f1729]">{fmtMoney(row.totalPrice)}</p>
-      <div><StatusBadge status={row.status} /></div>
+      <div className="flex flex-col items-start gap-1">
+        <StatusBadge status={row.status} />
+        <OverdueBadge booking={row} />
+      </div>
     </div>
   );
 }
@@ -193,7 +198,10 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                     <MapPin className="h-3.5 w-3.5" />{b.listing.location}
                   </p>
                 </div>
-                <StatusBadge status={b.status} />
+                <div className="flex flex-col items-end gap-1">
+                  <StatusBadge status={b.status} />
+                  <OverdueBadge booking={b} />
+                </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg bg-[#f8fafc] px-3 py-2">
@@ -216,6 +224,8 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </p>
               )}
             </div>
+
+            <OverdueActions booking={b} />
 
             {/* Payment */}
             <div className="rounded-xl border border-[#e2e8f3] p-4">
@@ -355,16 +365,20 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function AdminBookingsPage() {
   const [status, setStatus] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const statsQ = useAdminBookingStats();
-  const listQ  = useAdminBookingList({ status: status || undefined, search: search || undefined, page });
+  const listQ  = useAdminBookingList({
+    status: status || undefined, search: search || undefined, overdue: overdueOnly ? 'true' : undefined, page,
+  });
   const stats  = statsQ.data;
 
   const handleSearch = (v: string) => { setSearch(v); setPage(1); };
-  const handleStatus = (v: string) => { setStatus(v); setPage(1); };
+  const handleStatus = (v: string) => { setStatus(v); setOverdueOnly(false); setPage(1); };
+  const showOverdue = () => { setStatus(''); setOverdueOnly(true); setPage(1); };
 
   return (
     <div className="min-h-screen" style={{ background: '#f6fbfe' }}>
@@ -400,11 +414,20 @@ export default function AdminBookingsPage() {
 
         {/* Status filter with counts */}
         <div className="mb-5 flex flex-wrap gap-2">
+          <button
+            onClick={showOverdue}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+              overdueOnly ? 'border-red-600 bg-red-600 text-white' : 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Quá hạn <span>{stats?.overdue ?? 0}</span>
+          </button>
           {FILTER_ORDER.map((value) => {
             const count = value === '' ? stats?.total : (stats?.byStatus as Record<string, number> | undefined)?.[value] ?? 0;
             const cfg = value === '' ? undefined : STATUS_CFG[value];
             const label = cfg?.label ?? 'Tất cả';
-            const active = status === value;
+            const active = !overdueOnly && status === value;
             const empty = value !== '' && !count && !active;
             return (
               <button

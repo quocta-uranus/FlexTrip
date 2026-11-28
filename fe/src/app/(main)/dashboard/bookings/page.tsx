@@ -1,5 +1,6 @@
 'use client';
 
+import { OverdueBadge } from '@/components/overdue-badge';
 import { useState } from 'react';
 import { PageHeader, PAGE_WIDTH } from '@/components/layout/page-header';
 import Link from 'next/link';
@@ -181,7 +182,10 @@ export default function ProviderBookingsPage() {
                             Mã đơn: {bookingCode(booking.id)}
                           </p>
                         </div>
-                        <BookingStatusBadge status={booking.status as BookingStatus} />
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <OverdueBadge booking={booking} />
+                          <BookingStatusBadge status={booking.status as BookingStatus} />
+                        </div>
                       </div>
 
                       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">

@@ -1,5 +1,7 @@
 'use client';
 
+import { getOverdue } from '@/lib/overdue';
+import { OverdueBadge } from '@/components/overdue-badge';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { StartChatButton } from '@/components/chat/start-chat-button';
@@ -167,8 +169,11 @@ function BookingDetailContent() {
   const endDate = new Date(booking.endDate);
   const nights = rentalDays(startDate, endDate);
   const currentStepIdx = STATUS_STEPS.indexOf(booking.status as BookingStatus);
-  const canCancel = ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED'].includes(booking.status);
   const isProvider = user?.id === booking.listing?.providerId;
+  const overdue = getOverdue(booking);
+  // An overdue handover is settled by an admin; the provider may still cancel because that refunds in full
+  const canCancel =
+    ['PENDING_PAYMENT', 'PENDING_APPROVAL', 'CONFIRMED'].includes(booking.status) && (isProvider || overdue?.kind !== 'handover');
   const currentReview = myReviews?.find((review) => review.bookingId === booking.id);
   const isPendingApproval = booking.status === 'PENDING_APPROVAL';
   const canModify = !isProvider && booking.status === 'CONFIRMED';
@@ -235,8 +240,25 @@ function BookingDetailContent() {
           <p className="text-sm" style={{ color: '#8694ad' }}>Đơn {bookingCode(booking.id)}</p>
           <h1 className="mt-1 text-2xl font-bold" style={{ color: '#0f1729' }}>Chi tiết đặt thuê</h1>
         </div>
-        <BookingStatusBadge status={booking.status as BookingStatus} />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <OverdueBadge booking={booking} />
+          <BookingStatusBadge status={booking.status as BookingStatus} />
+        </div>
       </div>
+
+      {overdue && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-semibold">{overdue.label}</p>
+          <p className="mt-1">
+            {overdue.kind === 'handover'
+              ? 'Đã qua ngày bắt đầu thuê nhưng thiết bị chưa được bàn giao. Vui lòng liên hệ FlexTrip để được hỗ trợ.'
+              : isProvider
+                ? 'Khách chưa trả thiết bị đúng hạn. Theo hợp đồng, bạn có quyền yêu cầu bồi thường thiệt hại thực tế phát sinh.'
+                : 'Vui lòng trả thiết bị sớm nhất. Theo hợp đồng, bạn có thể phải bồi thường thiệt hại thực tế phát sinh do trả chậm.'}
+          </p>
+          <Link href="/support" className="mt-1 inline-block font-semibold underline">Liên hệ hỗ trợ</Link>
+        </div>
+      )}
 
       {/* Progress tracker */}
       {!['CANCELLED', 'REFUNDING', 'REFUNDED'].includes(booking.status) && (

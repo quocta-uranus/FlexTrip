@@ -206,6 +206,7 @@ export interface AdminDispute {
   createdAt: string;
 }
 export interface AdminDisputeDetail extends AdminDispute {
+  lateFee: { lateDays: number; dailyPrice: number; amount: number; returned: boolean } | null;
   description: string | null;
   resolution: string | null;
   penaltyAmount: number | null;
@@ -431,6 +432,7 @@ export interface AdminBookingStats {
   withStaff: number;
   withoutStaff: number;
   byStatus: Partial<Record<BookingStatus, number>>;
+  overdue: number;
 }
 export interface AdminBookingRow {
   id: string;
@@ -599,3 +601,5 @@ export interface ReportSchedule {
   lastError: string | null;
   createdBy: { id: string; name: string } | null;
 }
+
+export type HandoverFault = 'TRAVELER_NO_SHOW' | 'PROVIDER_FAULT' | 'PLATFORM_FAULT';

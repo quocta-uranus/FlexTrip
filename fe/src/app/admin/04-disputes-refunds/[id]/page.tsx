@@ -423,8 +423,23 @@ export default function DisputeDetailPage() {
                         className="mt-1"
                         {...form.register('penaltyAmount', { setValueAs: (v) => (v === '' || v == null ? undefined : Number(v)) })}
                       />
+                      {data.lateFee && (
+                        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                          <p>
+                            Trả trễ {data.lateFee.lateDays} ngày × {formatVnd(data.lateFee.dailyPrice)}/ngày = <strong>{formatVnd(data.lateFee.amount)}</strong>
+                          </p>
+                          {!data.lateFee.returned && <p className="mt-1">Thiết bị chưa được nhận lại, số ngày trễ còn tăng. Nên kết luận sau khi đã nhận lại.</p>}
+                          <button
+                            type="button"
+                            onClick={() => form.setValue('penaltyAmount', data.lateFee?.amount)}
+                            className="mt-1 font-semibold underline"
+                          >
+                            Dùng số tiền này
+                          </button>
+                        </div>
+                      )}
                       <p className="mt-1 text-xs text-slate-500">
-                        Dùng khi traveler làm hư hỏng thiết bị. Tiền bị trừ từ ví FlexTrip của traveler (sau khi cộng khoản hoàn nếu có) và cộng vào ví provider. Ví không đủ số dư thì không thể phạt.
+                        Dùng khi traveler làm hư hỏng thiết bị hoặc trả trễ. Tiền bị trừ từ ví FlexTrip của traveler (sau khi cộng khoản hoàn nếu có) và cộng vào ví provider. Ví không đủ số dư thì không thể phạt.
                       </p>
                       {form.formState.errors.penaltyAmount && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.penaltyAmount.message}</p>

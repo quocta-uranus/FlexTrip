@@ -11,6 +11,7 @@ import { uploadImage } from '../../common/upload.util';
 import { AuditService } from '../audit/audit.service';
 import { PaymentsService } from '../payments/payments.service';
 import { RENTAL_UNPAID_MESSAGE, isBeforeRentalStart, isRentalSettled } from '../booking/booking.constants';
+import { daysPast, overdueWhere } from '../booking/overdue.util';
 import { paginate, skipTake } from '../../common/dto/pagination.dto';
 import { loadPresentedContract } from '../contracts/contracts.present';
 import {
@@ -94,6 +95,7 @@ export class StaffOperationsService {
     const where = {
       assignedStaffId: staffId,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.overdue === 'true' ? { AND: [overdueWhere()] } : {}),
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.booking.findMany({
@@ -124,6 +126,11 @@ export class StaffOperationsService {
       throw new ConflictException({
         code: 'HANDOVER_TOO_EARLY',
         message: `Chưa tới ngày thuê (${booking.startDate.toISOString().slice(0, 10).split('-').reverse().join('/')}), chưa thể bàn giao.`,
+      });
+    if (daysPast(booking.endDate) > 0)
+      throw new ConflictException({
+        code: 'HANDOVER_TOO_LATE',
+        message: 'Đã qua ngày kết thúc thuê, không thể bàn giao. Vui lòng báo Admin xử lý đơn quá hạn.',
       });
     if (booking.payment && !isRentalSettled(booking.payment))
       throw new ConflictException({ code: 'RENTAL_UNPAID', message: RENTAL_UNPAID_MESSAGE });

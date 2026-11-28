@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { BookingStatus, DisputePriority, DisputeType, StaffMediationStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsNumber, IsOptional,
+  ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsIn, IsNumber, IsOptional,
   IsString, IsUrl, Length, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { PaginationQueryDto } from '../../../common/dto/pagination.dto';
@@ -64,6 +64,10 @@ export class ListMyBookingsQueryDto {
   @ApiPropertyOptional({ enum: BookingStatus })
   @IsOptional() @IsEnum(BookingStatus)
   status?: BookingStatus;
+
+  @ApiPropertyOptional({ enum: ['true', 'false'] })
+  @IsOptional() @IsIn(['true', 'false'])
+  overdue?: 'true' | 'false';
 
   @ApiPropertyOptional({ example: 1, minimum: 1 })
   @IsOptional() @Type(() => Number) @IsNumber() @Min(1)
