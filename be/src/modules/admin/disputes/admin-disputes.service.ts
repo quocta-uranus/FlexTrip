@@ -145,7 +145,7 @@ export class AdminDisputesService {
         booking: {
           select: {
             id: true, status: true, checkedInAt: true, checkedOutAt: true, travelerId: true,
-            listing: { select: { providerId: true } },
+            listing: { select: { providerId: true, title: true } },
             payment: { select: { totalAmount: true } },
           },
         },
@@ -191,7 +191,10 @@ export class AdminDisputesService {
    * Moves a damage penalty from the traveler's wallet to the provider's. It runs after any refund in the same
    * transaction, so a refund can fund the penalty. The conditional update keeps the balance from going negative.
    */
-  private async chargePenalty(tx: Prisma.TransactionClient, disputeId: string, travelerId: string, providerId: string, amount: number) {
+  private async chargePenalty(
+    tx: Prisma.TransactionClient, disputeId: string, travelerId: string,
+    { providerId, title }: { providerId: string; title: string }, amount: number,
+  ) {
     const debited = await tx.wallet.updateMany({
       where: { userId: travelerId, availableBalance: { gte: amount } },
       data: { availableBalance: { decrement: amount } },
@@ -206,7 +209,7 @@ export class AdminDisputesService {
     await tx.walletTransaction.create({
       data: {
         walletId: traveler.walletId, type: WalletTxType.DEBIT, amount, balanceAfter: traveler.availableBalance,
-        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Phạt bồi thường thiệt hại, tranh chấp ${disputeId}`,
+        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Bồi thường thiệt hại do tranh chấp đơn thuê “${title}”`,
       },
     });
 
@@ -218,7 +221,7 @@ export class AdminDisputesService {
     await tx.walletTransaction.create({
       data: {
         walletId: provider.walletId, type: WalletTxType.CREDIT, amount, balanceAfter: provider.availableBalance,
-        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Nhận bồi thường thiệt hại, tranh chấp ${disputeId}`,
+        refType: PENALTY_REF_TYPE, refId: disputeId, note: `Nhận bồi thường thiệt hại do tranh chấp đơn thuê “${title}”`,
       },
     });
   }
@@ -238,14 +241,14 @@ export class AdminDisputesService {
           });
         if (!REFUNDABLE.includes(d.booking.status))
           throw new ConflictException({ code: 'BOOKING_NOT_REFUNDABLE', message: `Đơn thuê ở trạng thái ${d.booking.status} không thể hoàn tiền.` });
-        await this.refunds.refundDispute(tx, d.booking.id, refund, `Hoàn tiền tranh chấp booking ${d.booking.id}`);
+        await this.refunds.refundDispute(tx, d.booking.id, refund, `Hoàn tiền do tranh chấp đơn thuê “${d.booking.listing.title}”`);
       }
 
       const penalty = dto.penaltyAmount;
       if (penalty !== undefined) {
         if (dto.outcome === 'REJECTED')
           throw new BadRequestException({ code: 'INVALID_PENALTY_AMOUNT', message: 'Chỉ phạt traveler khi chấp nhận tranh chấp.' });
-        await this.chargePenalty(tx, id, d.booking.travelerId, d.booking.listing.providerId, penalty);
+        await this.chargePenalty(tx, id, d.booking.travelerId, d.booking.listing, penalty);
       }
 
       // Money moves now, so a refund goes straight to REFUNDED instead of waiting in REFUNDING.

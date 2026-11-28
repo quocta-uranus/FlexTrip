@@ -40,7 +40,7 @@ export function TransactionRow({ transaction }: { transaction: WalletTransaction
         <Icon className="size-4" strokeWidth={2.2} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{label}</p>
+        <p className="line-clamp-2 text-sm font-semibold text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{formatDateTime(transaction.createdAt)}</p>
       </div>
       <span className={cn('text-sm font-bold', isIncoming ? 'text-sec-600' : 'text-muted-foreground')}>

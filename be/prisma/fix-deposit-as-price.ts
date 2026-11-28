@@ -7,7 +7,8 @@ import { COMMISSION_RATES } from '../src/modules/payments/constants';
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes('--apply');
-const MARKER = 'Cọc được tính vào tiền thuê booking';
+// Prefix shared by the old note ("… booking <id>") and the current one ("… đơn “title”")
+const MARKER = 'Cọc được tính vào tiền thuê';
 
 async function main() {
   const payments = await prisma.payment.findMany({
@@ -19,7 +20,7 @@ async function main() {
       rentalGateway: PaymentGateway.WALLET,
       depositAmount: { gt: 0 },
     },
-    include: { booking: { select: { id: true, status: true, travelerId: true, assignedStaffId: true, listing: { select: { providerId: true } } } } },
+    include: { booking: { select: { id: true, status: true, travelerId: true, assignedStaffId: true, listing: { select: { providerId: true, title: true } } } } },
   });
 
   let fixed = 0;
@@ -69,15 +70,15 @@ async function main() {
         data: {
           walletId: traveler.walletId, type: WalletTxType.DEBIT, amount: deposit,
           balanceAfter: traveler.availableBalance, refType: 'payment', refId: payment.id,
-          note: `${MARKER} ${booking.id}`,
+          note: `${MARKER} đơn “${booking.listing.title}”`,
         },
       });
 
       const credits: Array<{ userId: string; amount: number; note: string }> = [
-        { userId: booking.listing.providerId, amount: providerDelta, note: `Bổ sung thu nhập (tính trên 100% giá) từ booking ${booking.id}` },
+        { userId: booking.listing.providerId, amount: providerDelta, note: `Bổ sung thu nhập (tính trên 100% giá) từ đơn thuê “${booking.listing.title}”` },
       ];
       if (booking.assignedStaffId) {
-        credits.push({ userId: booking.assignedStaffId, amount: staffDelta, note: `Bổ sung hoa hồng staff (tính trên 100% giá) từ booking ${booking.id}` });
+        credits.push({ userId: booking.assignedStaffId, amount: staffDelta, note: `Bổ sung hoa hồng staff (tính trên 100% giá) từ đơn thuê “${booking.listing.title}”` });
       }
       for (const credit of credits.filter((c) => c.amount > 0)) {
         const wallet = await tx.wallet.update({
